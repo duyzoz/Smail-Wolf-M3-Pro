@@ -1,0 +1,106 @@
+/**
+ * skins.ts — danh sách skin grip cho chuột (v2.7, thumb thêm ở v2.8.2).
+ *
+ * "Mặc định" = ảnh anime trắng bro gửi (mouse-m3pro.webp). 66 skin còn lại
+ * tách nền bằng rembg/u2net từ 6 sheet 10 skin + 6 chuột lẻ bro gửi,
+ * normalize về canvas trong suốt 944x1667 (cùng silhouette M3 Pro nên
+ * neo bấm con lăn/DPI/hông đo sẵn dùng chung cho mọi skin).
+ *
+ * File này do skins/make-skins.py + gen-skins-ts.py sinh ra — đừng sửa
+ * tay (chạy lại pipeline sẽ ghi đè). Thêm skin mới: thêm ảnh vào pipeline.
+ */
+export interface SkinDef {
+  id: string;
+  name: string;
+  /** Đường dẫn public, vd '/skins/A01.webp' hoặc '/mouse-m3pro.webp'. */
+  src: string;
+  /** Thumbnail 320px cho hiển thị nhỏ (lưới popup, nút Skin,
+   *  card chọn thiết bị) — v2.8.2: decode 67 ảnh full-res 9MB
+   *  cùng lúc là nguồn lag chính trên máy yếu; thumb chỉ 2.5MB
+   *  và mỗi ảnh decode nhanh hơn ~9 lần. Stage vẫn dùng src đủ nét. */
+  thumb: string;
+}
+
+export const DEFAULT_SKIN_ID = 'default';
+
+export const SKINS: SkinDef[] = [
+  { id: 'default', name: 'Mặc định', src: '/mouse-m3pro.webp', thumb: '/skins/thumbs/default.webp' },
+  { id: 'A01', name: 'Topographic', src: '/skins/A01.webp', thumb: '/skins/thumbs/A01.webp' },
+  { id: 'A02', name: 'Cyber X', src: '/skins/A02.webp', thumb: '/skins/thumbs/A02.webp' },
+  { id: 'A03', name: 'Oni Red', src: '/skins/A03.webp', thumb: '/skins/thumbs/A03.webp' },
+  { id: 'A04', name: 'LED Honeycomb', src: '/skins/A04.webp', thumb: '/skins/thumbs/A04.webp' },
+  { id: 'A05', name: 'Sakura Anime', src: '/skins/A05.webp', thumb: '/skins/thumbs/A05.webp' },
+  { id: 'A06', name: 'Graffiti Purple', src: '/skins/A06.webp', thumb: '/skins/thumbs/A06.webp' },
+  { id: 'A07', name: 'Z-Core', src: '/skins/A07.webp', thumb: '/skins/thumbs/A07.webp' },
+  { id: 'A08', name: 'RGB Wave', src: '/skins/A08.webp', thumb: '/skins/thumbs/A08.webp' },
+  { id: 'A09', name: 'LED Cutout', src: '/skins/A09.webp', thumb: '/skins/thumbs/A09.webp' },
+  { id: 'A10', name: 'Galaxy Moon', src: '/skins/A10.webp', thumb: '/skins/thumbs/A10.webp' },
+  { id: 'B01', name: 'Topography Flow', src: '/skins/B01.webp', thumb: '/skins/thumbs/B01.webp' },
+  { id: 'B02', name: 'Cyber Circuit', src: '/skins/B02.webp', thumb: '/skins/thumbs/B02.webp' },
+  { id: 'B03', name: 'Dragon Ink', src: '/skins/B03.webp', thumb: '/skins/thumbs/B03.webp' },
+  { id: 'B04', name: 'Sakura Aurora', src: '/skins/B04.webp', thumb: '/skins/thumbs/B04.webp' },
+  { id: 'B05', name: 'Anime Cyber', src: '/skins/B05.webp', thumb: '/skins/thumbs/B05.webp' },
+  { id: 'B06', name: 'RGB Honeycomb', src: '/skins/B06.webp', thumb: '/skins/thumbs/B06.webp' },
+  { id: 'B07', name: 'Void Space', src: '/skins/B07.webp', thumb: '/skins/thumbs/B07.webp' },
+  { id: 'B08', name: 'Glitch Pixel', src: '/skins/B08.webp', thumb: '/skins/thumbs/B08.webp' },
+  { id: 'B09', name: 'Flame Ice', src: '/skins/B09.webp', thumb: '/skins/thumbs/B09.webp' },
+  { id: 'B10', name: 'Neon Wave', src: '/skins/B10.webp', thumb: '/skins/thumbs/B10.webp' },
+  { id: 'C01', name: 'Topographic (C01)', src: '/skins/C01.webp', thumb: '/skins/thumbs/C01.webp' },
+  { id: 'C02', name: 'Hex LED', src: '/skins/C02.webp', thumb: '/skins/thumbs/C02.webp' },
+  { id: 'C03', name: 'Samurai', src: '/skins/C03.webp', thumb: '/skins/thumbs/C03.webp' },
+  { id: 'C04', name: 'Cyber Core', src: '/skins/C04.webp', thumb: '/skins/thumbs/C04.webp' },
+  { id: 'C05', name: 'Esports', src: '/skins/C05.webp', thumb: '/skins/thumbs/C05.webp' },
+  { id: 'C06', name: 'Anime Tokyo', src: '/skins/C06.webp', thumb: '/skins/thumbs/C06.webp' },
+  { id: 'C07', name: 'Holographic', src: '/skins/C07.webp', thumb: '/skins/thumbs/C07.webp' },
+  { id: 'C08', name: 'Mecha X-01', src: '/skins/C08.webp', thumb: '/skins/thumbs/C08.webp' },
+  { id: 'C09', name: 'Koi Wave', src: '/skins/C09.webp', thumb: '/skins/thumbs/C09.webp' },
+  { id: 'C10', name: 'Galaxy LED', src: '/skins/C10.webp', thumb: '/skins/thumbs/C10.webp' },
+  { id: 'D01', name: 'Topographic (D01)', src: '/skins/D01.webp', thumb: '/skins/thumbs/D01.webp' },
+  { id: 'D02', name: 'Cyber Mecha', src: '/skins/D02.webp', thumb: '/skins/thumbs/D02.webp' },
+  { id: 'D03', name: 'Dragon Ink (D03)', src: '/skins/D03.webp', thumb: '/skins/thumbs/D03.webp' },
+  { id: 'D04', name: 'LED Honeycomb (D04)', src: '/skins/D04.webp', thumb: '/skins/thumbs/D04.webp' },
+  { id: 'D05', name: 'Circuit Neon', src: '/skins/D05.webp', thumb: '/skins/thumbs/D05.webp' },
+  { id: 'D06', name: 'Anime Eyes', src: '/skins/D06.webp', thumb: '/skins/thumbs/D06.webp' },
+  { id: 'D07', name: 'Wave Fuji', src: '/skins/D07.webp', thumb: '/skins/thumbs/D07.webp' },
+  { id: 'D08', name: 'Galaxy Orbit', src: '/skins/D08.webp', thumb: '/skins/thumbs/D08.webp' },
+  { id: 'D09', name: 'Hex Tech', src: '/skins/D09.webp', thumb: '/skins/thumbs/D09.webp' },
+  { id: 'D10', name: 'Flame Aurora', src: '/skins/D10.webp', thumb: '/skins/thumbs/D10.webp' },
+  { id: 'E01', name: 'Dragon 01', src: '/skins/E01.webp', thumb: '/skins/thumbs/E01.webp' },
+  { id: 'E02', name: 'ZL Wave', src: '/skins/E02.webp', thumb: '/skins/thumbs/E02.webp' },
+  { id: 'E03', name: 'Anime Purple', src: '/skins/E03.webp', thumb: '/skins/thumbs/E03.webp' },
+  { id: 'E04', name: 'Wave Fuji (E04)', src: '/skins/E04.webp', thumb: '/skins/thumbs/E04.webp' },
+  { id: 'E05', name: 'Oni Red (E05)', src: '/skins/E05.webp', thumb: '/skins/thumbs/E05.webp' },
+  { id: 'E06', name: 'Honeycomb Pink', src: '/skins/E06.webp', thumb: '/skins/thumbs/E06.webp' },
+  { id: 'E07', name: 'ZL Cyan', src: '/skins/E07.webp', thumb: '/skins/thumbs/E07.webp' },
+  { id: 'E08', name: 'Sakura Fox', src: '/skins/E08.webp', thumb: '/skins/thumbs/E08.webp' },
+  { id: 'E09', name: 'Galaxy Purple', src: '/skins/E09.webp', thumb: '/skins/thumbs/E09.webp' },
+  { id: 'E10', name: 'Ember Orange', src: '/skins/E10.webp', thumb: '/skins/thumbs/E10.webp' },
+  { id: 'F01', name: 'Topographic Black', src: '/skins/F01.webp', thumb: '/skins/thumbs/F01.webp' },
+  { id: 'F02', name: 'Cyber Neon RGB', src: '/skins/F02.webp', thumb: '/skins/thumbs/F02.webp' },
+  { id: 'F03', name: 'Sakura Wave', src: '/skins/F03.webp', thumb: '/skins/thumbs/F03.webp' },
+  { id: 'F04', name: 'Dragon Ink (F04)', src: '/skins/F04.webp', thumb: '/skins/thumbs/F04.webp' },
+  { id: 'F05', name: 'Mecha Armor', src: '/skins/F05.webp', thumb: '/skins/thumbs/F05.webp' },
+  { id: 'F06', name: 'Hologram Prism', src: '/skins/F06.webp', thumb: '/skins/thumbs/F06.webp' },
+  { id: 'F07', name: 'Carbon Forged', src: '/skins/F07.webp', thumb: '/skins/thumbs/F07.webp' },
+  { id: 'F08', name: 'Void Galaxy', src: '/skins/F08.webp', thumb: '/skins/thumbs/F08.webp' },
+  { id: 'F09', name: 'Oni Mask', src: '/skins/F09.webp', thumb: '/skins/thumbs/F09.webp' },
+  { id: 'F10', name: 'Tech Hex RGB', src: '/skins/F10.webp', thumb: '/skins/thumbs/F10.webp' },
+  { id: 's1', name: 'Animatronic Orange', src: '/skins/s1.webp', thumb: '/skins/thumbs/s1.webp' },
+  { id: 's2', name: 'Animatronic Blue', src: '/skins/s2.webp', thumb: '/skins/thumbs/s2.webp' },
+  { id: 's3', name: 'Animatronic Red', src: '/skins/s3.webp', thumb: '/skins/thumbs/s3.webp' },
+  { id: 's4', name: 'Animatronic Mono', src: '/skins/s4.webp', thumb: '/skins/thumbs/s4.webp' },
+  { id: 's5', name: 'Galaxy Cat', src: '/skins/s5.webp', thumb: '/skins/thumbs/s5.webp' },
+  { id: 's6', name: 'ZNGL Green', src: '/skins/s6.webp', thumb: '/skins/thumbs/s6.webp' },
+];
+
+export function skinById(id: string): SkinDef {
+  return SKINS.find((s) => s.id === id) ?? SKINS[0];
+}
+
+export function skinSrc(id: string): string {
+  return skinById(id).src;
+}
+
+export function skinThumbSrc(id: string): string {
+  return skinById(id).thumb;
+}
