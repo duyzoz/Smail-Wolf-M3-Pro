@@ -1,0 +1,165 @@
+/**
+ * App v3.0 — vỏ vừa đúng 1 viewport ở desktop (pro-max §5 Layout:
+ * Data-Dense Dashboard, density 9): h-dvh + overflow-hidden, topbar gọn,
+ * panel trái đẩy sát lên dưới header, 4 dock dồn sang cột phải xếp 2x2,
+ * chuột nằm dưới chúng — KHÔNG còn scroll trang, KHÔNG còn scroll lồng
+ * trong panel. Mobile (<lg) vẫn cuộn trang bình thường.
+ * v2.5: mở app → màn chọn thiết bị (DevicePicker, kiểu app gốc ảnh 3) →
+ * bấm card chuột → kết nối → loading 3s đúng (ancient-yak-42, che mờ
+ * hết phía sau) → giao diện chính trôi lên (app-enter).
+ * v3.0: blob đỏ kính lỏng đuổi theo con trỏ toàn app (CursorBlob) +
+ * defs SVG của theme-switch Uiverse render 1 lần + dải sáng sweep mỗi
+ * lần đổi theme (không đổi tức thì).
+ */
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { Battery, Cpu, Gauge, Radio } from 'lucide-react';
+import { MouseProvider, useMouse } from './store';
+import { TopBar } from './components/TopBar';
+import { LeftPanel } from './components/LeftPanel';
+import { MouseStage } from './components/MouseStage';
+import { SkinButton, SkinPopup } from './components/SkinPopup';
+import DevicePicker from './components/DevicePicker';
+import LoadingScreen from './components/LoadingScreen';
+import { CursorBlob } from './components/CursorBlob';
+import { ThemeSwitchDefs } from './components/ThemeToggle';
+import { Marquee, Toasts } from './components/ui';
+import { pollingHz } from './lib/hid';
+
+function Docks(): React.JSX.Element {
+  const { config, simPct, simCharging, simSaver, version, mouseName, wired } = useMouse();
+  const currentDpi = config ? config.dpi[config.dpiIndex] : null;
+  const items = [
+    {
+      label: 'DPI hiện tại',
+      value: currentDpi ? currentDpi.toLocaleString('vi-VN') : '—',
+      sub: config ? `Nấc ${config.dpiIndex + 1}/6` : 'Chưa kết nối',
+      icon: <Gauge className="h-4 w-4 text-[#c2410c]" />,
+    },
+    {
+      label: 'Polling rate',
+      value: config ? pollingHz(config.reportRateIndex, wired) : '—',
+      sub: wired ? 'Có dây (125/500/1000)' : '2.4G (125/250/500/1000)',
+      icon: <Radio className="h-4 w-4 text-[#c2410c]" />,
+    },
+    {
+      label: 'Pin (ước tính)',
+      value: config ? `${simPct}%` : '—',
+      sub: !config ? 'Chưa kết nối' : simCharging ? 'Đang sạc · ước tính' : simSaver ? 'Tiết kiệm pin · ước tính' : 'Mô phỏng · ước tính',
+      icon: <Battery className={`h-4 w-4 ${simSaver ? 'text-[#ca8a04]' : 'text-[#c2410c]'}`} />,
+    },
+    {
+      label: 'Firmware',
+      value: version || '—',
+      sub: mouseName ? mouseName : 'Chưa đọc được tên chuột',
+      icon: <Cpu className="h-4 w-4 text-[#c2410c]" />,
+    },
+  ];
+  return (
+    <div className="mt-2 grid shrink-0 grid-cols-2 gap-2" aria-label="Thông số chuột">
+      {items.map((it) => (
+        <div key={it.label} className="dock px-3 py-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-mono2 text-[10px] font-semibold tracking-[0.16em] text-[#55555c] uppercase">
+                {it.label}
+              </div>
+              <div className="font-display mt-1 truncate text-[24px] leading-none font-semibold text-[#16161a]">
+                {it.value}
+              </div>
+              <div className="font-mono2 mt-1 truncate text-[10px] text-[#55555c]">{it.sub}</div>
+            </div>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[rgba(22,22,26,0.12)] bg-white/60">
+              {it.icon}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Shell(): React.JSX.Element {
+  // v2.5: app-enter chỉ gắn khi hết loading — giao diện chính trôi lên
+  // SAU khi màn loading 3s xong (gắn class lúc đó thì animation mới chạy).
+  const { loading } = useMouse();
+  // v2.8: popup skin (thay strip ngang v2.7).
+  const [skinOpen, setSkinOpen] = useState(false);
+  return (
+    <div className={`relative mx-auto flex min-h-dvh max-w-[1440px] flex-col px-4 pb-2 lg:h-dvh lg:overflow-hidden${loading ? '' : ' app-enter'}`}>
+      {/* Góc khung bản vẽ (ảnh 1) */}
+      <div className="pointer-events-none absolute top-2 left-2 hidden h-6 w-6 border-t-2 border-l-2 border-[rgba(22,22,26,0.5)] lg:block" aria-hidden="true" />
+      <div className="pointer-events-none absolute top-2 right-2 hidden h-6 w-6 border-t-2 border-r-2 border-[rgba(22,22,26,0.5)] lg:block" aria-hidden="true" />
+      <TopBar />
+      {/* Layout v2.2 theo yêu cầu của bro: panel trái đẩy sát lên ngay dưới
+          header; 4 dock dồn hết sang cột phải, xếp 2 ô 1 dòng (2x2), chuột
+          3D nằm dưới chúng. Không còn hàng dock ngang phía trên nữa. */}
+      <main className="mt-2 grid flex-1 grid-cols-[minmax(0,1fr)] gap-3 lg:min-h-0 lg:grid-cols-[minmax(380px,40%)_1fr]">
+        <LeftPanel />
+        <div className="flex min-w-0 flex-col gap-3 lg:min-h-0">
+          <Docks />
+          {/* v2.8: nút layer SKIN ngay dưới dock Pin (thay strip ngang
+              v2.7 — bro không muốn lướt ngang nữa) -> bấm mở popup to
+              chứa toàn bộ skin, 5 skin/hàng. */}
+          <SkinButton onOpen={() => setSkinOpen(true)} />
+          <SkinPopup open={skinOpen} onClose={() => setSkinOpen(false)} />
+          <MouseStage />
+        </div>
+      </main>
+      <div className="mt-3 shrink-0">
+        <Marquee
+          items={[
+            'NOTHING IDLE',
+            'EVERY CLICK JUSTIFIED',
+            'EVERY DPI EARNED',
+            'NO WASTED CYCLES',
+            'DESIGNED AT THE TRANSISTOR',
+            'PAW3311 · 12000 DPI',
+          ]}
+        />
+      </div>
+      {/* Footer dài ("SMAILWOLF M3 Pro — Driver remake...") ĐÃ XÓA theo yêu
+          cầu của bro (text thừa, tốn diện tích). Các giới hạn trung thực
+          (macro chỉ ghi, không LED, Demo là mô phỏng) vẫn ghi đúng chỗ
+          trong từng tab, không cần nhắc lại ở chân trang. */}
+      {/* Toasts dời lên Root (v2.5) để hiện được cả ở màn chọn thiết bị
+          (VD: bấm card Live mà lỗi) — không render 2 lần ở đây nữa. */}
+    </div>
+  );
+}
+
+export default function App(): React.JSX.Element {
+  return (
+    <MouseProvider>
+      <Root />
+    </MouseProvider>
+  );
+}
+
+// v2.5: chưa kết nối → màn chọn thiết bị (kiểu app gốc); đã kết nối →
+// giao diện chính; đang load 3s → overlay la bàn che mờ hết phía trên.
+// v3.0: CursorBlob (blob đỏ đuổi theo con trỏ toàn app) + ThemeSwitchDefs
+// (filters #sketchy/#sketchy-sm, 1 lần duy nhất) + dải sáng sweep mỗi
+// lần đổi theme.
+function Root(): React.JSX.Element {
+  const { connected, loading, theme } = useMouse();
+  const [sweepKey, setSweepKey] = useState(0);
+  const firstTheme = useRef(true);
+  useEffect(() => {
+    if (firstTheme.current) {
+      firstTheme.current = false;
+      return;
+    }
+    setSweepKey((k) => k + 1);
+  }, [theme]);
+  return (
+    <>
+      <ThemeSwitchDefs />
+      <CursorBlob />
+      {sweepKey > 0 && <div key={sweepKey} className="theme-sweep-band" aria-hidden="true" />}
+      {!connected ? <DevicePicker /> : <Shell />}
+      <AnimatePresence>{loading && <LoadingScreen />}</AnimatePresence>
+      <Toasts />
+    </>
+  );
+}

@@ -1,0 +1,1783 @@
+/* Self-hosted fonts (SIL OFL, from Google Fonts): Oswald + Fira Code are variable fonts — one file covers all weights, declared per weight exactly like Google serves them. */
+@font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/fira-code-400.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/fira-code-500.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Code'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/fira-code-600.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/fira-sans-400.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/fira-sans-500.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/fira-sans-600.woff2') format('woff2'); }
+@font-face { font-family: 'Fira Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/fira-sans-700.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/oswald-500.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/oswald-600.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/oswald-700.woff2') format('woff2'); }
+
+@import "tailwindcss";
+
+/* ============================================================
+   SMAILWOLF M3 Pro — Driver v2.0 "TRANSISTOR" theme
+   Design system (per ui-ux-pro-max v2.15.0 query):
+   - Style: Minimalism & Swiss Style (grid, clean, high contrast)
+   - Paper #E9E7E2 (ảnh 1) · Ink #16161A · Navy panel #17172B (ảnh 3)
+   - Accent orange #EA580C, button fill #C2410C (trắng trên đó ~4.7:1)
+   - Display Oswald (condensed, như headline ảnh 1) · Mono Fira Code
+     (skill) · Body Fira Sans (skill)
+   - Rules: contrast ≥4.5:1, target ≥44px, focus ring thấy rõ,
+     prefers-reduced-motion, SVG icon (lucide) — không emoji.
+   ============================================================ */
+
+:root {
+  --paper: #e9e7e2;
+  --paper-2: #efede8;
+  --ink: #16161a;
+  --ink-soft: #33333a;
+  --muted-paper: #55555c;
+  --navy: #17172b;
+  --navy-2: #1f1f38;
+  --navy-3: #262640;
+  --paper-on-navy: #edebe6;
+  --muted-on-navy: #a2a2b0;
+  --accent: #ea580c;
+  --accent-deep: #c2410c;
+  --accent-bright: #ff5a1f;
+  --accent-soft: #ff8a3d;
+  --ok: #15803d;
+  --danger: #dc2626;
+  --line-paper: rgba(22, 22, 26, 0.14);
+  --line-navy: rgba(255, 255, 255, 0.1);
+  /* Lưới ô vuông nền trang (body + DevicePicker dùng CHUNG 1 token nên
+     trong == ngoài, kể cả khi đổi theme). */
+  --grid-line: rgba(22, 22, 26, 0.05);
+  /* Bề mặt sáng (dock, popup skin, pill topbar) — dark theme map lại. */
+  --surface: #ffffff;
+  --surface-2: #f4f4f2;
+  --surface-solid: rgba(255, 255, 255, 0.82);
+}
+
+/* v3.0 — DARK THEME (token map lại, không đổi component): nền giấy tối,
+   chữ sáng, lưới ô vuông sáng mờ, bề mặt tối. Panel navy giữ nguyên
+   (đã tối sẵn nên dùng chung cả 2 theme). */
+:root[data-theme="dark"] {
+  --paper: #10101d;
+  --paper-2: #17172b;
+  --ink: #edebe6;
+  --ink-soft: #d5d5de;
+  --muted-paper: #a2a2b0;
+  --line-paper: rgba(255, 255, 255, 0.16);
+  --grid-line: rgba(255, 255, 255, 0.06);
+  --surface: #1e1e30;
+  --surface-2: #262640;
+  --surface-solid: rgba(255, 255, 255, 0.07);
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  color: var(--ink);
+  font-family: "Fira Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  /* v3.0: theme đổi thì màu nền/chữ TRÔI sang (0.5s), không đổi tức thì
+     (pro-max §2 — no instant state changes). */
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+.font-display {
+  font-family: "Oswald", "Arial Narrow", sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.font-mono2 {
+  font-family: "Fira Code", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.dark-panel :focus-visible {
+  outline-color: var(--accent-soft);
+}
+
+/* ---------- Buttons: SINGLE layer (bài học v1.1 — không lớp z-index:-1) ---------- */
+.uiv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 110px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--accent-deep);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 2px 0 rgba(22, 22, 26, 0.9);
+}
+.uiv-btn:hover:not(:disabled) {
+  background: #a83709;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 0 rgba(22, 22, 26, 0.9);
+}
+.uiv-btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(22, 22, 26, 0.9);
+}
+.uiv-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.uiv-btn-ghost {
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  border-color: var(--line-paper);
+  box-shadow: none;
+  /* v2.4: bỏ backdrop-filter (đắt GPU, gây lag khi lướt) — nền đặc hơn
+     nên vẫn giữ cảm giác kính mờ mà không cần blur thật. */
+}
+.uiv-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--ink);
+}
+.dark-panel .uiv-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--paper-on-navy);
+  border-color: var(--line-navy);
+}
+.dark-panel .uiv-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.uiv-btn-danger {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 2px 0 rgba(22, 22, 26, 0.9);
+}
+.uiv-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+/* ---------- Ghost button with floating blob (Uiverse purple-otter-7, verbatim
+   structure, blob recolored orange). SAFETY (bài học v1.1): the blob svg gets
+   pointer-events:none so it can never eat a click. ---------- */
+.uiv-blob-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 110px;
+  padding: 10px 18px;
+  background-color: rgba(232, 232, 232, 0.06);
+  color: var(--paper-on-navy);
+  border: 1.2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+.uiv-blob-btn:hover:not(:disabled) {
+  border-color: var(--accent-bright);
+  background-color: rgba(255, 90, 31, 0.08);
+}
+.uiv-blob-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.uiv-blob-btn .uiv-blob-svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6em;
+  height: 6em;
+  margin-left: -3em;
+  margin-top: -3em;
+  filter: blur(20px);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: uiv-blob-anim 3s infinite;
+}
+.uiv-blob-btn .uiv-blob-svg path {
+  fill: var(--accent-bright);
+}
+@keyframes uiv-blob-anim {
+  0% { transform: translateY(-60px); }
+  50% { transform: translateY(-35px); }
+  100% { transform: translateY(-60px); }
+}
+
+/* ---------- Slider (Uiverse bright-swan-54, gradient recolored orange) ---------- */
+.uiv-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent-bright));
+  outline: none;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.uiv-slider:hover {
+  opacity: 1;
+}
+.uiv-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--accent-deep);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(22, 22, 26, 0.35);
+}
+.uiv-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--accent-deep);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(22, 22, 26, 0.35);
+}
+
+/* ---------- Tab chuyển (v2.4) — animation CSS thuần, thay AnimatePresence
+   mode="wait" (kẹt exit sau modal macro). Chỉ opacity + translateY, chạy
+   trên GPU, không có exit tracking để kẹt. ---------- */
+.tab-enter {
+  animation: tabIn 0.22s ease-out;
+  will-change: opacity, transform;
+}
+@keyframes tabIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- DPI slider (v2.4, y như ảnh bro gửi): track fill đổi màu dần
+   theo DPI (background set inline từ component), thumb trắng tròn. ---------- */
+.uiv-dpi-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+.uiv-dpi-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid rgba(22, 22, 26, 0.35);
+  cursor: grab;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease;
+}
+.uiv-dpi-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+.uiv-dpi-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid rgba(22, 22, 26, 0.35);
+  cursor: grab;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Switch (canonical pattern, recolored orange) ---------- */
+.uiv-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 30px;
+  flex-shrink: 0;
+}
+.uiv-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.uiv-track {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background-color: rgba(22, 22, 26, 0.25);
+  transition: background-color 0.25s;
+  border-radius: 999px;
+}
+.dark-panel .uiv-track {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+.uiv-track:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #fff;
+  transition: transform 0.25s;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.uiv-switch input:checked + .uiv-track {
+  background-color: var(--accent-deep);
+}
+.uiv-switch input:checked + .uiv-track:before {
+  transform: translateX(22px);
+}
+
+
+/* ---------- Neon power switch (Uiverse quick-moth-22, verbatim structure,
+   cyan glow recolored orange). Input is visually hidden but keyboard-
+   focusable (a11y fix: the original display:none blocks keyboard use). ---------- */
+.uiv-power-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.uiv-power-input:focus-visible + .uiv-power {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 3px;
+}
+.uiv-power {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  background-color: rgb(99, 99, 99);
+  border-radius: 50%;
+  z-index: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgb(126, 126, 126);
+  box-shadow: 0px 0px 3px rgb(2, 2, 2) inset;
+  flex-shrink: 0;
+}
+.uiv-power svg {
+  width: 1.2em;
+}
+.uiv-power svg path {
+  fill: rgb(48, 48, 48);
+}
+.uiv-power-input:checked + .uiv-power {
+  box-shadow:
+    0px 0px 1px rgb(255, 176, 102) inset,
+    0px 0px 2px rgb(255, 176, 102) inset,
+    0px 0px 10px rgb(255, 176, 102) inset,
+    0px 0px 40px rgb(255, 150, 60),
+    0px 0px 100px rgb(255, 150, 60),
+    0px 0px 5px rgb(255, 176, 102);
+  border: 2px solid rgb(255, 255, 255);
+  background-color: rgb(194, 65, 12);
+}
+.uiv-power-input:checked + .uiv-power svg {
+  filter: drop-shadow(0px 0px 5px rgb(255, 176, 102));
+}
+.uiv-power-input:checked + .uiv-power svg path {
+  fill: rgb(255, 255, 255);
+}
+
+/* ---------- Slide-in toast (Uiverse gentle-octopus-87) ĐÃ XÓA ở v2.4 —
+   Toasts giờ dùng Uiverse empty-wolverine-58 (Cybercom682) ở đầu trang,
+   xem component Toasts trong ui.tsx. ---------- */
+
+/* ---------- Square snake loader (Uiverse grumpy-stingray-26, verbatim
+   keyframes, scaled 0.5 via wrapper transform). Dark backgrounds only. ---------- */
+.uiv-snake {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  transform: rotate(45deg) scale(0.5);
+  transform-origin: center;
+}
+.uiv-snake-square {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  margin: 2px;
+  border-radius: 0px;
+  background: #ff8a3d;
+  animation: uiv-snake-anim 10s ease-in-out infinite both;
+}
+.uiv-snake-square:nth-of-type(1) { animation-delay: 0s; }
+.uiv-snake-square:nth-of-type(2) { animation-delay: -1.4285714286s; }
+.uiv-snake-square:nth-of-type(3) { animation-delay: -2.8571428571s; }
+.uiv-snake-square:nth-of-type(4) { animation-delay: -4.2857142857s; }
+.uiv-snake-square:nth-of-type(5) { animation-delay: -5.7142857143s; }
+.uiv-snake-square:nth-of-type(6) { animation-delay: -7.1428571429s; }
+.uiv-snake-square:nth-of-type(7) { animation-delay: -8.5714285714s; }
+@keyframes uiv-snake-anim {
+  0% { left: 0; top: 0; }
+  10.5% { left: 0; top: 0; }
+  12.5% { left: 32px; top: 0; }
+  23% { left: 32px; top: 0; }
+  25% { left: 64px; top: 0; }
+  35.5% { left: 64px; top: 0; }
+  37.5% { left: 64px; top: 32px; }
+  48% { left: 64px; top: 32px; }
+  50% { left: 32px; top: 32px; }
+  60.5% { left: 32px; top: 32px; }
+  62.5% { left: 32px; top: 64px; }
+  73% { left: 32px; top: 64px; }
+  75% { left: 0; top: 64px; }
+  85.5% { left: 0; top: 64px; }
+  87.5% { left: 0; top: 32px; }
+  98% { left: 0; top: 32px; }
+  100% { left: 0; top: 0; }
+}
+
+/* ---------- Striped hover card (Uiverse polite-cat-34, verbatim border
+   animation, stripe colors -> orange/#444. The original's hover shift
+   (left/top +20px) is REMOVED: moving a target under the pointer breaks
+   pro-max §2 (stable targets). ---------- */
+.uiv-stripe {
+  width: 100%;
+  background: linear-gradient(45deg, #ea580c 25%, #ea580c 25%, #444 25%, #444 50%, #ea580c 50%, #ea580c 75%, #444 75%, #444 100%);
+  animation: uiv-stripe-move 15s linear infinite;
+  transition: 0.3s;
+  background-size: 60px 60px;
+  position: relative;
+  border-radius: 20px;
+  padding: 3px;
+}
+.uiv-stripe-inner {
+  width: 100%;
+  background-color: var(--navy-2);
+  border-radius: 18px;
+  transition: 0.3s;
+}
+.uiv-stripe-inner:hover {
+  background-color: rgba(23, 23, 43, 0.92);
+  /* v2.4: bỏ backdrop-filter ở hover (đắt GPU) — chỉ đổi màu nền. */
+}
+@keyframes uiv-stripe-move {
+  0% { background-position: 0px; }
+  100% { background-position: 1000px; }
+}
+
+/* ---------- Blue glass card (Uiverse evil-robin-7, gradient kept blue,
+   fixed 290x404 -> fluid). ---------- */
+.uiv-blueglass {
+  width: 100%;
+  background: linear-gradient(10deg, rgba(38, 146, 255, 1) 0%, rgba(0, 63, 255, 1) 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  /* v2.4: bỏ backdrop-filter — nền gradient ĐẶC nên blur không có tác
+     dụng gì nhìn thấy, chỉ tốn GPU. */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+.uiv-blueglass-top {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 20px 16px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.uiv-blueglass-top .title {
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+}
+.uiv-blueglass .desc {
+  color: #fff;
+  opacity: 0.85;
+  font-size: 13px;
+  padding: 14px 16px 16px;
+  line-height: 1.6;
+}
+
+/* ---------- Frosted dock (top stat cards, light glass on paper) ----------
+   v2.4: bỏ backdrop-filter blur(18px) saturate(1.2) — đây là thủ phạm lag
+   lớn nhất khi lướt (4 dock lớn, blur nặng, GPU yếu phải vẽ lại nền mỗi
+   khung). Nền trắng đặc hơn (0.82) vẫn giữ cảm giác kính, không cần blur. */
+.dock {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(22, 22, 26, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(22, 22, 26, 0.08);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.dock:hover {
+  transform: translateY(-2px);
+  border-color: rgba(22, 22, 26, 0.35);
+  box-shadow: 0 12px 28px rgba(22, 22, 26, 0.12);
+}
+
+/* ---------- Dark panel cards (inside the navy left frame) ---------- */
+.panel-card {
+  background: var(--navy-2);
+  border: 1px solid var(--line-navy);
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+}
+.dark-panel {
+  background: var(--navy);
+  color: var(--paper-on-navy);
+}
+
+/* ---------- Shy-moth-10 button (Uiverse Li-Deheng, v2.5) — thay TẤT CẢ
+   nút segmented (polling, hướng lăn) + thẻ nấc DPI + preset tác vụ; hiệu
+   ứng viền xoay serious-monkey-58 ĐÃ XÓA hết theo lệnh bro.
+   Cơ chế nguyên văn: pill bo tròn 100px, mũi tên 3 chevron (SVG) trượt
+   sang phải khi hover + nhấp nháy màu (color_anim), hover có outline
+   pulse 1s (btn-content). Chỉ đổi: màu hồng #ff135a → cam app #EA580C,
+   font 30px → 13–14px, padding 5px 30px → 6px 12px, mũi tên 66px → ~14px,
+   khoảng trượt 25px → 6px, id SVG (#arrow-icon-*) → class (tránh trùng id
+   khi dùng 12 nút trên 1 trang), tên class prefix uiv-shy-.
+   --uiv-shy-bg: màu nền nút (cam khi chọn, tối khi chưa chọn) — chevron
+   nhấp nháy về đúng màu nền đó. ---------- */
+.uiv-shy-btn {
+  --uiv-shy-bg: #ea580c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: var(--uiv-shy-bg);
+  box-shadow: 0 0 0.2em 0 var(--uiv-shy-bg);
+  transition: 0.5s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.uiv-shy-btn:hover,
+.uiv-shy-btn:focus-visible {
+  transition: 0.5s;
+  animation: uiv-shy-pulse 1s;
+  outline: 0.1em solid transparent;
+  outline-offset: 0.2em;
+  box-shadow: 0 0 0.4em 0 var(--uiv-shy-bg);
+}
+.uiv-shy-btn:not(.uiv-shy-selected) {
+  --uiv-shy-bg: rgba(255, 255, 255, 0.04);
+  color: #c9c9d6;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+}
+.uiv-shy-btn:not(.uiv-shy-selected):hover {
+  color: #edebe6;
+  border-color: rgba(255, 90, 31, 0.5);
+}
+/* Bản gọn cho thẻ nấc DPI (6 nấc 1 hàng, mỗi ô ~77px): padding hẹp hơn. */
+.uiv-shy-btn.uiv-shy-compact {
+  padding: 6px 8px;
+}
+/* Mũi tên 3 chevron (SVG gốc, thu nhỏ): mặc định các chevron chụm lại
+   (translateX -60%/-30%), hover thì bung ra + nhấp nháy màu. */
+.uiv-shy-arrow {
+  width: 16px;
+  height: 11px;
+  flex-shrink: 0;
+  margin-left: 2px;
+  transition: 0.5s;
+}
+/* Mũi tên nhỏ cho thẻ nấc DPI (ô hẹp). */
+.uiv-shy-arrow-sm {
+  width: 12px;
+  height: 8px;
+}
+.uiv-shy-btn:hover .uiv-shy-arrow {
+  transition: 0.5s;
+  margin-right: 6px;
+}
+.uiv-shy-a1 { transition: 0.4s; transform: translateX(-60%); }
+.uiv-shy-a2 { transition: 0.5s; transform: translateX(-30%); }
+.uiv-shy-btn:hover .uiv-shy-a3 { animation: uiv-shy-color 1s infinite 0.2s; }
+.uiv-shy-btn:hover .uiv-shy-a1 { transform: translateX(0%); animation: uiv-shy-color 1s infinite 0.6s; }
+.uiv-shy-btn:hover .uiv-shy-a2 { transform: translateX(0%); animation: uiv-shy-color 1s infinite 0.4s; }
+@keyframes uiv-shy-color {
+  0% { fill: white; }
+  50% { fill: var(--uiv-shy-bg); }
+  100% { fill: white; }
+}
+@keyframes uiv-shy-pulse {
+  0% { outline: 0.2em solid var(--uiv-shy-bg); outline-offset: 0; }
+}
+
+/* ---------- Ancient-yak-42 loader (Uiverse Nawsome, v2.5) — la bàn SVG
+   cho màn loading 5s sau khi kết nối. Nguyên văn cả HTML lẫn CSS (xem
+   loaders/ancient-yak-42.html): 2 vòng xoay xanh/cyan + 8 tick nhấp nháy
+   + kim la bàn đỏ xoay, chu kỳ 2s. Chỉ dùng 1 instance nên giữ nguyên
+   id SVG (grad/mask1/mask2). ---------- */
+.pl {
+  display: block;
+  width: 9.375em;
+  height: 9.375em;
+}
+.pl__arrows,
+.pl__ring-rotate,
+.pl__ring-stroke,
+.pl__tick {
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.pl__arrows {
+  animation-name: arrows42;
+  transform: rotate(45deg);
+  transform-origin: 16px 52px;
+}
+.pl__ring-rotate,
+.pl__ring-stroke {
+  transform-origin: 80px 80px;
+}
+.pl__ring-rotate {
+  animation-name: ringRotate42;
+}
+.pl__ring-stroke {
+  animation-name: ringStroke42;
+  transform: rotate(-45deg);
+}
+.pl__tick {
+  animation-name: tick42;
+}
+.pl__tick:nth-child(2) { animation-delay: -1.75s; }
+.pl__tick:nth-child(3) { animation-delay: -1.5s; }
+.pl__tick:nth-child(4) { animation-delay: -1.25s; }
+.pl__tick:nth-child(5) { animation-delay: -1s; }
+.pl__tick:nth-child(6) { animation-delay: -0.75s; }
+.pl__tick:nth-child(7) { animation-delay: -0.5s; }
+.pl__tick:nth-child(8) { animation-delay: -0.25s; }
+@keyframes arrows42 {
+  from { transform: rotate(45deg); }
+  to { transform: rotate(405deg); }
+}
+@keyframes ringRotate42 {
+  from { transform: rotate(0); }
+  to { transform: rotate(720deg); }
+}
+@keyframes ringStroke42 {
+  from, to { stroke-dashoffset: 452; transform: rotate(-45deg); }
+  50% { stroke-dashoffset: 169.5; transform: rotate(-180deg); }
+}
+@keyframes tick42 {
+  from, 3%, 47%, to { stroke-dashoffset: -12; }
+  14%, 36% { stroke-dashoffset: 0; }
+}
+
+/* ---------- Màn chọn thiết bị (v2.5, theo app gốc ảnh 3): nền sao tối.
+   Nền navy đậm + 3 lớp chấm sao (radial-gradient lặp theo ô vuông, kích
+   cỡ/mật độ khác nhau) + quầng sáng mờ ở giữa. Tĩnh, không animation
+   (đỡ tốn GPU trên máy yếu). ---------- */
+.device-stars {
+  background-color: #0b0b26;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 40%, rgba(64, 64, 160, 0.35), transparent 70%),
+    radial-gradient(1px 1px at 25px 35px, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 75px 90px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 125px 55px, rgba(190, 255, 200, 0.8), transparent),
+    radial-gradient(1px 1px at 175px 130px, rgba(255, 200, 210, 0.8), transparent),
+    radial-gradient(1px 1px at 45px 155px, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 145px 15px, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 95px 180px, rgba(200, 220, 255, 0.8), transparent),
+    radial-gradient(1px 1px at 190px 60px, rgba(255, 255, 255, 0.7), transparent);
+  background-size:
+    100% 100%,
+    200px 200px,
+    200px 200px,
+    200px 200px,
+    200px 200px,
+    200px 200px,
+    200px 200px,
+    200px 200px,
+    200px 200px;
+}
+
+/* ---------- Giao diện chính trôi lên sau loading 5s (v2.5): fade + rise,
+   chỉ opacity/transform (GPU). Dùng kèm animation-delay để lệch nhịp. ---------- */
+.app-enter {
+  animation: appEnter 0.6s ease-out both;
+  will-change: opacity, transform;
+}
+@keyframes appEnter {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Ring spinner ---------- */
+.ring-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--accent-bright);
+  animation: ringspin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes ringspin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Marquee (bottom strip, ảnh 1) ---------- */
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.marquee-track {
+  display: inline-flex;
+  gap: 0;
+  width: max-content;
+  animation: marquee-scroll 36s linear infinite;
+  /* v2.4: will-change để marquee chạy trên GPU (chỉ transform, không repaint). */
+  will-change: transform;
+}
+@keyframes marquee-scroll {
+  to { transform: translateX(-50%); }
+}
+
+/* ---------- 3D mouse stage labels ---------- */
+.mouse-label {
+  position: absolute;
+  /* Chấm (dot) nằm đúng tọa độ anchor: nút mở rộng ra ngoài theo side,
+     không căn giữa cả nút lên anchor như trước (tag đè lên thân chuột). */
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 5;
+}
+.mouse-label .leader {
+  height: 1px;
+  background: rgba(22, 22, 26, 0.5);
+  flex-shrink: 0;
+}
+.mouse-label .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+}
+.mouse-label .tag {
+  font-family: "Fira Code", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  /* Tag kiểu ảnh 2: viền mảnh, nền trong suốt, chữ mực — không còn pill
+     đen đặc như v2.0 (trông nặng, che mất thân chuột). */
+  background: transparent;
+  color: #16161a;
+  border: 1px solid rgba(22, 22, 26, 0.7);
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .mouse-label .tag {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}
+/* ---------- Hover glow từng phần tử chuột (v2.6) ---------- */
+/* Lớp cam phủ đúng hình nút đang được rê vào: multiply nhuộm cam lên
+   thân chuột trắng + hào quang ngoài. .on nảy nhẹ như bấm thật
+   (scale 1 -> 0.94 -> 1.03 -> 1, translateY 2px). */
+.part-glow {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 90, 31, 0.55) 0%,
+    rgba(255, 90, 31, 0.22) 55%,
+    rgba(255, 90, 31, 0) 78%
+  );
+  mix-blend-mode: multiply;
+  transition: opacity 0.18s ease-out;
+}
+.part-glow.on {
+  opacity: 1;
+  animation: partPress 0.45s ease;
+  box-shadow: 0 0 28px 4px rgba(255, 90, 31, 0.35);
+}
+@keyframes partPress {
+  0% { transform: scale(1) translateY(0); }
+  30% { transform: scale(0.94) translateY(2px); }
+  60% { transform: scale(1.03) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* ---------- Logo aura trắng (v2.6) ---------- */
+/* Wordmark SMAILWOLF đen trên nền sao tối bị chìm — hào quang trắng mờ
+   sau logo (dùng ở màn chọn thiết bị + màn loading). */
+.logo-aura {
+  position: relative;
+  display: inline-block;
+}
+.logo-aura::before {
+  content: '';
+  position: absolute;
+  inset: -14px -22px;
+  border-radius: 999px;
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.35) 55%,
+    rgba(255, 255, 255, 0)
+  );
+  filter: blur(6px);
+  pointer-events: none;
+}
+.logo-aura > * {
+  position: relative;
+}
+
+/* ---------- Sao nhấp nháy nền chọn thiết bị (v2.6) ---------- */
+.device-stars-twinkle {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255, 255, 255, 0.9) 50%, transparent 51%),
+    radial-gradient(1px 1px at 68% 12%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 82% 38%, rgba(255, 255, 255, 0.85) 50%, transparent 51%),
+    radial-gradient(1px 1px at 34% 62%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 55% 78%, rgba(255, 255, 255, 0.8) 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 72%, rgba(255, 255, 255, 0.75) 50%, transparent 51%);
+  animation: starTwinkle 3.2s ease-in-out infinite alternate;
+}
+@keyframes starTwinkle {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.mouse-label:hover .tag,
+.mouse-label.cyber-on .tag {
+  /* Cyberpunk khi rê vào nút: nền navy, chữ cam neon, viền + hào quang. */
+  background: #17172b;
+  color: #ff5a1f;
+  border-color: #ff5a1f;
+  box-shadow:
+    0 0 0 1px #ff5a1f,
+    0 0 16px rgba(255, 90, 31, 0.55);
+  text-shadow: 0 0 8px rgba(255, 90, 31, 0.8);
+}
+.mouse-label:hover .leader,
+.mouse-label.cyber-on .leader {
+  background: #ff5a1f;
+  box-shadow: 0 0 6px #ff5a1f;
+}
+.mouse-label:hover .dot,
+.mouse-label.cyber-on .dot {
+  background: #ff5a1f;
+  border-color: #ff5a1f;
+  box-shadow:
+    0 0 0 3px rgba(255, 90, 31, 0.35),
+    0 0 12px #ff5a1f;
+}
+
+/* ---------- Scrollbars ---------- */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(22, 22, 26, 0.25);
+  border-radius: 4px;
+}
+.dark-panel *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ---------- Reduced motion (pro-max §7) ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .uiv-stripe,
+  .uiv-snake-square,
+  .uiv-blob-svg,
+  .ring-spinner,
+  .pl__arrows,
+  .pl__ring-rotate,
+  .pl__ring-stroke,
+  .pl__tick,
+  .app-enter,
+  .tab-enter,
+  .part-glow.on,
+  .device-stars-twinkle {
+    animation: none !important;
+  }
+  .uiv-btn,
+  .dock,
+  .uiv-shy-btn {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   v3.0 — DARK THEME SHIM (attribute selectors, không sửa component):
+   Các bề mặt SÁNG dùng class Tailwind hardcode hex (#16161a, #55555c,
+   bg-white/50…) được map lại khi <html data-theme="dark">. Panel navy
+   + popup tối đã đúng cả 2 theme nên không nằm trong shim này.
+   KHÔNG dim/mờ màu ở đâu — chỉ đổi sang giá trị tối tương đương,
+   giữ nguyên độ tương phản ≥4.5:1.
+   ============================================================ */
+html[data-theme="dark"] .dock {
+  background: var(--surface-solid);
+  border-color: var(--line-navy);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .dock:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+html[data-theme="dark"] [class*="text-[#16161a]"] { color: #edebe6 !important; }
+html[data-theme="dark"] [class*="text-[#33333a]"] { color: #d5d5de !important; }
+html[data-theme="dark"] [class*="text-[#55555c]"] { color: #a2a2b0 !important; }
+html[data-theme="dark"] [class*="text-[#6b6b76]"] { color: #a2a2b0 !important; }
+html[data-theme="dark"] [class*="bg-[#e9e7e2]"] { background-color: var(--paper) !important; }
+html[data-theme="dark"] [class*="bg-[#f4f4f2]"] { background-color: #262640 !important; }
+html[data-theme="dark"] [class*="bg-white/50"] { background-color: rgba(255, 255, 255, 0.08) !important; }
+html[data-theme="dark"] [class*="bg-white/60"] { background-color: rgba(255, 255, 255, 0.08) !important; }
+html[data-theme="dark"] [class*="bg-white/70"] { background-color: rgba(255, 255, 255, 0.08) !important; }
+html[data-theme="dark"] [class*="bg-white/85"] { background-color: rgba(255, 255, 255, 0.1) !important; }
+html[data-theme="dark"] [class*="border-[rgba(22,22,26,0.12)]"] { border-color: rgba(255, 255, 255, 0.16) !important; }
+html[data-theme="dark"] [class*="border-[rgba(22,22,26,0.14)]"] { border-color: rgba(255, 255, 255, 0.16) !important; }
+html[data-theme="dark"] [class*="border-[rgba(22,22,26,0.16)]"] { border-color: rgba(255, 255, 255, 0.2) !important; }
+html[data-theme="dark"] [class*="border-[rgba(22,22,26,0.2)]"] { border-color: rgba(255, 255, 255, 0.22) !important; }
+html[data-theme="dark"] [class*="bg-white/50"]:hover,
+html[data-theme="dark"] [class*="hover:bg-white/80"]:hover { background-color: rgba(255, 255, 255, 0.14) !important; }
+/* Tag chuột trên nền giấy tối: nền navy mờ + chữ sáng, viền sáng. */
+html[data-theme="dark"] .mouse-label .tag {
+  color: #edebe6;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(23, 23, 43, 0.65);
+}
+html[data-theme="dark"] .mouse-label .leader { background: rgba(255, 255, 255, 0.55); }
+html[data-theme="dark"] .mouse-label .dot {
+  background: #17172b;
+  border-color: #edebe6;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+/* Nút ghost trên nền tối. */
+html[data-theme="dark"] .uiv-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--paper-on-navy);
+  border-color: var(--line-navy);
+}
+html[data-theme="dark"] .uiv-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---------- v3.0: Light-sweep khi đổi theme (không đổi tức thì) ----------
+   Dải sáng chéo quét ngang màn hình 0.55s khi theme đổi; pointer-events
+   none, transform-only (GPU). */
+.theme-sweep-band {
+  position: fixed;
+  top: -10vh;
+  bottom: -10vh;
+  left: 0;
+  width: 28vw;
+  z-index: 90;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  transform: translateX(-40vw) skewX(-12deg);
+  animation: themeSweepBand 0.55s ease-out forwards;
+}
+@keyframes themeSweepBand {
+  to { transform: translateX(150vw) skewX(-12deg); }
+}
+
+/* ---------- v3.0: Cursor blob đỏ — liquid-glass đuổi theo con trỏ ----------
+   KHÔNG phải icon con trỏ: 1 blob tròn đỏ, kính lỏng (blur + viền sáng),
+   đuổi theo pointer bằng rAF lerp (transform/opacity-only), toàn app
+   (kể cả trong khung quản lý). Tôn trọng prefers-reduced-motion (ẩn). */
+.cursor-blob {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 30;
+  width: 56px;
+  height: 56px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 42%),
+    radial-gradient(circle at 50% 50%, rgba(255, 64, 32, 0.5), rgba(255, 32, 16, 0.16) 58%, rgba(255, 32, 16, 0) 72%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 14px rgba(255, 64, 32, 0.28), inset 0 0 10px rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px) saturate(1.4);
+  -webkit-backdrop-filter: blur(6px) saturate(1.4);
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cursor-blob,
+  .theme-sweep-band {
+    display: none !important;
+  }
+}
+@media (pointer: coarse) {
+  .cursor-blob { display: none; }
+}
+
+/* ============================================================
+   UIVERSE — "Switch" by mamyapro123 (Hari Bro), MIT License
+   Source: https://uiverse.io/mamyapro123/cuddly-warthog-66
+   VERBATIM từ src/components/uiverse/THEME-SWITCH.css (final stable
+   --toggle-size: 32px). Chỉ --toggle-size được override inline ở
+   component ThemeToggle cho vừa khung. Checkbox checked = DARK.
+   ============================================================ */
+/* UIVERSE — "Switch" by mamyapro123 (Hari Bro), MIT License
+   Source: https://uiverse.io/mamyapro123/cuddly-warthog-66
+   Fetched verbatim via live browser 2026-11-08 21:04–21:09 +07.
+   Final stable version: --toggle-size: 32px. Do NOT "fix" to match any
+   later author update. Adapt ONLY --toggle-size for sizing. */
+
+.theme-switch {
+  --toggle-size: 32px;
+  --container-width: 5.625em;
+  --container-height: 2.5em;
+  --container-radius: 6.25em;
+  --container-light-bg: #d1e9ff;
+  --container-night-bg: #030533;
+  --circle-container-diameter: 3.375em;
+  --sun-moon-diameter: 2.125em;
+  --sun-color: #ffd700;
+  --moon-color: #fff3b0;
+  --moon-shadow-color: #ffef94;
+  --cloud-color: #ffffff;
+  --star-color: #ffffff;
+  --aurora-color-1: #37c8ff;
+  --aurora-color-2: #ff76a4;
+  --aurora-color-3: #6f7dfb;
+  font-size: var(--toggle-size);
+}
+
+.theme-switch,
+.theme-switch *,
+.theme-switch *::before,
+.theme-switch *::after {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+.theme-switch {
+  display: block;
+  position: relative;
+  width: var(--toggle-size);
+  height: var(--toggle-size);
+  border: none;
+  outline: none;
+  border-radius: var(--container-radius);
+  background: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.theme-switch__container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--container-width);
+  height: var(--container-height);
+  margin: calc(50% - var(--container-height) * 0.5);
+  border-radius: var(--container-radius);
+  background: linear-gradient(
+    135deg,
+    #73b9ff 0%,
+    #d1e9ff 55%,
+    #fff8d1 100%
+  );
+  box-shadow: inset 0px 0px 2px 1px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  position: relative;
+  filter: url(#sketchy);
+  transition: background 0.5s;
+}
+
+.theme-switch__checkbox {
+  position: absolute;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.theme-switch__clouds {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--container-radius);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.theme-switch__clouds::before,
+.theme-switch__clouds::after {
+  content: "";
+  position: absolute;
+  background: var(--cloud-color);
+  border-radius: 50%;
+  border: calc(0.125em) solid #f2f2f2;
+  opacity: 0.28;
+  box-shadow: calc(0.125em) calc(0.125em) calc(0.25em) rgba(0, 0, 0, 0.12);
+  filter: url(#sketchy-sm);
+  animation: cloudFloat 10s ease-in-out infinite;
+  transition: opacity 0.5s;
+}
+
+.theme-switch__clouds::before {
+  width: calc(0.625em);
+  height: calc(0.5em);
+  top: calc(0.7em);
+  left: calc(1.4em);
+  transform: rotate(-12deg);
+}
+
+.theme-switch__clouds::after {
+  width: calc(0.875em);
+  height: calc(0.75em);
+  top: calc(1.7em);
+  right: calc(1.5em);
+  left: auto;
+  transform: rotate(9deg);
+  animation-delay: -5s;
+}
+
+.theme-switch__stars-container {
+  position: absolute;
+  inset: auto;
+  top: calc(0.125em);
+  right: calc(0.3125em);
+  width: calc(3.125em);
+  height: calc(1.25em);
+  color: var(--star-color);
+  pointer-events: none;
+  z-index: 2;
+  filter: url(#sketchy-sm);
+}
+
+.theme-switch__stars-container svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.theme-switch__star {
+  position: absolute;
+  background: var(--star-color);
+  border-radius: 50%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.theme-switch__circle-container {
+  position: relative;
+  top: calc(0.125em);
+  left: calc(0.125em);
+  width: var(--circle-container-diameter);
+  height: var(--circle-container-diameter);
+  overflow: visible;
+  margin: 0;
+  transform: translateX(0);
+  transition: transform 0.5s cubic-bezier(0.6, 0, 0.2, 1);
+  z-index: 4;
+}
+
+.theme-switch__circle-container::before {
+  content: "";
+  position: absolute;
+  inset: calc(-0.1875em);
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    #ffe778 20deg,
+    transparent 40deg,
+    transparent 90deg,
+    #ffe778 110deg,
+    transparent 130deg,
+    transparent 180deg,
+    #ffe778 200deg,
+    transparent 220deg,
+    transparent 270deg,
+    #ffe778 290deg,
+    transparent 310deg,
+    transparent 360deg
+  );
+  filter: blur(calc(0.125em));
+  opacity: 0.9;
+  animation: rotateSunRays 12s linear infinite;
+  pointer-events: none;
+  filter: url(#sketchy-sm);
+  transition: opacity 0.3s;
+}
+
+.theme-switch__sun-moon-container {
+  position: relative;
+  width: var(--sun-moon-diameter);
+  height: var(--sun-moon-diameter);
+  border-radius: 50%;
+  background: var(--sun-color);
+  box-shadow: 0px 0.125em 0.25em rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  pointer-events: auto;
+  filter: url(#sketchy-sm)
+    drop-shadow(0.062em 0.125em 0.125em rgba(0, 0, 0, 0.25))
+    drop-shadow(0em 0.062em 0.125em rgba(0, 0, 0, 0.25));
+  transition:
+    transform 0.5s cubic-bezier(0.55, 0, 0.1, 1),
+    background 0.5s;
+}
+
+.theme-switch__moon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--moon-color);
+  box-shadow: inset calc(-0.25em) calc(-0.25em) calc(0.5em)
+    var(--moon-shadow-color);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.8) rotate(-10deg);
+  transition:
+    opacity 0.5s,
+    visibility 0.2s,
+    transform 0.5s;
+}
+
+.theme-switch__spot {
+  position: absolute;
+  background: #e6cb63;
+  border-radius: 50%;
+  filter: url(#sketchy-sm);
+}
+
+.theme-switch__spot:nth-child(1) {
+  width: calc(0.4375em);
+  height: calc(0.4375em);
+  top: calc(0.5em);
+  left: calc(0.375em);
+  opacity: 0.85;
+}
+
+.theme-switch__spot:nth-child(2) {
+  width: calc(0.3125em);
+  height: calc(0.3125em);
+  top: calc(1.125em);
+  left: calc(1.25em);
+  opacity: 0.65;
+}
+
+.theme-switch__spot:nth-child(3) {
+  width: calc(0.1875em);
+  height: calc(0.1875em);
+  top: calc(0.3125em);
+  left: calc(1.375em);
+  opacity: 0.8;
+}
+
+.theme-switch__cloud {
+  position: absolute;
+  background: var(--cloud-color);
+  border-radius: 50%;
+  z-index: 3;
+  box-shadow: 0px calc(0.125em) calc(0.25em) rgba(0, 0, 0, 0.15);
+}
+
+.theme-switch__cloud::before,
+.theme-switch__cloud::after {
+  content: "";
+  position: absolute;
+  background: var(--cloud-color);
+  border-radius: 50%;
+}
+
+.theme-switch__cloud::before {
+  width: calc(1.75em);
+  height: calc(1.75em);
+  left: calc(0.375em);
+  top: calc(-0.625em);
+}
+
+.theme-switch__cloud::after {
+  width: calc(1.25em);
+  height: calc(1.25em);
+  left: calc(-0.125em);
+  top: calc(-0.375em);
+}
+
+.theme-switch__stars {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.theme-switch__stars-cluster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.theme-switch__stars-cluster .star {
+  position: absolute;
+  background: var(--star-color);
+  border-radius: 50%;
+  opacity: 0;
+  animation: twinkleStars 2.5s ease-in-out infinite;
+  filter: url(#sketchy-sm);
+}
+
+.theme-switch__stars-cluster .star:nth-child(1) {
+  width: calc(0.0625em);
+  height: calc(0.0625em);
+  top: calc(0.5em);
+  left: calc(0.75em);
+  animation-delay: 0s;
+}
+
+.theme-switch__stars-cluster .star:nth-child(2) {
+  width: calc(0.125em);
+  height: calc(0.125em);
+  top: calc(1.75em);
+  left: calc(1.75em);
+  animation-delay: 0.5s;
+}
+
+.theme-switch__stars-cluster .star:nth-child(3) {
+  width: calc(0.0625em);
+  height: calc(0.0625em);
+  top: calc(0.5em);
+  left: calc(2.5em);
+  animation-delay: 1s;
+}
+
+.theme-switch__stars-cluster .star:nth-child(4) {
+  width: calc(0.09375em);
+  height: calc(0.09375em);
+  top: calc(1.25em);
+  left: calc(3.25em);
+  animation-delay: 1.5s;
+}
+
+.theme-switch__stars-cluster .star:nth-child(5) {
+  width: calc(0.0625em);
+  height: calc(0.0625em);
+  top: calc(0.875em);
+  left: calc(4em);
+  animation-delay: 2s;
+}
+
+.theme-switch__shooting-star,
+.theme-switch__shooting-star-2 {
+  position: absolute;
+  width: calc(0.75em);
+  height: calc(0.125em);
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+  border-radius: calc(0.125em);
+  opacity: 0;
+  z-index: 5;
+  pointer-events: none;
+  transform: rotate(-25deg);
+}
+
+.theme-switch__shooting-star {
+  top: calc(0.75em);
+  left: calc(2.5em);
+}
+
+.theme-switch__shooting-star-2 {
+  top: calc(1.25em);
+  left: calc(3.75em);
+  animation-delay: 0.5s;
+}
+
+.theme-switch__meteor {
+  position: absolute;
+  width: calc(0.1875em);
+  height: calc(0.1875em);
+  background: #ffffff;
+  border-radius: 50%;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 calc(0.75em) calc(0.125em) rgba(255, 255, 255, 0.8);
+  top: calc(0.75em);
+  right: calc(0.5em);
+  animation: meteorFall 8s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.theme-switch__meteor::before {
+  content: "";
+  position: absolute;
+  width: calc(1.25em);
+  height: calc(0.125em);
+  background: linear-gradient(90deg, #ffffff, transparent);
+  border-radius: calc(0.125em);
+  left: calc(-1.25em);
+  top: calc(0.0625em);
+  transform: rotate(0deg);
+}
+
+.theme-switch__meteor::after {
+  content: "";
+  position: absolute;
+  width: calc(0.625em);
+  height: calc(0.09375em);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  border-radius: calc(0.09375em);
+  left: calc(-0.625em);
+  top: calc(0.09375em);
+  transform: rotate(0deg);
+}
+
+.theme-switch__aurora {
+  position: absolute;
+  bottom: calc(-0.625em);
+  left: calc(-0.75em);
+  width: calc(7em);
+  height: calc(2.5em);
+  background: linear-gradient(
+    90deg,
+    var(--aurora-color-1),
+    var(--aurora-color-2),
+    var(--aurora-color-3),
+    var(--aurora-color-1)
+  );
+  background-size: 300% 100%;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  filter: blur(calc(0.375em)) url(#sketchy);
+  clip-path: polygon(0% 100%, 0% 0%, 100% 100%, 100% 0%);
+  transform-origin: bottom;
+}
+
+.theme-switch__aurora::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 200%;
+  height: 100%;
+  background: inherit;
+  background-size: inherit;
+  animation: auroraWave 8s ease-in-out infinite;
+}
+
+.theme-switch__comets {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.theme-switch__comets .comet {
+  position: absolute;
+  width: calc(0.125em);
+  height: calc(0.125em);
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 calc(0.75em) calc(0.125em) rgba(255, 255, 255, 0.6);
+  opacity: 0;
+}
+
+.theme-switch__comets .comet::after {
+  content: "";
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
+  top: 0;
+  left: calc(-0.75em);
+  width: calc(0.75em);
+  height: calc(0.0625em);
+  border-radius: calc(0.0625em);
+}
+
+.theme-switch__sky-container {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.theme-switch__sky-container .comet-tail {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5)
+  );
+  border-radius: calc(0.5em);
+  opacity: 0;
+}
+
+.theme-switch__checkbox:checked ~ .theme-switch__container {
+  background: linear-gradient(
+    135deg,
+    #0a0a2e 0%,
+    #191970 50%,
+    #030533 100%
+  );
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__circle-container {
+  transform: translateX(calc(1.875em));
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__circle-container::before {
+  opacity: 0;
+  animation: none;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__sun-moon-container {
+  background: var(--moon-color);
+  box-shadow: 0px 0.125em 0.25em rgba(0, 0, 0, 0.35);
+  transform: rotate(-15deg);
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__moon {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1) rotate(0deg);
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__clouds::before,
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__clouds::after {
+  opacity: 0;
+  animation-play-state: paused;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__stars-container {
+  opacity: 1;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__stars-cluster
+  .star {
+  opacity: 1;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__shooting-star {
+  animation: shootingStar 4s ease-in-out infinite;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__shooting-star-2 {
+  animation: shootingStar 4s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__meteor {
+  opacity: 1;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__comets
+  .comet {
+  opacity: 1;
+  animation: twinkleStars 2s ease-in-out infinite;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__comets
+  .comet:nth-child(1) {
+  top: calc(0.75em);
+  left: calc(1em);
+  animation-delay: 0.5s;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__comets
+  .comet:nth-child(2) {
+  top: calc(1.5em);
+  left: calc(3.5em);
+  animation-delay: 1.5s;
+}
+
+.theme-switch__checkbox:checked
+  ~ .theme-switch__container
+  .theme-switch__aurora {
+  opacity: 0.6;
+  animation: auroraWave 8s ease-in-out infinite;
+}
+
+@keyframes cloudFloat {
+  0%,
+  100% {
+    transform: translateY(-0.06em) rotate(-12deg);
+  }
+  50% {
+    transform: translateY(0.06em) rotate(-12deg);
+  }
+}
+
+@keyframes rotateSunRays {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes twinkleStars {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes shootingStar {
+  0% {
+    opacity: 0;
+    transform: translateX(0) translateY(0) rotate(-25deg) scale(0.5);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(calc(0.5em)) translateY(calc(0.25em)) rotate(-25deg)
+      scale(1);
+  }
+  30% {
+    opacity: 0.8;
+    transform: translateX(calc(1.5em)) translateY(calc(0.75em)) rotate(-25deg)
+      scale(1);
+  }
+  50%,
+  100% {
+    opacity: 0;
+    transform: translateX(calc(2.5em)) translateY(calc(1.25em)) rotate(-25deg)
+      scale(0.5);
+  }
+}
+
+@keyframes meteorFall {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(calc(-0.5em), calc(0.5em));
+  }
+  30% {
+    opacity: 0.8;
+    transform: translate(calc(-1.5em), calc(1.5em));
+  }
+  50% {
+    opacity: 0;
+    transform: translate(calc(-2.5em), calc(2.5em));
+  }
+}
+
+@keyframes auroraWave {
+  0% {
+    transform: translateY(-100%) translateX(-50%);
+  }
+  100% {
+    transform: translateY(-100%) translateX(50%);
+  }
+}
+
+/* v3.0: reduced-motion — tắt animation của theme-switch + blob + sweep. */
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch *,
+  .theme-switch *::before,
+  .theme-switch *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  body { transition: none; }
+}
+
+/* ---------- v3.0: Nền màn chọn thiết bị = nền body, ô 56px (trong == ngoài) ---------- */
+.picker-bg {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  transition: background-color 0.5s ease;
+}
