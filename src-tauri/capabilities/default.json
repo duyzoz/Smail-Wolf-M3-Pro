@@ -1,0 +1,1 @@
+{"$schema":"../gen/schemas/capabilities.json","description":"Default capability. The frontend only invokes app-defined Rust commands (autostart_*, store_*, notify_low_battery, tray_*), which are not permission-gated; no plugin JS APIs are used, so no extra permissions are granted.","identifier":"default","permissions":[],"windows":["main","tray-popup"]}
