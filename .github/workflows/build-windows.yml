@@ -1,0 +1,97 @@
+# Build the SMAILWOLF M3 Pro driver (Tauri 2 + React) on Windows.
+#
+# This is the AUTHORITATIVE build gate: the full `cargo check` / Tauri build
+# never passed on Linux (missing gdk-3.0 for the host check, missing MinGW
+# windres for the Windows-target check). If this workflow is green, the
+# Windows build is real; if it is red, do NOT cut a release.
+#
+# Produces:
+#   - NSIS installer  (.setup.exe)
+#   - Portable build  (.zip, from the Tauri "zip" bundle target)
+#   - SHA256SUMS.txt  (SHA-256 over both artifacts)
+# No code signing is configured: the installer is UNSIGNED and Windows
+# SmartScreen will warn on first run (see RELEASE-NOTES-v3.0.0-DRAFT.md).
+
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend (tsc + vite)
+        run: npm run build
+
+      - name: HID protocol tests (gate)
+        run: npx tsx tests/hid.test.ts
+
+      - name: Setup Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Tauri CLI sanity check
+        run: npx tauri --version
+
+      # Explicit gate BEFORE the build: must pass on windows-latest, where
+      # the MSVC toolchain (and windres, for the Windows target) exists.
+      # This is the check that never passed on Linux — do not skip it.
+      - name: cargo check (Rust backend gate)
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Tauri build (NSIS installer + portable zip)
+        run: npx tauri build
+
+      - name: Collect artifacts + SHA-256 checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if (-not $version) { throw 'Could not read version from src-tauri/tauri.conf.json' }
+
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $setup) { throw 'NSIS installer not found under src-tauri/target/release/bundle/nsis/' }
+          $portable = Get-ChildItem src-tauri/target/release/bundle/zip/*.zip -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $portable) { throw 'Portable zip not found under src-tauri/target/release/bundle/zip/' }
+
+          New-Item -ItemType Directory -Force release-artifacts | Out-Null
+          $setupName = "SMAILWOLF-M3-Pro-Driver_${version}_x64-setup.exe"
+          $zipName = "SMAILWOLF-M3-Pro-Driver_${version}_x64.zip"
+          Copy-Item $setup.FullName "release-artifacts/$setupName"
+          Copy-Item $portable.FullName "release-artifacts/$zipName"
+
+          # SHA256SUMS.txt over every artifact in the folder (itself excluded).
+          Get-ChildItem release-artifacts/* -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          } | Out-File -Encoding ascii release-artifacts/SHA256SUMS.txt
+          Get-Content release-artifacts/SHA256SUMS.txt
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smailwolf-m3pro-windows
+          path: release-artifacts/
+          if-no-files-found: error
