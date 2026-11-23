@@ -88,6 +88,24 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN: 1
         run: npx tauri build --bundles appimage,deb
 
+      - name: Generate native Apple ICNS icon
+        if: matrix.platform == 'macos'
+        run: |
+          mkdir -p AppIcon.iconset
+          sips -z 16 16     src-tauri/icons/icon.png --out AppIcon.iconset/icon_16x16.png
+          sips -z 32 32     src-tauri/icons/icon.png --out AppIcon.iconset/icon_16x16@2x.png
+          sips -z 32 32     src-tauri/icons/icon.png --out AppIcon.iconset/icon_32x32.png
+          sips -z 64 64     src-tauri/icons/icon.png --out AppIcon.iconset/icon_32x32@2x.png
+          sips -z 128 128   src-tauri/icons/icon.png --out AppIcon.iconset/icon_128x128.png
+          sips -z 256 256   src-tauri/icons/icon.png --out AppIcon.iconset/icon_128x128@2x.png
+          sips -z 256 256   src-tauri/icons/icon.png --out AppIcon.iconset/icon_256x256.png
+          sips -z 512 512   src-tauri/icons/icon.png --out AppIcon.iconset/icon_256x256@2x.png
+          sips -z 512 512   src-tauri/icons/icon.png --out AppIcon.iconset/icon_512x512.png
+          sips -z 1024 1024 src-tauri/icons/icon.png --out AppIcon.iconset/icon_512x512@2x.png
+          iconutil -c icns AppIcon.iconset -o src-tauri/icons/icon.icns
+          rm -rf AppIcon.iconset
+          ls -lh src-tauri/icons/icon.icns
+
       - name: Build Tauri for macOS (.dmg & .app)
         if: matrix.platform == 'macos'
         run: npx tauri build --bundles dmg,app
