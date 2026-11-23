@@ -36,6 +36,9 @@ import {
   rateHz,
   shouldNotifyLow,
   tick as batteryTick,
+  usableFromCapacity,
+  CAPACITY_MAH,
+  CUSTOM_CAPACITY_KEY,
   LOW_RESET_PCT,
   PERSIST_EVERY_S,
 } from './lib/battery';
@@ -106,6 +109,12 @@ interface MouseStore {
   simSaver: boolean;
   simRemainingMah: number;
   simPollingHz: number;
+  /** Custom battery cell capacity in mAh (default 500, usable = capacity * 0.8). */
+  batteryCapacity: number;
+  usableCapacity: number;
+  setBatteryCapacity: (mah: number) => void;
+  /** Immediately resets simBattery to full usable capacity at the current timestamp and persists it. */
+  syncBatteryFull: () => void;
   /** Toggle Battery saver: writes polling 125 Hz + DPI 1600 via setConfig,
       off restores the saved rate/DPI. Returns false if not connected or the write fails. */
   setBatterySaver: (on: boolean) => Promise<boolean>;
@@ -224,6 +233,21 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
   const [batteryReads, setBatteryReads] = useState(0);
   const batteryRef = useRef<number | null>(null);
   const batteryFailStreak = useRef(0);
+  // Customizable battery capacity (default CAPACITY_MAH = 500, usable = capacity * 0.8)
+  const [batteryCapacity, setBatteryCapacityState] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_CAPACITY_KEY);
+      if (saved) {
+        const n = parseInt(saved, 10);
+        if (!isNaN(n) && n > 0) return n;
+      }
+    } catch {}
+    return CAPACITY_MAH;
+  });
+  const batteryCapacityRef = useRef(batteryCapacity);
+  batteryCapacityRef.current = batteryCapacity;
+  const usableCapacity = useMemo(() => usableFromCapacity(batteryCapacity), [batteryCapacity]);
+
   // v3.1 — simulated battery (estimated): durable state in the store
   // "battery-state-v1" (xem src/lib/battery.ts + src/lib/tauri.ts).
   // NEVER reset to 100%/0% on restart: on load, apply the time actually
@@ -232,11 +256,11 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
   const simRef = useRef<BatteryState | null>(null);
   const simLoadedRef = useRef(false);
   const lastPersistRef = useRef(0);
-  const simPct = percentOf(simBattery);
-  const simPctPrecise = percentOfPrecise(simBattery);
+  const simPct = percentOf(simBattery, usableCapacity);
+  const simPctPrecise = percentOfPrecise(simBattery, usableCapacity);
   const simCharging = simBattery?.charging ?? false;
   const simSaver = simBattery?.saver ?? false;
-  const simRemainingMah = simBattery?.remaining_mah ?? 400;
+  const simRemainingMah = simBattery?.remaining_mah ?? usableCapacity;
   const simPollingHz = simBattery?.last_polling_rate ?? 125;
 
   const persistSim = useCallback((s: BatteryState) => {
@@ -245,14 +269,30 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
     void setBatteryState(s);
   }, []);
 
+  // Sync custom capacity from persistent store on mount
+  useEffect(() => {
+    void storeGet(CUSTOM_CAPACITY_KEY).then((val) => {
+      if (val) {
+        const n = parseInt(val, 10);
+        if (!isNaN(n) && n > 0) {
+          setBatteryCapacityState(n);
+          try {
+            localStorage.setItem(CUSTOM_CAPACITY_KEY, String(n));
+          } catch {}
+        }
+      }
+    });
+  }, []);
+
   // Load once at app start: read the saved state, apply elapsed time
   // (charge/drain while the app was closed), show % immediately — no waiting for the mouse.
   useEffect(() => {
     if (simLoadedRef.current) return;
     simLoadedRef.current = true;
     const now = Math.floor(Date.now() / 1000);
+    const usable = usableFromCapacity(batteryCapacityRef.current);
     void getBatteryState().then((saved) => {
-      const next = saved ? loadWithElapsed(saved, now) : defaultState(now);
+      const next = saved ? loadWithElapsed(saved, now, 5, usable) : defaultState(now, 125, usable);
       setSimBattery(next);
       persistSim(next);
     });
@@ -344,6 +384,47 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
     [removeToastAfterExit],
   );
 
+  const setBatteryCapacity = useCallback(
+    (mah: number) => {
+      if (mah <= 0 || isNaN(mah)) return;
+      setBatteryCapacityState(mah);
+      try {
+        localStorage.setItem(CUSTOM_CAPACITY_KEY, String(mah));
+      } catch {}
+      void storeSet(CUSTOM_CAPACITY_KEY, String(mah));
+      const newUsable = usableFromCapacity(mah);
+      setSimBattery((prev) => {
+        if (!prev) return prev;
+        if (prev.remaining_mah > newUsable) {
+          const next = { ...prev, remaining_mah: newUsable };
+          persistSim(next);
+          return next;
+        }
+        return prev;
+      });
+      pushToast('ok', `Đã cập nhật dung lượng pin: ${mah} mAh (khả dụng: ${newUsable} mAh).`);
+    },
+    [persistSim, pushToast],
+  );
+
+  const syncBatteryFull = useCallback(() => {
+    const nowS = Math.floor(Date.now() / 1000);
+    const usable = usableFromCapacity(batteryCapacityRef.current);
+    const hz = config ? rateHz(config.reportRateIndex, wired) : (simRef.current?.last_polling_rate ?? 125);
+    const isCharging = wired || cableCharging;
+    const next: BatteryState = {
+      remaining_mah: usable,
+      last_polling_rate: hz,
+      updated_at: nowS,
+      charging: isCharging,
+      low_notified: false,
+      saver: simRef.current?.saver ?? false,
+    };
+    setSimBattery(next);
+    persistSim(next);
+    pushToast('ok', `Đã đồng bộ pin 100% (Đã sạc đầy: ${usable} mAh).`);
+  }, [config, wired, cableCharging, persistSim, pushToast]);
+
   const applyFullRead = useCallback((r: FullRead, isWired: boolean) => {
     setVersion(r.version);
     setMouseName(r.mouseName);
@@ -394,9 +475,30 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
               : `Battery: ${prev}% → ${bat}% (at ${now}).`,
           );
         }
+
+        // Hardware low-battery tripped: firmware report 48 returns battery < 100
+        // (indicating the hardware low-voltage threshold finally tripped)
+        if (bat < 100) {
+          const usable = usableFromCapacity(batteryCapacityRef.current);
+          const lowThresholdMah = usable * 0.15; // align with 15% hardware low threshold
+          setSimBattery((cur) => {
+            const currentSim = cur ?? simRef.current;
+            if (!currentSim) return cur;
+            const adjustedMah = Math.min(currentSim.remaining_mah, lowThresholdMah);
+            const nextSim: BatteryState = {
+              ...currentSim,
+              remaining_mah: adjustedMah,
+              low_notified: true,
+            };
+            persistSim(nextSim);
+            return nextSim;
+          });
+          void notifyLowBattery();
+          pushToast('err', `Phát hiện pin yếu từ phần cứng (${bat}%). Đã hiệu chỉnh pin mô phỏng về mức cảnh báo!`);
+        }
       }
     },
-    [addLog, mode],
+    [addLog, mode, persistSim, pushToast],
   );
 
   const setBusyBoth = (b: boolean): void => {
@@ -590,10 +692,11 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
       // while on 2.4G. The cmd-48 charge_flag byte is live-proven always 0, so
       // the cable's presence is the only signal we have.
       const charging = wired || cableCharging;
-      const prevPct = percentOf(prev);
-      let next = charging ? chargeTick(prev, 1) : batteryTick(prev, 1, hz);
+      const usable = usableFromCapacity(batteryCapacityRef.current);
+      const prevPct = percentOf(prev, usable);
+      let next = charging ? chargeTick(prev, 1, usable) : batteryTick(prev, 1, hz, usable);
       next = { ...next, charging, last_polling_rate: hz };
-      const nextPct = percentOf(next);
+      const nextPct = percentOf(next, usable);
       // Low battery: fires only once per discharge cycle when dropping BELOW 20%.
       if (shouldNotifyLow(prevPct, nextPct, prev)) {
         next = { ...next, low_notified: true };
@@ -612,7 +715,7 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
       // At 125 Hz (3 mA) the decimal % changes every ~8 min, decimal mAh every ~2 min — instead of
       // the whole component tree re-rendering once per second on a weak PC.
       const displayChanged =
-        percentOfPrecise(next) !== percentOfPrecise(prev) ||
+        percentOfPrecise(next, usable) !== percentOfPrecise(prev, usable) ||
         Math.round(next.remaining_mah * 10) !== Math.round(prev.remaining_mah * 10) ||
         chargingChanged ||
         rateChanged ||
@@ -889,6 +992,7 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
       mode, connected, connecting, loading, theme, toggleTheme, lite, toggleLite, busy, wired, deviceLabel, version, mouseName,
       battery, chargeFlag, batteryHistory, lastBatteryRead, batteryReads,
       simPct, simPctPrecise, simCharging, simSaver, simRemainingMah, simPollingHz, setBatterySaver,
+      batteryCapacity, usableCapacity, setBatteryCapacity, syncBatteryFull,
       config, keys, configRaw, keysRaw, toasts,
       macros, profiles, dpiListening, tab, setTab, skinId, setSkinId, connect, disconnect, refresh,
       registerUpdateStarter, startAppUpdate,
@@ -900,6 +1004,7 @@ export function MouseProvider({ children }: { children: ReactNode }): React.JSX.
       mode, connected, connecting, loading, theme, toggleTheme, lite, toggleLite, busy, wired, deviceLabel, version, mouseName,
       battery, chargeFlag, batteryHistory, lastBatteryRead, batteryReads,
       simPct, simPctPrecise, simCharging, simSaver, simRemainingMah, simPollingHz, setBatterySaver,
+      batteryCapacity, usableCapacity, setBatteryCapacity, syncBatteryFull,
       config, keys, configRaw, keysRaw, toasts,
       macros, profiles, dpiListening, tab, skinId, setSkinId, connect, disconnect, refresh,
       registerUpdateStarter, startAppUpdate,

@@ -12,7 +12,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Code, Download, FileText, RotateCcw, Save, Upload } from 'lucide-react';
+import { Code, Download, FileText, RotateCcw, Save, Upload, Zap } from 'lucide-react';
 import { hexDump, verifyChecksum } from '../lib/hid';
 import { useMouse } from '../store';
 import { autostartGet, autostartSet, isTauri } from '../lib/tauri';
@@ -152,7 +152,7 @@ export function FirmwareTag(): React.JSX.Element {
 
 /** Battery saver toggle only — lives in the Battery section under Dashboard. */
 export function BatterySaverCard(): React.JSX.Element {
-  const { connected, busy, simSaver, setBatterySaver } = useMouse();
+  const { connected, busy, simSaver, setBatterySaver, syncBatteryFull } = useMouse();
   return (
     <GlassCard>
       <CardTitle>Battery saver</CardTitle>
@@ -165,14 +165,24 @@ export function BatterySaverCard(): React.JSX.Element {
       <p className="mt-2 text-xs leading-relaxed text-[#a2a2b0]">
         Locks 125 Hz + DPI 1600 to stretch the battery — estimated only, the mouse is unchanged.
       </p>
+      <div className="mt-3 border-t border-white/10 pt-3">
+        <GlassButton variant="ghost" onClick={syncBatteryFull}>
+          <Zap className="h-4 w-4 text-amber-400" /> Sync 100% (Đã sạc đầy)
+        </GlassButton>
+        <p className="mt-1.5 text-xs text-[#a2a2b0]">
+          Click khi đèn sạc chuột đã tắt để hiệu chuẩn pin mô phỏng về 100%.
+        </p>
+      </div>
     </GlassCard>
   );
 }
 
-/** App settings — Lite mode + start with Windows. Lives in the Settings section. */
+/** App settings — Lite mode, battery cell capacity + start with Windows. Lives in the Settings section. */
 export function AppSettingsCard(): React.JSX.Element {
-  const { lite, toggleLite } = useMouse();
+  const { lite, toggleLite, batteryCapacity, setBatteryCapacity } = useMouse();
   const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [capacityInput, setCapacityInput] = useState<string | null>(null);
+  const currentInputValue = capacityInput ?? String(batteryCapacity);
   const webMode = !isTauri();
 
   useEffect(() => {
@@ -194,6 +204,38 @@ export function AppSettingsCard(): React.JSX.Element {
           <p className="mt-2 text-xs leading-relaxed text-[#a2a2b0]">
             Turns off all background blur effects (red blob, toasts, modal frames) to lighten the GPU — UI only, the mouse
             is unchanged. Turn it on if your PC still lags.
+          </p>
+        </div>
+        <div className="border-t border-white/10 pt-3">
+          <FieldLabel>Battery cell capacity (Dung lượng pin)</FieldLabel>
+          <div className="mt-1.5 flex items-center gap-2">
+            <input
+              type="number"
+              min="100"
+              max="2000"
+              step="50"
+              value={currentInputValue}
+              onChange={(e) => setCapacityInput(e.target.value)}
+              className="w-32 rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white focus:border-amber-400 focus:outline-none"
+              placeholder="500"
+            />
+            <span className="text-xs text-[#a2a2b0]">mAh</span>
+            <GlassButton
+              variant="ghost"
+              onClick={() => {
+                const val = parseInt(currentInputValue, 10);
+                if (!isNaN(val) && val > 0) {
+                  setBatteryCapacity(val);
+                  setCapacityInput(null);
+                }
+              }}
+              disabled={!currentInputValue || parseInt(currentInputValue, 10) === batteryCapacity}
+            >
+              <Save className="h-4 w-4" /> Save
+            </GlassButton>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-[#a2a2b0]">
+            Mặc định: 500 mAh (khả dụng 80% = {Math.round(batteryCapacity * 0.8)} mAh). Cấu hình dung lượng thực tế của cell pin trong chuột.
           </p>
         </div>
         <div className="border-t border-white/10 pt-3">

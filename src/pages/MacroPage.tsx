@@ -8,16 +8,37 @@
  *   place, the background behind must not scroll.
  * - Macros are only stored on this PC and written to the mouse — they cannot be read back.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MousePointerClick, Play, Plus, Save, Trash2, Zap } from 'lucide-react';
 import { CODE_TO_HID, keyName, type MacroAction, type MacroDef } from '../lib/hid';
 import { useMouse } from '../store';
 import { ConfirmModal, EmptyState, FieldLabel, GlassButton, GlassCard, PageHead, useScrollLock } from '../components/ui';
 
+const EXTRA_KEY_CODES: Record<string, number> = {
+  ControlLeft: 224,
+  ShiftLeft: 225,
+  AltLeft: 226,
+  MetaLeft: 227,
+  ControlRight: 228,
+  ShiftRight: 229,
+  AltRight: 230,
+  MetaRight: 231,
+};
+
 function actionLabel(a: MacroAction): string {
-  if (a.kind === 'key') return `${a.action === 'keydown' ? 'Press' : 'Release'} ${keyName(16, 0, a.code, 0).replace('Keyboard: ', '')}`;
-  if (a.kind === 'mouse') return `${a.action === 'mousedown' ? 'Click' : 'Release'} mouse button ${a.button}`;
+  if (a.kind === 'key') {
+    const key = keyName(16, 0, a.code, 0).replace('Keyboard: ', '');
+    const act = a.action === 'keydown' ? 'Press' : 'Release';
+    const delay = a.delayMs ? ` (${a.delayMs} ms)` : '';
+    return `${act} ${key}${delay}`;
+  }
+  if (a.kind === 'mouse') {
+    const act = a.action === 'mousedown' ? 'Click' : 'Release';
+    const btnName = a.button === 0 ? 'Left' : a.button === 1 ? 'Middle' : a.button === 2 ? 'Right' : `button ${a.button}`;
+    const delay = a.delayMs ? ` (${a.delayMs} ms)` : '';
+    return `${act} ${btnName} button${delay}`;
+  }
   return `Wait ${a.delayMs} ms`;
 }
 
@@ -29,22 +50,26 @@ export default function MacroPage(): React.JSX.Element {
   const [recording, setRecording] = useState(false);
   const [delayMs, setDelayMs] = useState(50);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const lastTimeRef = useRef<number | null>(null);
 
   const startNew = (): void => {
     setEditingId(`m${Date.now()}`);
     setName(`Macro ${macros.length + 1}`);
     setSteps([]);
+    lastTimeRef.current = null;
   };
 
   const openEdit = (m: MacroDef): void => {
     setEditingId(m.id);
     setName(m.name);
     setSteps([...m.actions]);
+    lastTimeRef.current = null;
   };
 
   const closeEditor = (): void => {
     setEditingId(null);
     setRecording(false);
+    lastTimeRef.current = null;
   };
 
   // v2.5: an open modal locks background scrolling — the popup stays fixed in place.
@@ -62,27 +87,62 @@ export default function MacroPage(): React.JSX.Element {
     closeEditor();
   };
 
-  // Record mode: only records while the modal is open + recording — a real key press becomes a step.
+  // Record mode: records while modal is open + recording — tracks timing with performance.now().
+  // Typing conflict guard: skips keystrokes when focused inside input/textarea/contentEditable elements.
   useEffect(() => {
-    if (!recording || !editingId) return;
+    if (!recording || !editingId) {
+      lastTimeRef.current = null;
+      return;
+    }
+
+    const clampDelay = (ms: number): number => {
+      if (Number.isNaN(ms)) return 2;
+      return Math.min(5000, Math.max(2, Math.round(ms)));
+    };
+
+    const isTypingElement = (target: EventTarget | null): boolean => {
+      const active = typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
+      const el = target as HTMLElement | null;
+      const check = (node: HTMLElement | null): boolean => {
+        if (!node) return false;
+        if (node instanceof HTMLInputElement || node.tagName === 'INPUT') return true;
+        if (node instanceof HTMLTextAreaElement || node.tagName === 'TEXTAREA') return true;
+        if (node.isContentEditable) return true;
+        return false;
+      };
+      return check(el) || check(active);
+    };
+
+    const recordKey = (code: number, action: 'keydown' | 'keyup'): void => {
+      const now = performance.now();
+      const delay = lastTimeRef.current === null ? 2 : clampDelay(now - lastTimeRef.current);
+      lastTimeRef.current = now;
+      setSteps((prev) => [...prev, { kind: 'key', code, action, delayMs: delay }]);
+    };
+
     const down = (e: KeyboardEvent): void => {
+      if (isTypingElement(e.target)) return;
       if (e.repeat) return;
-      const hid = CODE_TO_HID[e.code];
+      const hid = CODE_TO_HID[e.code] ?? EXTRA_KEY_CODES[e.code];
       if (hid === undefined) return;
       e.preventDefault();
-      setSteps((prev) => [...prev, { kind: 'key', code: hid, action: 'keydown', delayMs: 0 }]);
+      recordKey(hid, 'keydown');
     };
+
     const up = (e: KeyboardEvent): void => {
-      const hid = CODE_TO_HID[e.code];
+      if (isTypingElement(e.target)) return;
+      const hid = CODE_TO_HID[e.code] ?? EXTRA_KEY_CODES[e.code];
       if (hid === undefined) return;
       e.preventDefault();
-      setSteps((prev) => [...prev, { kind: 'key', code: hid, action: 'keyup', delayMs: 0 }]);
+      recordKey(hid, 'keyup');
     };
+
     window.addEventListener('keydown', down, true);
     window.addEventListener('keyup', up, true);
     return () => {
       window.removeEventListener('keydown', down, true);
       window.removeEventListener('keyup', up, true);
+      lastTimeRef.current = null;
     };
   }, [recording, editingId]);
 
@@ -170,13 +230,24 @@ export default function MacroPage(): React.JSX.Element {
               </div>
 
               <div>
-                <FieldLabel>Steps ({steps.length})</FieldLabel>
+                <div className="flex items-center justify-between">
+                  <FieldLabel>Steps ({steps.length})</FieldLabel>
+                  {steps.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSteps([])}
+                      className="text-xs text-red-300 hover:text-red-200 transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
                 {steps.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-[#a2a2b0]">
                     No steps yet. Click “Record keys”, then press a real key, or add a wait / mouse-click step.
                   </p>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="max-h-60 overflow-y-auto pr-1 space-y-1.5">
                     {steps.map((s, i) => (
                       <div key={i} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm">
                         <span className="w-6 shrink-0 font-mono text-xs text-[#a2a2b0]">{i + 1}.</span>
@@ -195,7 +266,16 @@ export default function MacroPage(): React.JSX.Element {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <GlassButton variant="ghost" onClick={() => setRecording((r) => !r)}>
+                <GlassButton
+                  variant={recording ? 'primary' : 'ghost'}
+                  onClick={() => {
+                    setRecording((r) => {
+                      const next = !r;
+                      lastTimeRef.current = null;
+                      return next;
+                    });
+                  }}
+                >
                   <MousePointerClick className="h-4 w-4" />
                   {recording ? 'Stop recording…' : 'Record keys…'}
                 </GlassButton>
@@ -207,13 +287,18 @@ export default function MacroPage(): React.JSX.Element {
                     max={5000}
                     step={10}
                     aria-label="Wait milliseconds"
-                    onChange={(e) => setDelayMs(Number(e.target.value))}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setDelayMs(Number.isNaN(v) ? 10 : Math.min(5000, Math.max(10, v)));
+                    }}
                     className="w-[90px] rounded-lg border border-white/15 bg-black/30 px-3 py-2.5 text-right font-mono text-sm text-white"
                   />
                   <GlassButton
                     variant="ghost"
                     onClick={() => {
-                      setSteps((prev) => [...prev, { kind: 'delay', delayMs: Math.max(10, delayMs) }]);
+                      const ms = Math.min(5000, Math.max(10, delayMs || 50));
+                      setSteps((prev) => [...prev, { kind: 'delay', delayMs: ms }]);
+                      if (recording) lastTimeRef.current = performance.now();
                     }}
                   >
                     + Wait {delayMs} ms
@@ -221,9 +306,29 @@ export default function MacroPage(): React.JSX.Element {
                 </div>
                 <GlassButton
                   variant="ghost"
-                  onClick={() => setSteps((prev) => [...prev, { kind: 'mouse', button: 0, action: 'mousedown', delayMs: 0 }, { kind: 'mouse', button: 0, action: 'mouseup', delayMs: 0 }])}
+                  onClick={() => {
+                    setSteps((prev) => [
+                      ...prev,
+                      { kind: 'mouse', button: 0, action: 'mousedown', delayMs: 2 },
+                      { kind: 'mouse', button: 0, action: 'mouseup', delayMs: 20 },
+                    ]);
+                    if (recording) lastTimeRef.current = performance.now();
+                  }}
                 >
                   + Left click
+                </GlassButton>
+                <GlassButton
+                  variant="ghost"
+                  onClick={() => {
+                    setSteps((prev) => [
+                      ...prev,
+                      { kind: 'mouse', button: 2, action: 'mousedown', delayMs: 2 },
+                      { kind: 'mouse', button: 2, action: 'mouseup', delayMs: 20 },
+                    ]);
+                    if (recording) lastTimeRef.current = performance.now();
+                  }}
+                >
+                  + Right click
                 </GlassButton>
               </div>
               {recording && (

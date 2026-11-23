@@ -5,8 +5,10 @@
  * charge assumption 150 mA (0.3C, full usable charge ~2.7 h).
  */
 import {
+  CAPACITY_MAH,
   CHARGE_MA,
   chargeTick,
+  CUSTOM_CAPACITY_KEY,
   defaultState,
   drainMaAt,
   indexForHz,
@@ -19,6 +21,7 @@ import {
   SLEEP_MA,
   tick,
   USABLE_MAH,
+  usableFromCapacity,
   type BatteryState,
 } from '../src/lib/battery';
 
@@ -167,6 +170,19 @@ eq('staying below 20 does not re-fire without reset', shouldNotifyLow(20, 19, fu
   eq('1 h walk at 1000 Hz from 21% fires exactly once', fired, 1);
   eq('after walk, low flag is set', s.low_notified, true);
 }
+
+// --- customizable cell capacity (default 500 mAh, usable = capacity * 0.8) ---
+eq('storage key is smailwolf_custom_capacity_mah', CUSTOM_CAPACITY_KEY, 'smailwolf_custom_capacity_mah');
+eq('default CAPACITY_MAH = 500', CAPACITY_MAH, 500);
+eq('usableFromCapacity(500) = 400', usableFromCapacity(500), 400);
+eq('usableFromCapacity(300) = 240', usableFromCapacity(300), 240);
+eq('usableFromCapacity(600) = 480', usableFromCapacity(600), 480);
+approx('custom runtime 125 Hz with 240 mAh = 80 h', runtimeHours(125, 240), 80);
+eq('custom percent 120 / 240 mAh = 50%', percentOf({ ...full(), remaining_mah: 120 }, 240), 50);
+eq('custom precise 120 / 240 mAh = 50', percentOfPrecise({ ...full(), remaining_mah: 120 }, 240), 50);
+eq('custom defaultState remaining_mah = 240', defaultState(now, 125, 240).remaining_mah, 240);
+eq('custom chargeTick caps at custom usable (240)', chargeTick({ ...full(), remaining_mah: 230 }, 3600, 240).remaining_mah, 240);
+approx('custom tick drain from 240 mAh', 240 - tick({ ...full(), remaining_mah: 240 }, 3600, 1000, 240).remaining_mah, 14);
 
 console.log(`\nbattery: ${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

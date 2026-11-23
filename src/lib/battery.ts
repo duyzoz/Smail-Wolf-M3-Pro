@@ -32,10 +32,41 @@ import type { BatteryState } from './tauri';
 
 export type { BatteryState };
 
-/** Cell capacity as printed on the battery. */
+/** Cell capacity as printed on the battery (default 500 mAh). */
 export const CAPACITY_MAH = 500;
 /** Usable capacity: 500 mAh x 0.8 efficiency. % = remaining / 400. */
 export const USABLE_MAH = 400;
+/** LocalStorage / store key for user-configured battery cell capacity. */
+export const CUSTOM_CAPACITY_KEY = 'smailwolf_custom_capacity_mah';
+
+/** Usable capacity from cell capacity (80% efficiency). */
+export function usableFromCapacity(capacityMah: number): number {
+  return Math.round(capacityMah * 0.8);
+}
+
+/** Get stored custom capacity (mAh) from localStorage, falling back to CAPACITY_MAH (500). */
+export function getStoredCapacity(): number {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const val = localStorage.getItem(CUSTOM_CAPACITY_KEY);
+      if (val) {
+        const n = parseInt(val, 10);
+        if (!isNaN(n) && n > 0) return n;
+      }
+    } catch {}
+  }
+  return CAPACITY_MAH;
+}
+
+/** Set stored custom capacity (mAh) in localStorage. */
+export function setStoredCapacity(capacityMah: number): void {
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(CUSTOM_CAPACITY_KEY, String(capacityMah));
+    } catch {}
+  }
+}
+
 /** Drain current (mA) by polling rate (Hz). */
 export const DRAIN_MA: Record<number, number> = {
   125: 3,
@@ -84,14 +115,15 @@ export function drainMaAt(hz: number): number {
 }
 
 /** Estimated runtime (hours) from a full usable charge at a polling rate. */
-export function runtimeHours(hz: number): number {
-  return USABLE_MAH / drainMaAt(hz);
+export function runtimeHours(hz: number, usableMah = USABLE_MAH): number {
+  return usableMah / drainMaAt(hz);
 }
 
 /** % (0–100, rounded) from a state. */
-export function percentOf(state: BatteryState | null): number {
+export function percentOf(state: BatteryState | null, usableMah = USABLE_MAH): number {
   if (!state) return 100;
-  return Math.max(0, Math.min(100, Math.round((state.remaining_mah / USABLE_MAH) * 100)));
+  if (usableMah <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((state.remaining_mah / usableMah) * 100)));
 }
 
 /**
@@ -100,15 +132,16 @@ export function percentOf(state: BatteryState | null): number {
  * ~20 min. The integer % would sit at 100% for the first 13 hours.
  * Logic (low-battery threshold, saver) keeps using integer percentOf.
  */
-export function percentOfPrecise(state: BatteryState | null): number {
+export function percentOfPrecise(state: BatteryState | null, usableMah = USABLE_MAH): number {
   if (!state) return 100;
-  return Math.max(0, Math.min(100, Math.round((state.remaining_mah / USABLE_MAH) * 1000) / 10));
+  if (usableMah <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((state.remaining_mah / usableMah) * 1000) / 10));
 }
 
 /** Fresh state: full usable charge. Used ONLY on first run (no saved state). */
-export function defaultState(nowSeconds: number, pollingRateHz = 125): BatteryState {
+export function defaultState(nowSeconds: number, pollingRateHz = 125, usableMah = USABLE_MAH): BatteryState {
   return {
-    remaining_mah: USABLE_MAH,
+    remaining_mah: usableMah,
     last_polling_rate: pollingRateHz,
     updated_at: nowSeconds,
     charging: false,
@@ -117,8 +150,8 @@ export function defaultState(nowSeconds: number, pollingRateHz = 125): BatterySt
   };
 }
 
-function clampMah(mah: number): number {
-  return Math.max(0, Math.min(USABLE_MAH, mah));
+function clampMah(mah: number, usableMah = USABLE_MAH): number {
+  return Math.max(0, Math.min(usableMah, mah));
 }
 
 /**
@@ -130,12 +163,13 @@ export function tick(
   state: BatteryState,
   seconds: number,
   pollingRateHz: number,
+  usableMah = USABLE_MAH,
 ): BatteryState {
   if (seconds <= 0) return { ...state };
   const drain = (drainMaAt(pollingRateHz) * seconds) / 3600;
   return {
     ...state,
-    remaining_mah: clampMah(state.remaining_mah - drain),
+    remaining_mah: clampMah(state.remaining_mah - drain, usableMah),
     last_polling_rate: pollingRateHz,
     updated_at: state.updated_at + seconds,
   };
@@ -143,14 +177,14 @@ export function tick(
 
 /**
  * Charge `seconds` at CHARGE_MA (150 mA): remaining += 150/3600 mAh per s,
- * capped at 400 mAh. Pure — returns a new state, never mutates.
+ * capped at usableMah (default 400 mAh). Pure — returns a new state, never mutates.
  */
-export function chargeTick(state: BatteryState, seconds: number): BatteryState {
+export function chargeTick(state: BatteryState, seconds: number, usableMah = USABLE_MAH): BatteryState {
   if (seconds <= 0) return { ...state };
   const gain = (CHARGE_MA * seconds) / 3600;
   return {
     ...state,
-    remaining_mah: clampMah(state.remaining_mah + gain),
+    remaining_mah: clampMah(state.remaining_mah + gain, usableMah),
     updated_at: state.updated_at + seconds,
   };
 }
@@ -158,7 +192,7 @@ export function chargeTick(state: BatteryState, seconds: number): BatteryState {
 /**
  * On startup, apply the real time elapsed since `updated_at`:
  * - saved charging=true → assume it KEPT charging at 150 mA the whole
- *   time the app was closed (until full, capped at 400 mAh). This is an
+ *   time the app was closed (until full, capped at usableMah). This is an
  *   assumption: the app cannot know whether the cable stayed plugged in
  *   while it was closed; it only knows the mouse was wired when it last
  *   ran. If the cable was unplugged, the % will read high until the next
@@ -176,19 +210,20 @@ export function loadWithElapsed(
   saved: BatteryState,
   nowSeconds: number,
   sleepMinutes = 5,
+  usableMah = USABLE_MAH,
 ): BatteryState {
   const elapsed = Math.max(0, nowSeconds - saved.updated_at);
   if (elapsed === 0) return { ...saved };
-  if (saved.charging) return chargeTick(saved, elapsed);
-  if (sleepMinutes <= 0) return tick(saved, elapsed, saved.last_polling_rate);
+  if (saved.charging) return chargeTick(saved, elapsed, usableMah);
+  if (sleepMinutes <= 0) return tick(saved, elapsed, saved.last_polling_rate, usableMah);
   const awakeSeconds = Math.min(elapsed, sleepMinutes * 60);
-  const afterAwake = tick(saved, awakeSeconds, saved.last_polling_rate);
+  const afterAwake = tick(saved, awakeSeconds, saved.last_polling_rate, usableMah);
   const sleepSeconds = elapsed - awakeSeconds;
   if (sleepSeconds <= 0) return afterAwake;
   const sleepDrain = (SLEEP_MA * sleepSeconds) / 3600;
   return {
     ...afterAwake,
-    remaining_mah: clampMah(afterAwake.remaining_mah - sleepDrain),
+    remaining_mah: clampMah(afterAwake.remaining_mah - sleepDrain, usableMah),
     updated_at: afterAwake.updated_at + sleepSeconds,
   };
 }

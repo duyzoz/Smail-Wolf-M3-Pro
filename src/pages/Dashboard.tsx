@@ -6,7 +6,7 @@
  * handles connecting, so reaching here means connected), shortened explanations,
  * shorter buttons.
  */
-import { Play, RefreshCw } from 'lucide-react';
+import { Play, RefreshCw, Zap } from 'lucide-react';
 import { useMouse } from '../store';
 import { CardTitle, Donut, GlassButton, GlassCard, PageHead } from '../components/ui';
 
@@ -14,7 +14,7 @@ export default function Dashboard({ bare = false }: { bare?: boolean }): React.J
   const {
     keys, version, mouseName, wired, mode,
     connected, busy, dpiListening, refresh, simulateDpiPush, listenDpiPush,
-    simPctPrecise, simCharging, simSaver,
+    simPctPrecise, simCharging, simSaver, syncBatteryFull,
   } = useMouse();
 
   return (
@@ -43,6 +43,11 @@ export default function Dashboard({ bare = false }: { bare?: boolean }): React.J
           accent={simSaver ? '#eab308' : '#ea580c'}
           label={simCharging ? 'Charging (estimated)' : simSaver ? 'Battery left — Battery saver (estimated)' : 'Battery left (estimated)'}
         />
+        <div className="mt-2.5 flex justify-center" title="Đồng bộ pin 100% khi đèn LED sạc trên chuột đã tắt">
+          <GlassButton variant="ghost" onClick={syncBatteryFull}>
+            <Zap className="h-4 w-4 text-amber-400" /> Sync 100% (Đã sạc đầy)
+          </GlassButton>
+        </div>
         <div className="mt-3 grid grid-cols-1 gap-y-1.5 border-t border-white/10 pt-3 text-[13px]">
           <div className="flex justify-between gap-2">
             <span className="shrink-0 text-[#a2a2b0]">Mouse name</span>

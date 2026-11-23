@@ -617,6 +617,7 @@ export type HidLike = {
   close(): Promise<void>;
   sendReport(reportId: number, data: Uint8Array): Promise<void>;
   addEventListener(type: 'inputreport', listener: (e: { data: DataView }) => void): void;
+  removeEventListener(type: 'inputreport', listener: (e: { data: DataView }) => void): void;
 };
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -634,8 +635,9 @@ export class LiveMouse {
   private wired = false;
   private queue: Promise<unknown> = Promise.resolve();
   private replies: { currTime: number; message: number[] }[] = [];
-  private replyWaiter: ((bytes: number[]) => void) | null = null;
+  private replyWaiter: { expectedReplyId?: number; resolve: (bytes: number[]) => void } | null = null;
   private statusWaiters: { name: string; res: (d: StatusEvent | null) => void; timer: ReturnType<typeof setTimeout> }[] = [];
+  private boundOnInputReport: ((e: { data: DataView }) => void) | null = null;
   onStatus: (s: StatusEvent) => void = () => {};
   onLog: (line: string) => void = () => {};
 
@@ -659,39 +661,94 @@ export class LiveMouse {
     while (this.replies.length && this.replies[0].currTime < now - 2000) this.replies.shift();
   }
 
-  private readReply(): Promise<number[]> {
+  private readReply(expectedReplyId?: number): Promise<number[]> {
     this.pruneReplies(Date.now());
-    if (this.replies.length) return Promise.resolve(this.replies.shift()!.message);
+    if (expectedReplyId !== undefined) {
+      const idx = this.replies.findIndex((r) => r.message[0] === expectedReplyId);
+      if (idx !== -1) {
+        const [found] = this.replies.splice(idx, 1);
+        return Promise.resolve(found.message);
+      }
+    } else if (this.replies.length) {
+      return Promise.resolve(this.replies.shift()!.message);
+    }
     return new Promise((res) => {
-      const timer = setTimeout(() => {
-        if (this.replyWaiter === res) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const waiter = {
+        expectedReplyId,
+        resolve: (bytes: number[]) => {
+          if (timer) {
+            clearTimeout(timer);
+            timer = undefined;
+          }
+          if (this.replyWaiter === waiter) {
+            this.replyWaiter = null;
+          }
+          res(bytes);
+        },
+      };
+      timer = setTimeout(() => {
+        if (this.replyWaiter === waiter) {
           this.replyWaiter = null;
           res([]);
         }
       }, 500);
-      this.replyWaiter = (bytes) => {
-        clearTimeout(timer);
-        res(bytes);
-      };
+      this.replyWaiter = waiter;
     });
   }
 
-  private handleReport(bytes: number[]): void {
+  private isStatusReport(bytes: number[]): boolean {
+    const id = bytes[0];
+    return id === 250 || id === 237 || id === 48 || (id === 19 && bytes[1] === 226);
+  }
+
+  private dispatchStatus(bytes: number[]): void {
     if (bytes[0] === 250 && bytes[8] !== 208) {
       this.onStatus({ type: 'dpi-push', dpiIndex: bytes[8] - 1, reportRateIndex: bytes[9] - 1 });
     } else if (bytes[0] === 237) {
-      this.onStatus({ type: 'mouse_status', mouseStatus: bytes[7] });
+      const evt: StatusEvent = { type: 'mouse_status', mouseStatus: bytes[7] };
+      this.fireStatus('mouse_status', evt);
+      this.onStatus(evt);
     } else if (bytes[0] === 48) {
-      this.onStatus({ type: 'battery', battery: bytes[7], chargeFlag: bytes[8] });
+      const evt: StatusEvent = { type: 'battery', battery: bytes[7], chargeFlag: bytes[8] };
+      this.fireStatus('battery', evt);
+      this.onStatus(evt);
     } else if (bytes[0] === 19 && bytes[1] === 226) {
       this.onStatus({ type: 'match' });
     }
+  }
+
+  private handleReport(bytes: number[]): void {
+    const isStatus = this.isStatusReport(bytes);
+    if (isStatus) {
+      this.dispatchStatus(bytes);
+    }
+
     if (this.replyWaiter) {
-      const w = this.replyWaiter;
-      this.replyWaiter = null;
-      w(bytes);
+      const { expectedReplyId, resolve } = this.replyWaiter;
+      if (expectedReplyId !== undefined) {
+        if (bytes[0] === expectedReplyId) {
+          this.replyWaiter = null;
+          resolve(bytes);
+        } else {
+          // Packet does not match expected reply id.
+          // Unsolicited status reports are already dispatched to onStatus/fireStatus above.
+          // If it's not a status report, queue it in replies.
+          if (!isStatus) {
+            this.replies.push({ currTime: Date.now(), message: bytes });
+          }
+        }
+      } else {
+        // No expectedReplyId specified: unsolicited status reports must NOT fulfill replyWaiter!
+        if (!isStatus) {
+          this.replyWaiter = null;
+          resolve(bytes);
+        }
+      }
     } else {
-      this.replies.push({ currTime: Date.now(), message: bytes });
+      if (!isStatus) {
+        this.replies.push({ currTime: Date.now(), message: bytes });
+      }
     }
   }
 
@@ -720,7 +777,7 @@ export class LiveMouse {
     });
   }
 
-  private async writeCommand(cmd: number[]): Promise<number[]> {
+  private async writeCommand(cmd: number[], expectedReplyId?: number): Promise<number[]> {
     if (!this.device) throw new Error('Mouse not connected');
     const padded = Array(64).fill(0);
     cmd.forEach((b, i) => {
@@ -731,23 +788,25 @@ export class LiveMouse {
       3000,
       'sendReport',
     );
-    return this.readReply();
+    return this.readReply(expectedReplyId);
   }
 
-  private queuedWrite(cmd: number[]): Promise<number[]> {
-    return this.enqueue(() => this.writeCommand(cmd));
+  private queuedWrite(cmd: number[], expectedReplyId?: number): Promise<number[]> {
+    return this.enqueue(() => this.writeCommand(cmd, expectedReplyId));
   }
 
   // v2.6: connect(device?) — DevicePicker does a real scan (requestDevice), then
   // clicking one specific device in the list opens exactly that device,
   // no re-scan / no more taking the first device by VID.
   async connect(picked?: unknown): Promise<HidLike> {
-    if (!('hid' in navigator)) throw new Error('This browser has no WebHID. Use Chrome/Edge.');
-    const hid = (navigator as Navigator & { hid: { getDevices(): Promise<HidLike[]>; requestDevice(o: unknown): Promise<HidLike[]> } }).hid;
     let device: HidLike;
     if (picked && typeof picked === 'object' && 'open' in picked) {
       device = picked as HidLike;
     } else {
+      if (typeof navigator === 'undefined' || !('hid' in navigator)) {
+        throw new Error('This browser has no WebHID. Use Chrome/Edge.');
+      }
+      const hid = (navigator as Navigator & { hid: { getDevices(): Promise<HidLike[]>; requestDevice(o: unknown): Promise<HidLike[]> } }).hid;
       let devices = (await hid.getDevices()).filter((d) =>
         d.collections?.some((c) => c.usagePage === 65281 && c.usage === 16),
       );
@@ -761,42 +820,64 @@ export class LiveMouse {
     }
     this.wired = device.vendorId === WIRED_VID;
     await device.open();
-    device.addEventListener('inputreport', (e) => {
+    if (this.boundOnInputReport && this.device) {
+      try {
+        this.device.removeEventListener('inputreport', this.boundOnInputReport);
+      } catch {}
+    }
+    this.boundOnInputReport = (e: { data: DataView }) => {
       const bytes = Array.from(new Uint8Array(e.data.buffer));
-      // status listener path also resolves waitStatus waiters
-      if (bytes[0] === 48) this.fireStatus('battery', { type: 'battery', battery: bytes[7], chargeFlag: bytes[8] });
-      if (bytes[0] === 237) this.fireStatus('mouse_status', { type: 'mouse_status', mouseStatus: bytes[7] });
       this.handleReport(bytes);
-    });
+    };
+    device.addEventListener('inputreport', this.boundOnInputReport);
     this.device = device;
     return device;
   }
 
   async disconnect(): Promise<void> {
     try {
-      if (this.device) await this.device.close();
+      if (this.device) {
+        if (this.boundOnInputReport) {
+          try {
+            this.device.removeEventListener('inputreport', this.boundOnInputReport);
+          } catch {}
+          this.boundOnInputReport = null;
+        }
+        await this.device.close();
+      }
     } finally {
       this.device = null;
+      this.boundOnInputReport = null;
+      if (this.replyWaiter) {
+        this.replyWaiter.resolve([]);
+        this.replyWaiter = null;
+      }
+      for (const w of this.statusWaiters) {
+        clearTimeout(w.timer);
+        w.res(null);
+      }
+      this.statusWaiters = [];
+      this.replies = [];
     }
   }
 
   /** Full startup read sequence, exactly like the original app. */
   async readAll(): Promise<FullRead> {
-    const v = await this.queuedWrite([240, 4]);
+    const v = await this.queuedWrite([240, 4], 4);
     const version = parseVersion(v);
-    const info = await this.queuedWrite([240, 82]);
+    const info = await this.queuedWrite([240, 82], 82);
     const mouseName = parseMouseInfo(info);
     const batteryP = this.waitStatus('battery');
-    await this.queuedWrite([240, 48, 165, 11, 46, 1, 1, 1, 0, 0]);
+    await this.queuedWrite([240, 48, 165, 11, 46, 1, 1, 1, 0, 0], 48);
     const bat = await batteryP;
-    const k = await this.queuedWrite([240, 8, 165, 11, 44, 0, 0, 0, 0, 0]);
+    const k = await this.queuedWrite([240, 8, 165, 11, 44, 0, 0, 0, 0, 0], 8);
     const parsedKeys = parseKeys(k);
     if ('error' in parsedKeys) throw new Error(`Failed to read keys: ${parsedKeys.error}`);
-    const t = await this.queuedWrite([240, 14, 165, 11, 46, 1, 1, 1, 0, 0]);
+    const t = await this.queuedWrite([240, 14, 165, 11, 46, 1, 1, 1, 0, 0], 14);
     const cfg = parseConfig(t);
     if ('error' in cfg) throw new Error(`Failed to read config: ${cfg.error}`);
     const stP = this.waitStatus('mouse_status');
-    await this.queuedWrite([240, 237]);
+    await this.queuedWrite([240, 237], 237);
     const st = await stP;
     return {
       version,
@@ -819,7 +900,7 @@ export class LiveMouse {
    *  last good value. */
   async readBattery(): Promise<{ battery: number; chargeFlag: number } | null> {
     const p = this.waitStatus('battery');
-    await this.queuedWrite([240, 48, 165, 11, 46, 1, 1, 1, 0, 0]);
+    await this.queuedWrite([240, 48, 165, 11, 46, 1, 1, 1, 0, 0], 48);
     const bat = await p;
     if (bat?.battery === undefined) return null;
     return { battery: bat.battery, chargeFlag: bat.chargeFlag ?? 0 };
@@ -829,9 +910,9 @@ export class LiveMouse {
   async readConfigKeys(): Promise<{ keys: ParsedKey[]; keysRaw: number[]; config: MouseConfig; configRaw: number[] }> {
     let last: { keys: ParsedKey[]; keysRaw: number[]; config: MouseConfig; configRaw: number[] } | null = null;
     for (let attempt = 1; attempt <= 2; attempt++) {
-      const k = await this.queuedWrite([240, 8, 165, 11, 44, 0, 0, 0, 0, 0]);
+      const k = await this.queuedWrite([240, 8, 165, 11, 44, 0, 0, 0, 0, 0], 8);
       const parsedKeys = parseKeys(k);
-      const t = await this.queuedWrite([240, 14, 165, 11, 46, 1, 1, 1, 0, 0]);
+      const t = await this.queuedWrite([240, 14, 165, 11, 46, 1, 1, 1, 0, 0], 14);
       const cfg = parseConfig(t);
       if ('error' in parsedKeys || 'error' in cfg) {
         last = null;
@@ -853,7 +934,7 @@ export class LiveMouse {
   }> {
     const bytes = buildSetConfig(cfg);
     if (!bytes) throw new Error('Write failed: config fallback or checksum BAD');
-    const ack = await this.queuedWrite(bytes);
+    const ack = await this.queuedWrite(bytes, 15);
     if (ack[0] !== 15) throw new Error(`Write ack error: reply[0]=${ack[0]} (expected 15)`);
     const ackCs = verifyChecksum(ack);
     if (!ackCs.ok) throw new Error(`Ack checksum BAD: reply=${ack[2]}, expected=${ackCs.expected}`);
@@ -868,7 +949,7 @@ export class LiveMouse {
     diff: ReturnType<typeof diffKeyFields>;
   }> {
     const bytes = buildSetKeys(keys);
-    await this.queuedWrite(bytes);
+    await this.queuedWrite(bytes, 9);
     const after = await this.readConfigKeys();
     const diff = diffKeyFields(keys, after.keys);
     return { sent: bytes, matched: diff.length === 0, diff };

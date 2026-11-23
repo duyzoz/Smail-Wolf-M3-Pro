@@ -20,6 +20,7 @@ import {
   clampDpi,
   diffBytes,
   keyName,
+  LiveMouse,
   parseConfig,
   parseKeys,
   parseMouseInfo,
@@ -27,7 +28,9 @@ import {
   pollingHz,
   SYSTEM_KEY_ACTIONS,
   verifyChecksum,
+  type HidLike,
   type MouseConfig,
+  type StatusEvent,
 } from '../src/lib/hid';
 
 let pass = 0;
@@ -236,11 +239,128 @@ async function demoFlow(): Promise<void> {
   const wk = await demo.writeKeys(demoInitialKeys());
   eq('demo writeKeys matched', wk.matched, true);
   await demo.disconnect();
+}
+
+class MockHidDevice implements HidLike {
+  vendorId = 43173;
+  productId = 1;
+  productName = 'Mock Smailwolf M3 Pro';
+  collections = [{ usagePage: 65281, usage: 16, inputReports: [], outputReports: [], featureReports: [] }];
+  opened = false;
+  closed = false;
+  sentReports: { reportId: number; data: Uint8Array }[] = [];
+  listeners: Map<string, ((e: { data: DataView }) => void)[]> = new Map();
+
+  async open(): Promise<void> {
+    this.opened = true;
+  }
+  async close(): Promise<void> {
+    this.closed = true;
+  }
+  async sendReport(reportId: number, data: Uint8Array): Promise<void> {
+    this.sentReports.push({ reportId, data });
+  }
+  addEventListener(type: 'inputreport', listener: (e: { data: DataView }) => void): void {
+    const list = this.listeners.get(type) || [];
+    list.push(listener);
+    this.listeners.set(type, list);
+  }
+  removeEventListener(type: 'inputreport', listener: (e: { data: DataView }) => void): void {
+    const list = this.listeners.get(type) || [];
+    this.listeners.set(type, list.filter((l) => l !== listener));
+  }
+
+  emitInputReport(bytes: number[]): void {
+    const u8 = new Uint8Array(bytes);
+    const dv = new DataView(u8.buffer);
+    const list = this.listeners.get('inputreport') || [];
+    for (const l of list) {
+      l({ data: dv });
+    }
+  }
+}
+
+async function liveFlow(): Promise<void> {
+  const mockDev = new MockHidDevice();
+  const live = new LiveMouse();
+  await live.connect(mockDev);
+  eq('live connected', live.connected, true);
+  eq('mock device listener registered', mockDev.listeners.get('inputreport')?.length, 1);
+
+  await live.disconnect();
+  eq('live disconnected', live.connected, false);
+  eq('mock device closed', mockDev.closed, true);
+  eq('mock device listener removed on disconnect', mockDev.listeners.get('inputreport')?.length, 0);
+
+  // Test race condition and expectedReplyId
+  const mock2 = new MockHidDevice();
+  const live2 = new LiveMouse();
+  const statusEvents: StatusEvent[] = [];
+  live2.onStatus = (s) => statusEvents.push(s);
+  await live2.connect(mock2);
+
+  const readPromise = live2.readConfigKeys();
+  await new Promise((r) => setTimeout(r, 10));
+
+  eq('readConfigKeys sent keys report 240', mock2.sentReports[0]?.reportId, 240);
+
+  // Send unsolicited status reports while waiting for keys (expected 8)
+  mock2.emitInputReport([250, 0, 0, 0, 0, 0, 0, 0, 2, 4]); // dpi-push
+  eq('unsolicited DPI push status count', statusEvents.length, 1);
+  eq('unsolicited DPI push event type', statusEvents[0]?.type, 'dpi-push');
+  eq('unsolicited DPI push dpiIndex', statusEvents[0]?.dpiIndex, 1);
+
+  mock2.emitInputReport([48, 0, 0, 0, 0, 0, 0, 85, 0]); // battery
+  eq('unsolicited battery status count', statusEvents.length, 2);
+  eq('unsolicited battery event type', statusEvents[1]?.type, 'battery');
+  eq('unsolicited battery level', statusEvents[1]?.battery, 85);
+
+  mock2.emitInputReport([237, 0, 0, 0, 0, 0, 0, 1]); // mouse status
+  eq('unsolicited mouse_status count', statusEvents.length, 3);
+  eq('unsolicited mouse_status event type', statusEvents[2]?.type, 'mouse_status');
+
+  mock2.emitInputReport([19, 226]); // match
+  eq('unsolicited match count', statusEvents.length, 4);
+  eq('unsolicited match event type', statusEvents[3]?.type, 'match');
+
+  // Emit actual keys reply (report 8)
+  const realKeysReply = buildKeysReply(demoInitialKeys());
+  mock2.emitInputReport(realKeysReply);
+
+  // Wait for config command to be sent
+  await new Promise((r) => setTimeout(r, 10));
+  eq('readConfigKeys sent config report 240', mock2.sentReports[1]?.reportId, 240);
+
+  // Send another unsolicited status while waiting for config (expected 14)
+  mock2.emitInputReport([250, 0, 0, 0, 0, 0, 0, 0, 3, 4]);
+  eq('unsolicited DPI push during config wait', statusEvents.length, 5);
+
+  // Emit actual config reply (report 14)
+  const realConfigReply = buildConfigReply(demoInitialConfig());
+  mock2.emitInputReport(realConfigReply);
+
+  const configKeysResult = await readPromise;
+  eq('readConfigKeys succeeded despite unsolicited packets', configKeysResult.config.dpiIndex, 1);
+  eq('readConfigKeys keys count', configKeysResult.keys.length, 6);
+
+  // Test readBattery expecting report 48
+  const batteryPromise = live2.readBattery();
+  await new Promise((r) => setTimeout(r, 10));
+  mock2.emitInputReport([48, 0, 0, 0, 0, 0, 0, 92, 1]);
+  const batRes = await batteryPromise;
+  eq('readBattery resolved with expected report 48', batRes, { battery: 92, chargeFlag: 1 });
+
+  await live2.disconnect();
+}
+
+async function runAll(): Promise<void> {
+  await demoFlow();
+  await liveFlow();
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);
 }
 
-demoFlow().catch((e) => {
-  console.error('FAIL demoFlow', e);
+runAll().catch((e) => {
+  console.error('FAIL test run', e);
   process.exit(1);
 });
