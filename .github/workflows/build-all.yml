@@ -68,8 +68,6 @@ jobs:
 
       - name: Setup Rust stable
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'windows' && 'x86_64-pc-windows-msvc' || '' }}
 
       - name: Tauri CLI sanity check
         run: npx tauri --version
