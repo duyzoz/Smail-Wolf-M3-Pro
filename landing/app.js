@@ -1,13 +1,10 @@
 /* ==========================================================================
-   SMAILWOLF M3 PRO — 3D LIQUID GLASS INTERACTIVE MOTION ENGINE
-   Features:
-   1. Real-Mouse 3D Volumetric Tilt + Pixel-Masked Fresnel Glare
-   2. Soda-Style 720° Motion-Blur Edition Swap + Satellite Implode/Explode
-   3. Pointer Repulsion Force-Field on Floating 3D Liquid Glass Orbs
-   4. Rising Refractive Liquid Glass Micro-Droplets
-   5. 121-Frame Hardware Dissection Canvas Theater + Phase Callouts
-   6. 67-Skin 3D Cylindrical Coverflow + Category Filter + 3D Modal
-   7. Interactive Silicon Wafer Stack, Bento Calculators & Live HID Studio
+   SMAILWOLF M3 PRO — 60FPS ZERO-LAG 3D LIQUID GLASS ENGINE
+   Engineered for weak & high-end PCs alike at 1920x1080 Full HD:
+   - Zero per-frame getBoundingClientRect() inside pointer/rAF loops
+   - Zero :root style invalidation in animation frames
+   - Self-sleeping Hero rAF loop (0% CPU/GPU when pointer is still)
+   - Silky Diagonal Tone-Sweep Wave + Opacity Backdrop Crossfade
    ========================================================================== */
 
 (function () {
@@ -29,67 +26,55 @@
   };
 
   /* ------------------------------------------------------------------------
-     1. EDITION CATALOG & ALL 67 REAL MOUSE SKINS
+     1. 4 AUTHENTIC SKIN TONES & ALL 67 REAL MOUSE SKINS
      ------------------------------------------------------------------------ */
   const EDITIONS = {
     pearl: {
       key: 'pearl',
-      index: 1,
-      tag: 'ARCTIC PEARL',
+      isLight: true,
+      themeMeta: '#F8FAFC',
+      tag: 'PURE WHITE',
       src: 'assets/mouse-hero.webp',
-      dlSrc: 'assets/mouse-hero.webp',
-      bgInner: '#0b7c8a',
-      bgMid: '#043242',
-      bgOuter: '#020810',
       scriptLeft: 'Pure',
       boldLeft: 'Precision',
-      scriptRight: 'Liquid',
+      scriptRight: 'Driver',
       boldRight: 'Control',
-      orbSkins: ['A05', 'B10', 'E08', 'F06', 'A10', 'D08']
+      orbSkins: ['B01', 'C05', 'D01', 's4', 'A01', 'F07']
     },
     crimson: {
       key: 'crimson',
-      index: 2,
+      isLight: false,
+      themeMeta: '#24040C',
       tag: 'ONI CRIMSON · A03',
       src: 'assets/skins/A03.webp',
-      dlSrc: 'assets/skins/A03.webp',
-      bgInner: '#8f1430',
-      bgMid: '#3e0717',
-      bgOuter: '#090206',
       scriptLeft: 'Fierce',
       boldLeft: 'Velocity',
-      scriptRight: 'Forged',
-      boldRight: 'Instinct',
+      scriptRight: 'Driver',
+      boldRight: 'Control',
       orbSkins: ['A03', 'E05', 'F09', 's3', 'C03', 'E10']
     },
     cyber: {
       key: 'cyber',
-      index: 3,
-      tag: 'CYBER PRISM · F02',
+      isLight: false,
+      themeMeta: '#170634',
+      tag: 'CYBER NEON · F02',
       src: 'assets/skins/F02.webp',
-      dlSrc: 'assets/skins/F02.webp',
-      bgInner: '#521896',
-      bgMid: '#1f0842',
-      bgOuter: '#05020d',
       scriptLeft: 'Neon',
       boldLeft: 'Telemetry',
-      scriptRight: 'Hyper',
-      boldRight: 'Response',
+      scriptRight: 'Driver',
+      boldRight: 'Control',
       orbSkins: ['F02', 'A02', 'B02', 'C04', 'D05', 'F10']
     },
     hologram: {
       key: 'hologram',
-      index: 4,
-      tag: 'LIQUID HOLO · C07',
+      isLight: false,
+      themeMeta: '#10254A',
+      tag: 'HOLOGRAM · C07',
       src: 'assets/skins/C07.webp',
-      dlSrc: 'assets/skins/C07.webp',
-      bgInner: '#0d4f94',
-      bgMid: '#052248',
-      bgOuter: '#020812',
       scriptLeft: 'Zero',
       boldLeft: 'Bloat',
-      scriptRight: 'Crystal',
-      boldRight: 'Clarity',
+      scriptRight: 'Driver',
+      boldRight: 'Control',
       orbSkins: ['C07', 'F06', 'B04', 'E09', 'C10', 'F03']
     }
   };
@@ -98,7 +83,7 @@
   let activeEditionIndex = 0;
 
   const SKINS = [
-    { id: 'default', name: 'Arctic Pearl', cat: 'special', src: 'assets/mouse-hero.webp', thumb: 'assets/skins/thumbs/default.webp' },
+    { id: 'default', name: 'Pure White', cat: 'special', src: 'assets/mouse-hero.webp', thumb: 'assets/skins/thumbs/default.webp' },
     { id: 'A01', name: 'Topographic', cat: 'topo', src: 'assets/skins/A01.webp', thumb: 'assets/skins/thumbs/A01.webp' },
     { id: 'A02', name: 'Cyber X', cat: 'cyber', src: 'assets/skins/A02.webp', thumb: 'assets/skins/thumbs/A02.webp' },
     { id: 'A03', name: 'Oni Red', cat: 'oni', src: 'assets/skins/A03.webp', thumb: 'assets/skins/thumbs/A03.webp' },
@@ -125,7 +110,7 @@
     { id: 'C04', name: 'Cyber Core', cat: 'cyber', src: 'assets/skins/C04.webp', thumb: 'assets/skins/thumbs/C04.webp' },
     { id: 'C05', name: 'Esports Pro', cat: 'special', src: 'assets/skins/C05.webp', thumb: 'assets/skins/thumbs/C05.webp' },
     { id: 'C06', name: 'Anime Tokyo', cat: 'anime', src: 'assets/skins/C06.webp', thumb: 'assets/skins/thumbs/C06.webp' },
-    { id: 'C07', name: 'Liquid Hologram', cat: 'special', src: 'assets/skins/C07.webp', thumb: 'assets/skins/thumbs/C07.webp' },
+    { id: 'C07', name: 'Pastel Hologram', cat: 'special', src: 'assets/skins/C07.webp', thumb: 'assets/skins/thumbs/C07.webp' },
     { id: 'C08', name: 'Mecha X-01', cat: 'cyber', src: 'assets/skins/C08.webp', thumb: 'assets/skins/thumbs/C08.webp' },
     { id: 'C09', name: 'Koi Wave', cat: 'oni', src: 'assets/skins/C09.webp', thumb: 'assets/skins/thumbs/C09.webp' },
     { id: 'C10', name: 'Galaxy LED', cat: 'special', src: 'assets/skins/C10.webp', thumb: 'assets/skins/thumbs/C10.webp' },
@@ -175,7 +160,7 @@
     el.innerHTML = '';
     let charIdx = 0;
 
-    const appendWords = (text, extraClass) => {
+    const appendWords = (text) => {
       text.split(/(\s+)/).forEach((part) => {
         if (!part) return;
         if (/^\s+$/.test(part)) {
@@ -183,7 +168,7 @@
           return;
         }
         const w = document.createElement('span');
-        w.className = extraClass ? `word ${extraClass}` : 'word';
+        w.className = 'word';
         for (const ch of part) {
           const c = document.createElement('span');
           c.className = 'char';
@@ -196,22 +181,22 @@
     };
 
     nodes.forEach((n) => {
-      if (n.nodeType === 3) appendWords(n.textContent, '');
+      if (n.nodeType === 3) appendWords(n.textContent);
       else if (n.nodeType === 1 && n.tagName === 'BR') el.appendChild(document.createElement('br'));
       else if (n.nodeType === 1) {
         const em = document.createElement(n.tagName.toLowerCase());
         em.className = n.className;
-        n.textContent.split('').forEach((ch) => {
+        for (const ch of n.textContent) {
           if (ch === ' ') {
             em.appendChild(document.createTextNode(' '));
-            return;
+            continue;
           }
           const c = document.createElement('span');
           c.className = 'char';
           c.style.setProperty('--i', String(charIdx++));
           c.textContent = ch;
           em.appendChild(c);
-        });
+        }
         const wrap = document.createElement('span');
         wrap.className = 'word';
         wrap.appendChild(em);
@@ -227,7 +212,7 @@
         revealIO.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.18 });
+  }, { threshold: 0.16 });
   document.querySelectorAll('[data-split]').forEach((el) => revealIO.observe(el));
 
   const motionToggle = document.getElementById('motionToggle');
@@ -243,12 +228,12 @@
       document.body.classList.toggle('motion-paused', motionPaused);
       motionToggleLabel.textContent = motionPaused ? 'Play' : 'Pause';
       motionToggle.setAttribute('aria-label', motionPaused ? 'Play ambient motion' : 'Pause ambient motion');
-      if (!motionPaused) startHeroLoop();
+      if (!motionPaused) wakeHeroLoop();
     });
   }
 
   /* ------------------------------------------------------------------------
-     3. DYNAMIC IPHONE LIQUID GLASS NAVBAR GLIDER
+     3. FLOATING IPHONE LIQUID GLASS NAVBAR GLIDER
      ------------------------------------------------------------------------ */
   const siteHeader = document.getElementById('siteHeader');
   const navGlider = document.getElementById('navGlider');
@@ -258,7 +243,7 @@
     const active = targetItem || document.querySelector('.nav-item.active');
     if (!active || !navGlider || !active.offsetWidth) return;
     navGlider.style.width = `${active.offsetWidth}px`;
-    navGlider.style.transform = `translate3d(${active.offsetLeft - 6}px, 0, 0)`;
+    navGlider.style.transform = `translate3d(${active.offsetLeft - 5}px, 0, 0)`;
   }
 
   navItems.forEach((item) => {
@@ -271,19 +256,16 @@
   });
 
   const navCapsule = document.getElementById('navCapsule');
-  if (navCapsule) {
-    navCapsule.addEventListener('mouseleave', () => syncNavGlider(null));
-  }
+  if (navCapsule) navCapsule.addEventListener('mouseleave', () => syncNavGlider(null));
 
-  window.addEventListener('resize', debounce(() => syncNavGlider(null), 120), { passive: true });
+  window.addEventListener('resize', debounce(() => syncNavGlider(null), 140), { passive: true });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncNavGlider(null));
   syncNavGlider(null);
 
   const sectionSpy = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (!entry.isIntersecting) return;
-      const id = entry.target.id;
-      const match = navItems.find((n) => n.dataset.sec === id);
+      const match = navItems.find((n) => n.dataset.sec === entry.target.id);
       if (match) {
         navItems.forEach((n) => n.classList.remove('active'));
         match.classList.add('active');
@@ -298,12 +280,10 @@
   });
 
   /* ------------------------------------------------------------------------
-     4. SODA-STYLE 3D HERO: CURSOR TILT, 720° SPIN SWAP & ORB REPULSION
+     4. ZERO-LAG 3D HERO + SILKY TONE-SWEEP WAVE + CACHED ORB REPULSION
      ------------------------------------------------------------------------ */
   const productRig = document.getElementById('productRig');
   const heroMouseImg = document.getElementById('heroMouseImg');
-  const heroShadowImg = document.getElementById('heroShadowImg');
-  const extrudeImgs = Array.from(document.querySelectorAll('.extrude-img'));
   const studioMouseImg = document.getElementById('studioMouseImg');
   const dlMouseImg = document.getElementById('dlMouseImg');
   const heroEditionTag = document.getElementById('heroEditionTag');
@@ -313,164 +293,167 @@
   const heroBoldRight = document.getElementById('heroBoldRight');
   const orbsFG = document.getElementById('orbsFG');
   const orbsBG = document.getElementById('orbsBG');
-  const shardsBG = document.getElementById('shardsBG');
   const allOrbs = Array.from(document.querySelectorAll('.floating-orb'));
-  const allShards = Array.from(document.querySelectorAll('.prism-shard'));
   const editionCards = Array.from(document.querySelectorAll('.edition-card'));
   const edCounter = document.getElementById('edCounter');
-  const cursorCaustic = document.getElementById('cursorCaustic');
+  const toneLayers = Array.from(document.querySelectorAll('.tone-layer'));
+  const toneSweepWave = document.getElementById('toneSweepWave');
+  const themeMetaEl = document.querySelector('meta[name="theme-color"]');
 
   let isSwitching = false;
   let switchSpin = 0;
   let heroVisible = true;
-  let heroLoopRunning = false;
+  let heroRunning = false;
 
   const mouse = { x: 0, y: 0, px: window.innerWidth / 2, py: window.innerHeight / 2 };
   const currentMouse = { x: 0, y: 0 };
 
-  allOrbs.forEach((orb) => {
-    orb.dataset.rx = '0';
-    orb.dataset.ry = '0';
-    orb.dataset.angle = String(Math.random() * 360);
-    orb.dataset.baseX = '0';
-    orb.dataset.baseY = '0';
-  });
+  // Pre-cached orb states — ZERO getBoundingClientRect() inside rAF!
+  const orbState = allOrbs.map((el) => ({
+    el,
+    img: el.querySelector('img'),
+    cx: 0,
+    cy: 0,
+    rx: 0,
+    ry: 0,
+    baseX: 0,
+    baseY: 0,
+    angle: Math.random() * 360
+  }));
 
-  function applyMouseCutoutSrc(src, label) {
+  function cacheOrbCenters() {
+    orbState.forEach((o) => {
+      const r = o.el.getBoundingClientRect();
+      o.cx = r.left + r.width / 2 - o.rx - o.baseX;
+      o.cy = r.top + r.height / 2 - o.ry - o.baseY;
+    });
+  }
+  cacheOrbCenters();
+  window.addEventListener('resize', debounce(cacheOrbCenters, 180), { passive: true });
+
+  function applyThemeAndMouse(ed, finalSrc, finalTag) {
+    document.body.setAttribute('data-edition', ed.key);
+    document.body.classList.toggle('is-light-tone', ed.isLight);
+    if (themeMetaEl) themeMetaEl.setAttribute('content', ed.themeMeta);
+    toneLayers.forEach((layer) => layer.classList.toggle('active', layer.dataset.tb === ed.key));
+
     if (heroMouseImg) {
-      heroMouseImg.src = src;
-      if (label) heroMouseImg.alt = `SMAILWOLF M3 Pro Wireless Gaming Mouse — ${label}`;
+      heroMouseImg.src = finalSrc;
+      heroMouseImg.alt = `SMAILWOLF M3 Pro Wireless Gaming Mouse — ${finalTag}`;
     }
-    if (heroShadowImg) heroShadowImg.src = src;
-    extrudeImgs.forEach((img) => { img.src = src; });
-    if (studioMouseImg) studioMouseImg.src = src;
-    if (dlMouseImg) dlMouseImg.src = src;
-    document.documentElement.style.setProperty('--mouse-mask', `url("${src}")`);
+    if (studioMouseImg) studioMouseImg.src = finalSrc;
+    if (dlMouseImg) dlMouseImg.src = finalSrc;
+    if (productRig) productRig.style.setProperty('--mouse-mask', `url("${finalSrc}")`);
+
+    if (heroEditionTag) heroEditionTag.textContent = finalTag;
+    if (heroScriptLeft) heroScriptLeft.textContent = ed.scriptLeft;
+    if (heroBoldLeft) heroBoldLeft.textContent = ed.boldLeft;
+    if (heroScriptRight) heroScriptRight.textContent = ed.scriptRight;
+    if (heroBoldRight) heroBoldRight.textContent = ed.boldRight;
   }
 
-  function runSpinSwap(options) {
+  function triggerToneSweepWave(ed) {
+    if (!toneSweepWave || motionPaused) return;
+    // Pre-apply the target edition's sweep gradient before firing the wave
+    document.body.setAttribute('data-edition', ed.key);
+    document.body.classList.toggle('is-light-tone', ed.isLight);
+    toneLayers.forEach((layer) => layer.classList.toggle('active', layer.dataset.tb === ed.key));
+
+    toneSweepWave.classList.remove('sweeping');
+    void toneSweepWave.offsetWidth;
+    toneSweepWave.classList.add('sweeping');
+  }
+
+  function runSpinSwap({ editionKey, customSrc, customName }) {
     if (isSwitching) return;
     isSwitching = true;
-
-    const {
-      editionKey,
-      customSrc,
-      customName
-    } = options;
 
     const ed = EDITIONS[editionKey] || EDITIONS.pearl;
     const finalSrc = customSrc || ed.src;
     const finalTag = customName ? customName.toUpperCase() : ed.tag;
 
-    if (window.gsap && !motionPaused) {
-      gsap.to(document.body, {
-        '--bg-inner': ed.bgInner,
-        '--bg-mid': ed.bgMid,
-        '--bg-outer': ed.bgOuter,
-        duration: 1.35,
-        ease: 'power2.inOut'
-      });
+    // Start the silky diagonal Tone-Sweep Wave + smooth backdrop opacity crossfade immediately!
+    triggerToneSweepWave(ed);
 
-      const spinObj = { val: 0, blur: 0 };
+    if (window.gsap && !motionPaused) {
+      wakeHeroLoop();
+      const spinObj = { val: 0 };
+
       gsap.to(spinObj, {
         val: 360,
-        blur: 13,
-        duration: 0.56,
+        duration: 0.45,
         ease: 'power2.in',
         onUpdate: () => {
           switchSpin = spinObj.val;
-          if (productRig) productRig.style.filter = `blur(${spinObj.blur.toFixed(1)}px)`;
+          wakeHeroLoop();
         },
         onComplete: () => {
-          document.body.setAttribute('data-edition', ed.key);
-          applyMouseCutoutSrc(finalSrc, finalTag);
-          if (heroEditionTag) heroEditionTag.textContent = finalTag;
-          if (heroScriptLeft) heroScriptLeft.textContent = ed.scriptLeft;
-          if (heroBoldLeft) heroBoldLeft.textContent = ed.boldLeft;
-          if (heroScriptRight) heroScriptRight.textContent = ed.scriptRight;
-          if (heroBoldRight) heroBoldRight.textContent = ed.boldRight;
-
+          applyThemeAndMouse(ed, finalSrc, finalTag);
           gsap.to(spinObj, {
             val: 720,
-            blur: 0,
-            duration: 1.35,
-            ease: 'back.out(0.75)',
+            duration: 1.05,
+            ease: 'back.out(0.8)',
             onUpdate: () => {
               switchSpin = spinObj.val;
-              if (productRig) productRig.style.filter = spinObj.blur > 0.2 ? `blur(${spinObj.blur.toFixed(1)}px)` : 'none';
+              wakeHeroLoop();
             },
             onComplete: () => {
               switchSpin = 0;
-              if (productRig) productRig.style.filter = 'none';
+              isSwitching = false;
+              wakeHeroLoop();
             }
           });
         }
       });
 
-      // Satellite Orbs Implode -> Swap Skin Shards -> Explode
-      let completedOrbs = 0;
-      const orbImgs = allOrbs.map((o) => o.querySelector('img')).filter(Boolean);
+      // Satellite Orbs Implode -> Swap Skin Shards -> Explode (Zero Blur, Pure Transform/Opacity)
+      let imgCounter = 0;
+      orbState.forEach((o) => {
+        const toCenterX = window.innerWidth / 2 - o.cx;
+        const toCenterY = window.innerHeight / 2 - o.cy;
+        const nextBaseX = (Math.random() - 0.5) * 110;
+        const nextBaseY = (Math.random() - 0.5) * 110;
+        const skinCode = o.img ? ed.orbSkins[imgCounter++ % ed.orbSkins.length] : null;
 
-      allOrbs.forEach((orb, i) => {
-        const bW = orb.offsetWidth / 2;
-        const bH = orb.offsetHeight / 2;
-        const centerX = window.innerWidth / 2 - orb.offsetLeft - bW;
-        const centerY = window.innerHeight / 2 - orb.offsetTop - bH;
-        const startAngle = parseFloat(orb.dataset.angle) || 0;
-        const nextBaseX = (Math.random() - 0.5) * 150;
-        const nextBaseY = (Math.random() - 0.5) * 150;
-
-        const tl = gsap.timeline();
-        tl.to(orb, {
-          x: centerX,
-          y: centerY,
-          rotation: startAngle + 45,
-          scale: 0.1,
-          opacity: 0,
-          duration: 0.46,
-          ease: 'power2.in',
-          onComplete: () => {
-            const img = orb.querySelector('img');
-            if (img) {
-              const skinCode = ed.orbSkins[orbImgs.indexOf(img) % ed.orbSkins.length];
-              img.src = `assets/skins/thumbs/${skinCode}.webp`;
+        gsap.timeline()
+          .to(o.el, {
+            x: toCenterX,
+            y: toCenterY,
+            scale: 0.15,
+            opacity: 0,
+            duration: 0.38,
+            ease: 'power2.in',
+            onComplete: () => {
+              if (o.img && skinCode) {
+                o.img.src = `assets/skins/thumbs/${skinCode}.webp`;
+              }
             }
-          }
-        })
-          .to(orb, { duration: 0.22 })
-          .to(orb, {
+          })
+          .to(o.el, {
             x: nextBaseX,
             y: nextBaseY,
-            rotation: startAngle + 90,
             scale: 1,
             opacity: 1,
-            duration: 0.85,
-            ease: 'back.out(1.5)',
+            duration: 0.72,
+            delay: 0.12,
+            ease: 'back.out(1.4)',
             onComplete: () => {
-              orb.dataset.angle = String(startAngle + 90);
-              orb.dataset.baseX = String(nextBaseX);
-              orb.dataset.baseY = String(nextBaseY);
-              orb.dataset.rx = '0';
-              orb.dataset.ry = '0';
-              completedOrbs++;
-              if (completedOrbs >= allOrbs.length) {
-                isSwitching = false;
-              }
+              o.baseX = nextBaseX;
+              o.baseY = nextBaseY;
+              o.rx = 0;
+              o.ry = 0;
             }
           });
       });
     } else {
-      // Instant accessible fallback when reduced-motion / paused / offline without GSAP
-      document.body.setAttribute('data-edition', ed.key);
-      document.body.style.setProperty('--bg-inner', ed.bgInner);
-      document.body.style.setProperty('--bg-mid', ed.bgMid);
-      document.body.style.setProperty('--bg-outer', ed.bgOuter);
-      applyMouseCutoutSrc(finalSrc, finalTag);
-      if (heroEditionTag) heroEditionTag.textContent = finalTag;
-      if (heroScriptLeft) heroScriptLeft.textContent = ed.scriptLeft;
-      if (heroBoldLeft) heroBoldLeft.textContent = ed.boldLeft;
-      if (heroScriptRight) heroScriptRight.textContent = ed.scriptRight;
-      if (heroBoldRight) heroBoldRight.textContent = ed.boldRight;
+      applyThemeAndMouse(ed, finalSrc, finalTag);
+      let imgCounter = 0;
+      orbState.forEach((o) => {
+        if (o.img) {
+          const skinCode = ed.orbSkins[imgCounter++ % ed.orbSkins.length];
+          o.img.src = `assets/skins/thumbs/${skinCode}.webp`;
+        }
+      });
       isSwitching = false;
     }
   }
@@ -493,155 +476,90 @@
   if (edPrev) edPrev.addEventListener('click', () => selectEditionByIndex(activeEditionIndex - 1));
   if (edNext) edNext.addEventListener('click', () => selectEditionByIndex(activeEditionIndex + 1));
 
-  // Global Pointer Tracking + Liquid Glass Card Caustic Coordinates
-  window.addEventListener('pointermove', (e) => {
-    mouse.x = e.clientX / window.innerWidth - 0.5;
-    mouse.y = e.clientY / window.innerHeight - 0.5;
-    mouse.px = e.clientX;
-    mouse.py = e.clientY;
-
-    if (finePointer && cursorCaustic && !motionPaused) {
-      cursorCaustic.style.opacity = '1';
-      cursorCaustic.style.transform = `translate3d(${e.clientX.toFixed(1)}px, ${e.clientY.toFixed(1)}px, 0)`;
+  // Self-Sleeping Hero Loop — Runs ONLY while pointer moves in Hero or spin is active!
+  function heroTick() {
+    if (!heroVisible || motionPaused || document.hidden) {
+      heroRunning = false;
+      return;
     }
 
-    const glassTarget = e.target && e.target.closest ? e.target.closest('.liquid-glass') : null;
-    if (glassTarget) {
-      const r = glassTarget.getBoundingClientRect();
-      glassTarget.style.setProperty('--mx', `${(e.clientX - r.left).toFixed(0)}px`);
-      glassTarget.style.setProperty('--my', `${(e.clientY - r.top).toFixed(0)}px`);
-    }
-  }, { passive: true });
+    const dxMouse = mouse.x - currentMouse.x;
+    const dyMouse = mouse.y - currentMouse.y;
+    currentMouse.x += dxMouse * 0.1;
+    currentMouse.y += dyMouse * 0.1;
 
-  // Hero Visibility Observer so rAF idles when scrolled deep down the page
+    if (productRig) {
+      const rotY = currentMouse.x * 32 + switchSpin;
+      const rotX = -currentMouse.y * 18;
+      productRig.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(16deg)`;
+    }
+
+    if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 42).toFixed(1)}px, ${(currentMouse.y * 42).toFixed(1)}px, 0)`;
+    if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -22).toFixed(1)}px, ${(currentMouse.y * -22).toFixed(1)}px, 0)`;
+
+    let orbsSettling = false;
+    if (!isSwitching) {
+      for (let i = 0; i < orbState.length; i++) {
+        const o = orbState[i];
+        const diffX = mouse.px - (o.cx + o.baseX);
+        const diffY = mouse.py - (o.cy + o.baseY);
+        const distSq = diffX * diffX + diffY * diffY;
+
+        let targetRx = 0;
+        let targetRy = 0;
+        if (distSq < 115600) { // 340px radius squared (avoids sqrt when far!)
+          const dist = Math.sqrt(distSq) || 1;
+          const force = (340 - dist) / 340;
+          targetRx = (diffX / dist) * force * -64;
+          targetRy = (diffY / dist) * force * -64;
+        }
+
+        const stepX = (targetRx - o.rx) * 0.12;
+        const stepY = (targetRy - o.ry) * 0.12;
+        if (Math.abs(stepX) > 0.08 || Math.abs(stepY) > 0.08) orbsSettling = true;
+
+        o.rx += stepX;
+        o.ry += stepY;
+        o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0)`;
+      }
+    }
+
+    const stillMoving = Math.abs(dxMouse) > 0.0008 || Math.abs(dyMouse) > 0.0008 || orbsSettling || isSwitching || switchSpin !== 0;
+    if (stillMoving) {
+      requestAnimationFrame(heroTick);
+    } else {
+      heroRunning = false; // Settled! Zero idle CPU/GPU cost!
+    }
+  }
+
+  function wakeHeroLoop() {
+    if (!heroRunning && heroVisible && !motionPaused && !document.hidden) {
+      heroRunning = true;
+      requestAnimationFrame(heroTick);
+    }
+  }
+
   const heroSection = document.getElementById('hero');
   if (heroSection) {
     new IntersectionObserver((entries) => {
       heroVisible = entries[0].isIntersecting;
-      if (heroVisible && !motionPaused) startHeroLoop();
+      if (heroVisible) cacheOrbCenters();
     }, { threshold: 0 }).observe(heroSection);
   }
 
-  function heroTick() {
-    if (!heroVisible || motionPaused || document.hidden) {
-      heroLoopRunning = false;
-      return;
-    }
-    heroLoopRunning = true;
-
-    const time = performance.now() * 0.001;
-    currentMouse.x += (mouse.x - currentMouse.x) * 0.065;
-    currentMouse.y += (mouse.y - currentMouse.y) * 0.065;
-
-    // 3D Tilt Centerpiece Mouse + Specular Glare Tracking
-    if (productRig) {
-      const rotY = currentMouse.x * 38 + switchSpin;
-      const rotX = -currentMouse.y * 22;
-      productRig.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(18deg)`;
-      document.documentElement.style.setProperty('--glare-x', `${(50 + currentMouse.x * 55).toFixed(1)}%`);
-      document.documentElement.style.setProperty('--glare-y', `${(38 + currentMouse.y * 50).toFixed(1)}%`);
-    }
-
-    // Multi-Depth Parallax Containers
-    if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 56).toFixed(1)}px, ${(currentMouse.y * 56).toFixed(1)}px, 0)`;
-    if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -28).toFixed(1)}px, ${(currentMouse.y * -28).toFixed(1)}px, 0)`;
-    if (shardsBG) shardsBG.style.transform = `translate3d(${(currentMouse.x * -15).toFixed(1)}px, ${(currentMouse.y * -15).toFixed(1)}px, 0)`;
-
-    // Pointer Repulsion Force-Field on Floating 3D Liquid Glass Orbs
-    if (!isSwitching) {
-      allOrbs.forEach((orb, i) => {
-        const rect = orb.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = mouse.px - cx;
-        const dy = mouse.py - cy;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-
-        let targetRx = 0;
-        let targetRy = 0;
-        let speedMult = 1;
-
-        if (dist < 380) {
-          const force = (380 - dist) / 380;
-          targetRx = (dx / dist) * force * -78;
-          targetRy = (dy / dist) * force * -78;
-          speedMult = 1 + force * 4.5;
-        }
-
-        let rx = parseFloat(orb.dataset.rx) || 0;
-        let ry = parseFloat(orb.dataset.ry) || 0;
-        let angle = parseFloat(orb.dataset.angle) || 0;
-        const baseX = parseFloat(orb.dataset.baseX) || 0;
-        const baseY = parseFloat(orb.dataset.baseY) || 0;
-
-        rx += (targetRx - rx) * 0.1;
-        ry += (targetRy - ry) * 0.1;
-        angle += 0.18 * speedMult;
-
-        orb.dataset.rx = rx.toFixed(2);
-        orb.dataset.ry = ry.toFixed(2);
-        orb.dataset.angle = angle.toFixed(2);
-
-        const dur = [5.2, 7.0, 6.1, 8.2, 5.6, 6.6, 9.0, 10.8, 9.6][i % 9];
-        const phase = (time + i * 0.7) * ((Math.PI * 2) / dur);
-        const floatY = Math.sin(phase) * 14;
-        const floatAngle = Math.cos(phase) * 5;
-
-        orb.style.transform = `translate3d(${(rx + baseX).toFixed(1)}px, ${(ry + baseY + floatY).toFixed(1)}px, 0) rotate(${(angle + floatAngle).toFixed(1)}deg)`;
-      });
-    }
-
-    // Background Refractive Shards Float
-    allShards.forEach((sh, i) => {
-      const dur = 10 + i * 2.2;
-      const phase = (time + i * 1.3) * ((Math.PI * 2) / dur);
-      const fx = Math.cos(phase * 0.5) * 15;
-      const fy = Math.sin(phase) * 18;
-      const rot = Math.sin(phase * 0.35) * 16;
-      sh.style.transform = `translate3d(${fx.toFixed(1)}px, ${fy.toFixed(1)}px, 0) rotate(${rot.toFixed(1)}deg)`;
-    });
-
-    requestAnimationFrame(heroTick);
-  }
-
-  function startHeroLoop() {
-    if (!heroLoopRunning && !motionPaused && heroVisible) {
-      heroLoopRunning = true;
-      requestAnimationFrame(heroTick);
-    }
-  }
-  startHeroLoop();
-
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && !motionPaused) startHeroLoop();
-  });
-
-  /* ------------------------------------------------------------------------
-     5. RISING LIQUID GLASS MICRO-DROPLETS GENERATOR
-     ------------------------------------------------------------------------ */
-  const bubblesContainer = document.getElementById('bubbles-container');
-  function spawnDroplet() {
-    if (!bubblesContainer || motionPaused || document.hidden) return;
-    if (bubblesContainer.childElementCount > 24) return;
-
-    const drop = document.createElement('span');
-    drop.className = 'liquid-droplet';
-    const size = Math.round(Math.random() * 18 + 8);
-    drop.style.width = `${size}px`;
-    drop.style.height = `${size}px`;
-    drop.style.left = `${(Math.random() * 98).toFixed(1)}%`;
-    const duration = (Math.random() * 6 + 5).toFixed(2);
-    drop.style.animation = `floatUpDroplet ${duration}s linear forwards`;
-
-    bubblesContainer.appendChild(drop);
-    setTimeout(() => drop.remove(), parseFloat(duration) * 1000);
-  }
-  if (!prefersReduced) {
-    setInterval(spawnDroplet, 520);
+  if (finePointer) {
+    window.addEventListener('pointermove', (e) => {
+      if (!heroVisible || motionPaused) return;
+      mouse.x = e.clientX / window.innerWidth - 0.5;
+      mouse.y = e.clientY / window.innerHeight - 0.5;
+      mouse.px = e.clientX;
+      mouse.py = e.clientY;
+      wakeHeroLoop();
+    }, { passive: true });
   }
 
   /* ------------------------------------------------------------------------
-     6. 121-FRAME 3D HARDWARE DISSECTION ENGINE (<canvas>)
+     5. 121-FRAME 3D HARDWARE DISSECTION ENGINE (<canvas>)
      ------------------------------------------------------------------------ */
   const TOTAL_FRAMES = 121;
   const frameImgs = [];
@@ -651,7 +569,7 @@
   const anatomySection = document.getElementById('anatomy');
   const anatomyFrame = document.getElementById('anatomyFrame');
   const dissectCanvas = document.getElementById('dissectCanvas');
-  const dissectCtx = dissectCanvas ? dissectCanvas.getContext('2d') : null;
+  const dissectCtx = dissectCanvas ? dissectCanvas.getContext('2d', { alpha: false }) : null;
   const dissectLoader = document.getElementById('dissectLoader');
   const dissectCount = document.getElementById('dissectCount');
   const anatomyBarFill = document.getElementById('anatomyBarFill');
@@ -671,17 +589,15 @@
     const scale = Math.max(cw / 1280, ch / 720);
     const dw = 1280 * scale;
     const dh = 720 * scale;
-    const dx = (cw - dw) / 2;
-    const dy = (ch - dh) / 2;
-    dissectCtx.clearRect(0, 0, cw, ch);
-    dissectCtx.drawImage(img, dx, dy, dw, dh);
+    dissectCtx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }
 
   function sizeDissectCanvas() {
     if (!dissectCanvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    const w = Math.max(320, Math.round(dissectCanvas.clientWidth * dpr));
-    const h = Math.max(180, Math.round(dissectCanvas.clientHeight * dpr));
+    // Cap internal buffer to 1280x720 (exact native video resolution) for ultra-fast GPU blits on weak PCs
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+    const w = Math.min(1280, Math.max(320, Math.round(dissectCanvas.clientWidth * dpr)));
+    const h = Math.min(720, Math.max(180, Math.round(dissectCanvas.clientHeight * dpr)));
     if (dissectCanvas.width !== w || dissectCanvas.height !== h) {
       dissectCanvas.width = w;
       dissectCanvas.height = h;
@@ -689,46 +605,54 @@
     }
   }
 
+  // Load initial assembled frame (f121) first so Hero/Anatomy paints immediately, then stream remaining frames
   for (let i = 0; i < TOTAL_FRAMES; i++) {
-    const im = new Image();
-    im.src = `assets/explode/f${pad3(i + 1)}.webp`;
-    im.onload = function () {
-      loadedFrames++;
-      if (dissectCount) dissectCount.textContent = `${loadedFrames}/${TOTAL_FRAMES}`;
-      if (i === TOTAL_FRAMES - 1) {
-        sizeDissectCanvas();
-        drawDissectFrame(TOTAL_FRAMES - 1);
-      }
-      if (loadedFrames >= TOTAL_FRAMES && dissectLoader) {
-        dissectLoader.classList.add('done');
-        drawDissectFrame(currentDissectFrame);
-      }
-      if (this.decode) this.decode().catch(() => {});
-    };
-    im.onerror = () => {
-      loadedFrames++;
-      if (loadedFrames >= TOTAL_FRAMES && dissectLoader) dissectLoader.classList.add('done');
-    };
-    frameImgs.push(im);
+    frameImgs.push(new Image());
   }
 
-  window.addEventListener('resize', debounce(sizeDissectCanvas, 140), { passive: true });
+  function loadDissectFrames() {
+    const order = [TOTAL_FRAMES - 1];
+    for (let i = TOTAL_FRAMES - 2; i >= 0; i--) order.push(i);
+
+    order.forEach((idx) => {
+      const im = frameImgs[idx];
+      im.onload = function () {
+        loadedFrames++;
+        if (dissectCount) dissectCount.textContent = `${loadedFrames}/${TOTAL_FRAMES}`;
+        if (idx === TOTAL_FRAMES - 1) {
+          sizeDissectCanvas();
+          drawDissectFrame(TOTAL_FRAMES - 1);
+        }
+        if (loadedFrames >= TOTAL_FRAMES && dissectLoader) {
+          dissectLoader.classList.add('done');
+          drawDissectFrame(currentDissectFrame);
+        }
+      };
+      im.onerror = () => {
+        loadedFrames++;
+        if (loadedFrames >= TOTAL_FRAMES && dissectLoader) dissectLoader.classList.add('done');
+      };
+      im.src = `assets/explode/f${pad3(idx + 1)}.webp`;
+    });
+  }
+  loadDissectFrames();
+
+  window.addEventListener('resize', debounce(sizeDissectCanvas, 150), { passive: true });
 
   phaseBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       if (!anatomySection) return;
       const targetP = parseFloat(btn.dataset.jump) || 0;
-      const secTop = anatomySection.offsetTop;
       const travel = anatomySection.offsetHeight - window.innerHeight;
       window.scrollTo({
-        top: secTop + travel * targetP,
+        top: anatomySection.offsetTop + travel * targetP,
         behavior: motionPaused ? 'auto' : 'smooth'
       });
     });
   });
 
   /* ------------------------------------------------------------------------
-     7. 3D CYLINDRICAL COVERFLOW SKIN VAULT + ACCESSIBLE <dialog>
+     6. 60FPS 3D CYLINDRICAL COVERFLOW SKIN VAULT + ACCESSIBLE <dialog>
      ------------------------------------------------------------------------ */
   const skinsSection = document.getElementById('skins');
   const skinsTrack = document.getElementById('skinsTrack');
@@ -744,8 +668,7 @@
 
   function measureSkinCardSize() {
     if (!skinsSection) return;
-    const vh = window.innerHeight;
-    const cardW = clamp(Math.floor(vh * 0.23), 150, 215);
+    const cardW = clamp(Math.floor(window.innerHeight * 0.225), 148, 206);
     skinsSection.style.setProperty('--skin-card-w', `${cardW}px`);
     pedestalCenters = pedestalEls.map((el) => el.offsetLeft + el.offsetWidth / 2);
   }
@@ -753,14 +676,14 @@
   function renderSkinTrack(filterKey) {
     if (!skinsTrack) return;
     visibleSkins = filterKey === 'all' ? SKINS.slice() : SKINS.filter((s) => s.cat === filterKey);
-    skinsTrack.innerHTML = '';
+    const frag = document.createDocumentFragment();
 
     visibleSkins.forEach((skin, idx) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'skin-pedestal liquid-glass';
       btn.setAttribute('role', 'listitem');
-      btn.setAttribute('aria-label', `${skin.name} skin — click to inspect in 3D`);
+      btn.setAttribute('aria-label', `${skin.name} skin — select to inspect in 3D`);
       btn.innerHTML = `
         <img src="${skin.thumb}" alt="SMAILWOLF M3 Pro ${skin.name}" width="320" height="565" loading="lazy" decoding="async">
         <figcaption>
@@ -769,10 +692,13 @@
         </figcaption>
       `;
       btn.addEventListener('click', () => openSkinModal(skin, idx));
-      skinsTrack.appendChild(btn);
+      frag.appendChild(btn);
     });
 
+    skinsTrack.innerHTML = '';
+    skinsTrack.appendChild(frag);
     pedestalEls = Array.from(skinsTrack.querySelectorAll('.skin-pedestal'));
+
     if (skinsScrub) {
       skinsScrub.max = String(Math.max(0, visibleSkins.length - 1));
       skinsScrub.value = '0';
@@ -781,6 +707,7 @@
     updateCoverflowAtProgress(0);
   }
 
+  let lastActiveSkinIdx = -1;
   function updateCoverflowAtProgress(sp) {
     if (!skinsTrack || !visibleSkins.length || !pedestalEls.length) return;
     const firstCenter = pedestalCenters[0] || 0;
@@ -793,29 +720,32 @@
     }
 
     const activeIdx = clamp(Math.round(sp * (visibleSkins.length - 1)), 0, visibleSkins.length - 1);
-    if (skinsCounter) {
-      skinsCounter.textContent = `${String(activeIdx + 1).padStart(2, '0')} / ${String(visibleSkins.length).padStart(2, '0')}`;
-    }
-    if (skinsName) skinsName.textContent = visibleSkins[activeIdx].name;
-    if (skinsScrub && document.activeElement !== skinsScrub) {
-      skinsScrub.value = String(activeIdx);
-    }
+    if (activeIdx !== lastActiveSkinIdx) {
+      lastActiveSkinIdx = activeIdx;
+      if (skinsCounter) {
+        skinsCounter.textContent = `${String(activeIdx + 1).padStart(2, '0')} / ${String(visibleSkins.length).padStart(2, '0')}`;
+      }
+      if (skinsName) skinsName.textContent = visibleSkins[activeIdx].name;
+      if (skinsScrub && document.activeElement !== skinsScrub) {
+        skinsScrub.value = String(activeIdx);
+      }
 
-    const cardSpan = (pedestalEls[0] ? pedestalEls[0].offsetWidth : 200) + 22;
-    for (let i = 0; i < pedestalEls.length; i++) {
-      const el = pedestalEls[i];
-      const delta = (pedestalCenters[i] - focusX) / cardSpan;
-      let cls = '';
-      if (Math.abs(delta) < 0.55) cls = 'cf-center';
-      else if (delta < 0 && delta >= -1.65) cls = 'cf-left-1';
-      else if (delta > 0 && delta <= 1.65) cls = 'cf-right-1';
-      else if (delta < -1.65) cls = 'cf-left-2';
-      else cls = 'cf-right-2';
+      // Only iterate & toggle classes when activeIdx actually changes -> Zero per-frame class churn!
+      for (let i = 0; i < pedestalEls.length; i++) {
+        const el = pedestalEls[i];
+        const diff = i - activeIdx;
+        let cls = '';
+        if (diff === 0) cls = 'cf-center';
+        else if (diff === -1) cls = 'cf-left-1';
+        else if (diff === 1) cls = 'cf-right-1';
+        else if (diff < -1) cls = 'cf-left-2';
+        else cls = 'cf-right-2';
 
-      if (el._cf !== cls) {
-        el.classList.remove('cf-center', 'cf-left-1', 'cf-right-1', 'cf-left-2', 'cf-right-2');
-        if (cls) el.classList.add(cls);
-        el._cf = cls;
+        if (el._cf !== cls) {
+          el.classList.remove('cf-center', 'cf-left-1', 'cf-right-1', 'cf-left-2', 'cf-right-2');
+          el.classList.add(cls);
+          el._cf = cls;
+        }
       }
     }
   }
@@ -824,6 +754,7 @@
     chip.addEventListener('click', () => {
       filterChips.forEach((c) => c.classList.remove('active'));
       chip.classList.add('active');
+      lastActiveSkinIdx = -1;
       renderSkinTrack(chip.dataset.filter || 'all');
     });
   });
@@ -841,7 +772,6 @@
     });
   }
 
-  // Modal Dialog with `closedby="any"` + Mandatory Safari Backdrop-Click Fallback
   const skinModal = document.getElementById('skinModal');
   const skinModalImg = document.getElementById('skinModalImg');
   const skinModalId = document.getElementById('skinModalId');
@@ -858,7 +788,6 @@
       skinModalImg.src = skin.src;
       skinModalImg.alt = `SMAILWOLF M3 Pro — ${skin.name}`;
     }
-    document.documentElement.style.setProperty('--modal-mask', `url("${skin.src}")`);
     if (skinModalId) skinModalId.textContent = `${skin.id.toUpperCase()} · ${String(idx + 1).padStart(2, '0')}/${visibleSkins.length}`;
     if (skinModalName) skinModalName.textContent = skin.name;
     if (skinModal && typeof skinModal.showModal === 'function') {
@@ -867,7 +796,6 @@
   }
 
   if (skinModal) {
-    // Safari fallback where `closedBy` is not yet on HTMLDialogElement.prototype
     if (!('closedBy' in HTMLDialogElement.prototype)) {
       skinModal.addEventListener('click', (event) => {
         if (event.target !== skinModal) return;
@@ -881,12 +809,9 @@
       });
     }
 
-    if (skinModalClose) {
-      skinModalClose.addEventListener('click', () => skinModal.close());
-    }
-    if (modalDownloadLink) {
-      modalDownloadLink.addEventListener('click', () => skinModal.close());
-    }
+    if (skinModalClose) skinModalClose.addEventListener('click', () => skinModal.close());
+    if (modalDownloadLink) modalDownloadLink.addEventListener('click', () => skinModal.close());
+
     if (equipHeroBtn) {
       equipHeroBtn.addEventListener('click', () => {
         skinModal.close();
@@ -896,16 +821,19 @@
             oni: 'crimson',
             cyber: 'cyber',
             anime: 'hologram',
-            special: 'hologram',
+            special: inspectedSkin.id === 'default' ? 'pearl' : 'hologram',
             topo: 'pearl'
           };
           const edKey = themeMap[inspectedSkin.cat] || 'pearl';
+          activeEditionIndex = EDITION_ORDER.indexOf(edKey);
+          editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === edKey));
+          if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 04`;
           runSpinSwap({
             editionKey: edKey,
             customSrc: inspectedSkin.src,
             customName: `${inspectedSkin.name} · ${inspectedSkin.id.toUpperCase()}`
           });
-        }, motionPaused ? 0 : 420);
+        }, motionPaused ? 0 : 380);
       });
     }
   }
@@ -916,9 +844,7 @@
       const r = modalMouseStage.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width - 0.5;
       const py = (e.clientY - r.top) / r.height - 0.5;
-      modalMouseRig.style.transform = `rotateX(${(-py * 24).toFixed(1)}deg) rotateY(${(px * 30).toFixed(1)}deg)`;
-      modalMouseRig.style.setProperty('--mmx', `${((px + 0.5) * 100).toFixed(0)}%`);
-      modalMouseRig.style.setProperty('--mmy', `${((py + 0.5) * 100).toFixed(0)}%`);
+      modalMouseRig.style.transform = `rotateX(${(-py * 22).toFixed(1)}deg) rotateY(${(px * 28).toFixed(1)}deg)`;
     });
     modalMouseStage.addEventListener('pointerleave', () => {
       modalMouseRig.style.transform = 'rotateX(0deg) rotateY(0deg)';
@@ -926,10 +852,13 @@
   }
 
   renderSkinTrack('all');
-  window.addEventListener('resize', debounce(measureSkinCardSize, 140), { passive: true });
+  window.addEventListener('resize', debounce(() => {
+    lastActiveSkinIdx = -1;
+    measureSkinCardSize();
+  }, 150), { passive: true });
 
   /* ------------------------------------------------------------------------
-     8. INTERACTIVE 3D WAFER STACK, BENTO CALCULATORS & LIVE DRIVER STUDIO
+     7. INTERACTIVE WAFER STACK, BENTO CALCULATORS & LIVE DRIVER STUDIO
      ------------------------------------------------------------------------ */
   const LAYER_DATA = [
     {
@@ -963,7 +892,6 @@
   const insCode = document.getElementById('insCode');
   const insTitle = document.getElementById('insTitle');
   const insBody = document.getElementById('insBody');
-  const waferStage = document.getElementById('waferStage');
 
   waferLayers.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -977,36 +905,7 @@
     });
   });
 
-  if (waferStage && finePointer) {
-    waferStage.addEventListener('pointermove', (e) => {
-      if (motionPaused) return;
-      const r = waferStage.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width - 0.5;
-      const py = (e.clientY - r.top) / r.height - 0.5;
-      waferStage.style.transform = `rotateX(${(22 - py * 14).toFixed(1)}deg) rotateY(${(-18 + px * 18).toFixed(1)}deg) rotateZ(4deg)`;
-    });
-    waferStage.addEventListener('pointerleave', () => {
-      waferStage.style.transform = 'rotateX(22deg) rotateY(-18deg) rotateZ(4deg)';
-    });
-  }
-
-  // Bento Card 3D Tilt & Simulators
-  if (finePointer) {
-    document.querySelectorAll('[data-tilt3d]').forEach((card) => {
-      card.addEventListener('pointermove', (e) => {
-        if (motionPaused) return;
-        const r = card.getBoundingClientRect();
-        const px = (e.clientX - r.left) / r.width - 0.5;
-        const py = (e.clientY - r.top) / r.height - 0.5;
-        card.style.transform = `rotateX(${(-py * 10).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg) translateY(-4px)`;
-      });
-      card.addEventListener('pointerleave', () => {
-        card.style.transform = '';
-      });
-    });
-  }
-
-  // Bento DPI Simulator
+  // Bento Simulators (Using compositor `scaleX` instead of `width`!)
   const bentoDpiNum = document.getElementById('bentoDpiNum');
   const bentoDpiStageTag = document.getElementById('bentoDpiStageTag');
   const bentoDpiBar = document.getElementById('bentoDpiBar');
@@ -1020,11 +919,10 @@
       const stage = pill.dataset.stage || '1';
       if (bentoDpiNum) bentoDpiNum.textContent = dpi.toLocaleString('en-US');
       if (bentoDpiStageTag) bentoDpiStageTag.textContent = `STAGE ${stage} / 6`;
-      if (bentoDpiBar) bentoDpiBar.style.width = `${Math.max(12, Math.round((dpi / 12000) * 100))}%`;
+      if (bentoDpiBar) bentoDpiBar.style.transform = `scaleX(${Math.max(0.12, dpi / 12000).toFixed(3)})`;
     });
   });
 
-  // Bento Polling & Runtime Simulator
   const bentoHzNum = document.getElementById('bentoHzNum');
   const bentoLatencyTag = document.getElementById('bentoLatencyTag');
   const bentoMa = document.getElementById('bentoMa');
@@ -1043,7 +941,7 @@
     });
   });
 
-  // Count-up Numbers on First Scroll View
+  // Count-up Numbers
   const countSeen = new WeakSet();
   const countIO = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -1056,21 +954,19 @@
         return;
       }
       const start = performance.now();
-      const dur = 1100;
-      const tick = (now) => {
+      const dur = 950;
+      const step = (now) => {
         const p = clamp((now - start) / dur, 0, 1);
-        const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.round(target * eased).toLocaleString('en-US');
-        if (p < 1) requestAnimationFrame(tick);
+        el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString('en-US');
+        if (p < 1) requestAnimationFrame(step);
       };
-      requestAnimationFrame(tick);
+      requestAnimationFrame(step);
     });
   }, { threshold: 0.5 });
   document.querySelectorAll('[data-count]').forEach((el) => countIO.observe(el));
 
   // Interactive 3D Driver Studio
   const studioHexOut = document.getElementById('studioHexOut');
-  const studioVerifyTag = document.getElementById('studioVerifyTag');
   const stDpiVal = document.getElementById('stDpiVal');
   const stDpiSub = document.getElementById('stDpiSub');
   const stBatVal = document.getElementById('stBatVal');
@@ -1084,17 +980,14 @@
     const sum = bytes.slice(3).reduce((a, b) => (a + b) & 0xff, 0);
     const chk = sum.toString(16).toUpperCase().padStart(2, '0');
     if (studioHexOut) {
-      studioHexOut.textContent = `TX [64B] → ${prefixBytes} 00 00 00 ... · CHK 0x${chk} (${note})`;
-    }
-    if (studioVerifyTag) {
-      studioVerifyTag.textContent = '✓ ROUND-TRIP VERIFIED';
+      studioHexOut.textContent = `TX [64B] : ${prefixBytes} 00 00 00 ... · CHK 0x${chk} (${note})`;
     }
   }
 
   const STUDIO_TABS = {
     dashboard: {
       kicker: 'INTERACTIVE BUTTON MAP',
-      title: 'Click Any Pin on the Mouse',
+      title: 'Select Any Pin on the Mouse',
       desc: 'Every button write builds a 64-byte [240, 9, 165, 34, ...] HID report, computes the mod-256 checksum, and verifies persistence with a live read-back.',
       hex: 'F0 0E 00 00 00 00 00 00',
       note: 'READ CONFIG'
@@ -1183,27 +1076,25 @@
   if (stSyncBtn && stBatVal) {
     stSyncBtn.addEventListener('click', () => {
       stBatVal.textContent = '100.0%';
-      stSyncBtn.textContent = '✓ Synced 400 mAh';
+      stSyncBtn.textContent = 'Synced 400 mAh';
       emitStudioHex('F0 30 00 00 00 00 64 01', 'SYNC 100% FULL');
       setTimeout(() => {
-        stSyncBtn.textContent = '⚡ Sync 100%';
-      }, 2200);
+        stSyncBtn.textContent = 'Sync 100%';
+      }, 2000);
     });
   }
 
   /* ------------------------------------------------------------------------
-     9. UNIFIED READ-THEN-WRITE SCROLL 3D ENGINE (ZERO LAYOUT THRASHING)
+     8. UNIFIED READ-THEN-WRITE SCROLL ENGINE (SINGLE PASSIVE rAF)
      ------------------------------------------------------------------------ */
   const scrollProgress = document.getElementById('scrollProgress');
   const toTopBtn = document.getElementById('toTop');
-  const toTopRing = document.getElementById('toTopRing');
   const studioWindow = document.getElementById('studioWindow');
   const marqueeTracks = Array.from(document.querySelectorAll('.marquee-track'));
 
   let marqueeSpanW = 0;
   let marqueeOffset = 0;
   let lastScrollY = window.scrollY || 0;
-  let skewResetTimer = 0;
   let scrollTicking = false;
 
   function measureMarquee() {
@@ -1214,49 +1105,10 @@
   window.addEventListener('resize', debounce(measureMarquee, 150), { passive: true });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureMarquee);
 
-  function applyMarquee(skewDeg) {
-    if (!marqueeSpanW) return;
-    const off = ((marqueeOffset % marqueeSpanW) + marqueeSpanW) % marqueeSpanW;
-    marqueeTracks.forEach((tr) => {
-      const rev = tr.classList.contains('reverse');
-      const x = rev ? -marqueeSpanW + off : -off;
-      tr.style.transform = `translate3d(${x.toFixed(1)}px, 0, 0) skewX(${skewDeg.toFixed(2)}deg)`;
-    });
-  }
-
   if (toTopBtn) {
     toTopBtn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: motionPaused ? 'auto' : 'smooth' });
     });
-  }
-
-  // Magnetic Buttons (Cached Rects Refreshed in Scroll Read Phase)
-  const magneticBtns = Array.from(document.querySelectorAll('.magnetic'));
-  let magneticRects = [];
-
-  function refreshMagneticRects() {
-    magneticRects = magneticBtns.map((btn) => {
-      const r = btn.getBoundingClientRect();
-      return { btn, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
-    });
-  }
-
-  if (finePointer) {
-    window.addEventListener('pointermove', (e) => {
-      if (motionPaused) return;
-      for (let i = 0; i < magneticRects.length; i++) {
-        const m = magneticRects[i];
-        const dx = e.clientX - m.cx;
-        const dy = e.clientY - m.cy;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 85 && d > 0.5) {
-          const pull = Math.min(9, d * 0.12);
-          m.btn.style.transform = `translate3d(${((dx / d) * pull).toFixed(1)}px, ${((dy / d) * pull).toFixed(1)}px, 0)`;
-        } else if (m.btn.style.transform) {
-          m.btn.style.transform = '';
-        }
-      }
-    }, { passive: true });
   }
 
   function onScrollFrame() {
@@ -1265,24 +1117,19 @@
     const H = window.innerHeight;
     const maxScroll = Math.max(1, document.documentElement.scrollHeight - H);
 
-    // ---- PHASE 1: ALL DOM GEOMETRY READS ----
+    // ---- PHASE 1: BATCHED GEOMETRY READS ----
     const anatomyRect = anatomySection ? anatomySection.getBoundingClientRect() : null;
     const skinsRect = skinsSection ? skinsSection.getBoundingClientRect() : null;
     const studioRect = studioWindow ? studioWindow.getBoundingClientRect() : null;
-    if (finePointer) refreshMagneticRects();
 
     // ---- PHASE 2: COMPOSITOR-ONLY WRITES ----
     const globalRatio = clamp(y / maxScroll, 0, 1);
     if (scrollProgress) scrollProgress.style.transform = `scaleX(${globalRatio.toFixed(4)})`;
     if (siteHeader) siteHeader.classList.toggle('condensed', y > 48);
+    if (toTopBtn) toTopBtn.classList.toggle('show', y > 520);
 
-    if (toTopBtn) {
-      toTopBtn.classList.toggle('show', y > 520);
-      if (toTopRing) toTopRing.style.strokeDashoffset = (125.66 * (1 - globalRatio)).toFixed(1);
-    }
-
-    // 02: 121-Frame 3D Hardware Dissection Scrub
-    if (anatomySection && anatomyRect) {
+    // 02: 121-Frame Hardware Dissection Scrub
+    if (anatomySection && anatomyRect && anatomyRect.bottom > -H && anatomyRect.top < H * 2) {
       const travel = Math.max(1, anatomyRect.height - H);
       const p = clamp(-anatomyRect.top / travel, 0, 1);
       const idx = (TOTAL_FRAMES - 1) - Math.round(p * (TOTAL_FRAMES - 1));
@@ -1299,37 +1146,32 @@
 
       if (anatomyFrame && !motionPaused) {
         const entryTilt = clamp(1 - (-anatomyRect.top + H * 0.6) / (H * 0.6), 0, 1);
-        const rx = entryTilt * 11;
-        const sc = 1 - entryTilt * 0.05;
-        anatomyFrame.style.transform = `rotateX(${rx.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+        anatomyFrame.style.transform = `rotateX(${(entryTilt * 9).toFixed(2)}deg) scale(${(1 - entryTilt * 0.04).toFixed(3)})`;
       }
     }
 
     // 03: 67-Skin 3D Coverflow Scroll Glide
-    if (skinsSection && skinsRect && !prefersReduced) {
+    if (skinsSection && skinsRect && !prefersReduced && skinsRect.bottom > -H && skinsRect.top < H * 2) {
       const skinTravel = Math.max(1, skinsRect.height - H);
       const sp = clamp(-skinsRect.top / skinTravel, 0, 1);
       updateCoverflowAtProgress(sp);
     }
 
     // 06: 3D Driver Studio Window Scroll-Upright Perspective Tilt
-    if (studioWindow && studioRect && !motionPaused) {
-      if (studioRect.bottom > -100 && studioRect.top < H + 100) {
-        const approach = clamp((studioRect.top - H * 0.15) / (H * 0.75), 0, 1);
-        const tiltX = approach * 16;
-        const scale = 1 - approach * 0.06;
-        studioWindow.style.transform = `rotateX(${tiltX.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-      }
+    if (studioWindow && studioRect && !motionPaused && studioRect.bottom > -80 && studioRect.top < H + 80) {
+      const approach = clamp((studioRect.top - H * 0.15) / (H * 0.75), 0, 1);
+      studioWindow.style.transform = `rotateX(${(approach * 12).toFixed(2)}deg) scale(${(1 - approach * 0.04).toFixed(3)})`;
     }
 
     // Velocity Marquee Strips
     if (!motionPaused && marqueeSpanW > 0) {
-      const vel = y - lastScrollY;
-      marqueeOffset += 0.8 + Math.abs(vel) * 0.38;
-      const skew = clamp(vel * 0.1, -5, 5);
-      applyMarquee(skew);
-      clearTimeout(skewResetTimer);
-      skewResetTimer = setTimeout(() => applyMarquee(0), 140);
+      const vel = Math.abs(y - lastScrollY);
+      marqueeOffset += 0.6 + vel * 0.32;
+      const off = ((marqueeOffset % marqueeSpanW) + marqueeSpanW) % marqueeSpanW;
+      marqueeTracks.forEach((tr) => {
+        const x = tr.classList.contains('reverse') ? -marqueeSpanW + off : -off;
+        tr.style.transform = `translate3d(${x.toFixed(1)}px, 0, 0)`;
+      });
     }
     lastScrollY = y;
   }
