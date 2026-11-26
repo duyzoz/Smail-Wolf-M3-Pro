@@ -1,1050 +1,1348 @@
-/* ============================================================
-   SMAILWOLF M3 Pro — Landing page motion engine (vanilla JS)
-   Recreations, in spirit, of React Bits effects:
-   SplitText, BlurText, ScrollReveal, TiltedCard, Galaxy (CSS),
-   plus a scroll-driven hero video and a horizontal skin shelf.
-   Perf rules: one rAF loop, transform/opacity only, passive
-   listeners, IntersectionObserver, reduced-motion respected.
-   ============================================================ */
+/* ==========================================================================
+   SMAILWOLF M3 PRO — 3D LIQUID GLASS INTERACTIVE MOTION ENGINE
+   Features:
+   1. Real-Mouse 3D Volumetric Tilt + Pixel-Masked Fresnel Glare
+   2. Soda-Style 720° Motion-Blur Edition Swap + Satellite Implode/Explode
+   3. Pointer Repulsion Force-Field on Floating 3D Liquid Glass Orbs
+   4. Rising Refractive Liquid Glass Micro-Droplets
+   5. 121-Frame Hardware Dissection Canvas Theater + Phase Callouts
+   6. 67-Skin 3D Cylindrical Coverflow + Category Filter + 3D Modal
+   7. Interactive Silicon Wafer Stack, Bento Calculators & Live HID Studio
+   ========================================================================== */
+
 (function () {
   'use strict';
 
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.documentElement.classList.add('js');
-  function debounce(fn, ms) { var t = 0; return function () { clearTimeout(t); t = setTimeout(fn, ms); }; }
-  var finePointer = window.matchMedia('(pointer: fine)').matches;
-  var vh = function () { return window.innerHeight; };
-  var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
 
-  /* ---------- SplitText: chars, staggered rise ---------- */
-  document.querySelectorAll('[data-split]').forEach(function (el) {
-    var nodes = Array.prototype.slice.call(el.childNodes);
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  let motionPaused = prefersReduced;
+
+  const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+  const debounce = (fn, ms) => {
+    let t = 0;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), ms);
+    };
+  };
+
+  /* ------------------------------------------------------------------------
+     1. EDITION CATALOG & ALL 67 REAL MOUSE SKINS
+     ------------------------------------------------------------------------ */
+  const EDITIONS = {
+    pearl: {
+      key: 'pearl',
+      index: 1,
+      tag: 'ARCTIC PEARL',
+      src: 'assets/mouse-hero.webp',
+      dlSrc: 'assets/mouse-hero.webp',
+      bgInner: '#0b7c8a',
+      bgMid: '#043242',
+      bgOuter: '#020810',
+      scriptLeft: 'Pure',
+      boldLeft: 'Precision',
+      scriptRight: 'Liquid',
+      boldRight: 'Control',
+      orbSkins: ['A05', 'B10', 'E08', 'F06', 'A10', 'D08']
+    },
+    crimson: {
+      key: 'crimson',
+      index: 2,
+      tag: 'ONI CRIMSON · A03',
+      src: 'assets/skins/A03.webp',
+      dlSrc: 'assets/skins/A03.webp',
+      bgInner: '#8f1430',
+      bgMid: '#3e0717',
+      bgOuter: '#090206',
+      scriptLeft: 'Fierce',
+      boldLeft: 'Velocity',
+      scriptRight: 'Forged',
+      boldRight: 'Instinct',
+      orbSkins: ['A03', 'E05', 'F09', 's3', 'C03', 'E10']
+    },
+    cyber: {
+      key: 'cyber',
+      index: 3,
+      tag: 'CYBER PRISM · F02',
+      src: 'assets/skins/F02.webp',
+      dlSrc: 'assets/skins/F02.webp',
+      bgInner: '#521896',
+      bgMid: '#1f0842',
+      bgOuter: '#05020d',
+      scriptLeft: 'Neon',
+      boldLeft: 'Telemetry',
+      scriptRight: 'Hyper',
+      boldRight: 'Response',
+      orbSkins: ['F02', 'A02', 'B02', 'C04', 'D05', 'F10']
+    },
+    hologram: {
+      key: 'hologram',
+      index: 4,
+      tag: 'LIQUID HOLO · C07',
+      src: 'assets/skins/C07.webp',
+      dlSrc: 'assets/skins/C07.webp',
+      bgInner: '#0d4f94',
+      bgMid: '#052248',
+      bgOuter: '#020812',
+      scriptLeft: 'Zero',
+      boldLeft: 'Bloat',
+      scriptRight: 'Crystal',
+      boldRight: 'Clarity',
+      orbSkins: ['C07', 'F06', 'B04', 'E09', 'C10', 'F03']
+    }
+  };
+
+  const EDITION_ORDER = ['pearl', 'crimson', 'cyber', 'hologram'];
+  let activeEditionIndex = 0;
+
+  const SKINS = [
+    { id: 'default', name: 'Arctic Pearl', cat: 'special', src: 'assets/mouse-hero.webp', thumb: 'assets/skins/thumbs/default.webp' },
+    { id: 'A01', name: 'Topographic', cat: 'topo', src: 'assets/skins/A01.webp', thumb: 'assets/skins/thumbs/A01.webp' },
+    { id: 'A02', name: 'Cyber X', cat: 'cyber', src: 'assets/skins/A02.webp', thumb: 'assets/skins/thumbs/A02.webp' },
+    { id: 'A03', name: 'Oni Red', cat: 'oni', src: 'assets/skins/A03.webp', thumb: 'assets/skins/thumbs/A03.webp' },
+    { id: 'A04', name: 'LED Honeycomb', cat: 'cyber', src: 'assets/skins/A04.webp', thumb: 'assets/skins/thumbs/A04.webp' },
+    { id: 'A05', name: 'Sakura Anime', cat: 'anime', src: 'assets/skins/A05.webp', thumb: 'assets/skins/thumbs/A05.webp' },
+    { id: 'A06', name: 'Graffiti Purple', cat: 'cyber', src: 'assets/skins/A06.webp', thumb: 'assets/skins/thumbs/A06.webp' },
+    { id: 'A07', name: 'Z-Core', cat: 'cyber', src: 'assets/skins/A07.webp', thumb: 'assets/skins/thumbs/A07.webp' },
+    { id: 'A08', name: 'RGB Wave', cat: 'cyber', src: 'assets/skins/A08.webp', thumb: 'assets/skins/thumbs/A08.webp' },
+    { id: 'A09', name: 'LED Cutout', cat: 'cyber', src: 'assets/skins/A09.webp', thumb: 'assets/skins/thumbs/A09.webp' },
+    { id: 'A10', name: 'Galaxy Moon', cat: 'special', src: 'assets/skins/A10.webp', thumb: 'assets/skins/thumbs/A10.webp' },
+    { id: 'B01', name: 'Topography Flow', cat: 'topo', src: 'assets/skins/B01.webp', thumb: 'assets/skins/thumbs/B01.webp' },
+    { id: 'B02', name: 'Cyber Circuit', cat: 'cyber', src: 'assets/skins/B02.webp', thumb: 'assets/skins/thumbs/B02.webp' },
+    { id: 'B03', name: 'Dragon Ink', cat: 'oni', src: 'assets/skins/B03.webp', thumb: 'assets/skins/thumbs/B03.webp' },
+    { id: 'B04', name: 'Sakura Aurora', cat: 'anime', src: 'assets/skins/B04.webp', thumb: 'assets/skins/thumbs/B04.webp' },
+    { id: 'B05', name: 'Anime Cyber', cat: 'anime', src: 'assets/skins/B05.webp', thumb: 'assets/skins/thumbs/B05.webp' },
+    { id: 'B06', name: 'RGB Honeycomb', cat: 'cyber', src: 'assets/skins/B06.webp', thumb: 'assets/skins/thumbs/B06.webp' },
+    { id: 'B07', name: 'Void Space', cat: 'special', src: 'assets/skins/B07.webp', thumb: 'assets/skins/thumbs/B07.webp' },
+    { id: 'B08', name: 'Glitch Pixel', cat: 'cyber', src: 'assets/skins/B08.webp', thumb: 'assets/skins/thumbs/B08.webp' },
+    { id: 'B09', name: 'Flame Ice', cat: 'oni', src: 'assets/skins/B09.webp', thumb: 'assets/skins/thumbs/B09.webp' },
+    { id: 'B10', name: 'Neon Wave', cat: 'cyber', src: 'assets/skins/B10.webp', thumb: 'assets/skins/thumbs/B10.webp' },
+    { id: 'C01', name: 'Topographic C01', cat: 'topo', src: 'assets/skins/C01.webp', thumb: 'assets/skins/thumbs/C01.webp' },
+    { id: 'C02', name: 'Hex LED', cat: 'cyber', src: 'assets/skins/C02.webp', thumb: 'assets/skins/thumbs/C02.webp' },
+    { id: 'C03', name: 'Samurai', cat: 'oni', src: 'assets/skins/C03.webp', thumb: 'assets/skins/thumbs/C03.webp' },
+    { id: 'C04', name: 'Cyber Core', cat: 'cyber', src: 'assets/skins/C04.webp', thumb: 'assets/skins/thumbs/C04.webp' },
+    { id: 'C05', name: 'Esports Pro', cat: 'special', src: 'assets/skins/C05.webp', thumb: 'assets/skins/thumbs/C05.webp' },
+    { id: 'C06', name: 'Anime Tokyo', cat: 'anime', src: 'assets/skins/C06.webp', thumb: 'assets/skins/thumbs/C06.webp' },
+    { id: 'C07', name: 'Liquid Hologram', cat: 'special', src: 'assets/skins/C07.webp', thumb: 'assets/skins/thumbs/C07.webp' },
+    { id: 'C08', name: 'Mecha X-01', cat: 'cyber', src: 'assets/skins/C08.webp', thumb: 'assets/skins/thumbs/C08.webp' },
+    { id: 'C09', name: 'Koi Wave', cat: 'oni', src: 'assets/skins/C09.webp', thumb: 'assets/skins/thumbs/C09.webp' },
+    { id: 'C10', name: 'Galaxy LED', cat: 'special', src: 'assets/skins/C10.webp', thumb: 'assets/skins/thumbs/C10.webp' },
+    { id: 'D01', name: 'Topographic D01', cat: 'topo', src: 'assets/skins/D01.webp', thumb: 'assets/skins/thumbs/D01.webp' },
+    { id: 'D02', name: 'Cyber Mecha', cat: 'cyber', src: 'assets/skins/D02.webp', thumb: 'assets/skins/thumbs/D02.webp' },
+    { id: 'D03', name: 'Dragon Ink D03', cat: 'oni', src: 'assets/skins/D03.webp', thumb: 'assets/skins/thumbs/D03.webp' },
+    { id: 'D04', name: 'LED Honeycomb D04', cat: 'cyber', src: 'assets/skins/D04.webp', thumb: 'assets/skins/thumbs/D04.webp' },
+    { id: 'D05', name: 'Circuit Neon', cat: 'cyber', src: 'assets/skins/D05.webp', thumb: 'assets/skins/thumbs/D05.webp' },
+    { id: 'D06', name: 'Anime Eyes', cat: 'anime', src: 'assets/skins/D06.webp', thumb: 'assets/skins/thumbs/D06.webp' },
+    { id: 'D07', name: 'Wave Fuji', cat: 'oni', src: 'assets/skins/D07.webp', thumb: 'assets/skins/thumbs/D07.webp' },
+    { id: 'D08', name: 'Galaxy Orbit', cat: 'special', src: 'assets/skins/D08.webp', thumb: 'assets/skins/thumbs/D08.webp' },
+    { id: 'D09', name: 'Hex Tech', cat: 'cyber', src: 'assets/skins/D09.webp', thumb: 'assets/skins/thumbs/D09.webp' },
+    { id: 'D10', name: 'Flame Aurora', cat: 'oni', src: 'assets/skins/D10.webp', thumb: 'assets/skins/thumbs/D10.webp' },
+    { id: 'E01', name: 'Dragon 01', cat: 'oni', src: 'assets/skins/E01.webp', thumb: 'assets/skins/thumbs/E01.webp' },
+    { id: 'E02', name: 'ZL Wave', cat: 'topo', src: 'assets/skins/E02.webp', thumb: 'assets/skins/thumbs/E02.webp' },
+    { id: 'E03', name: 'Anime Purple', cat: 'anime', src: 'assets/skins/E03.webp', thumb: 'assets/skins/thumbs/E03.webp' },
+    { id: 'E04', name: 'Wave Fuji E04', cat: 'oni', src: 'assets/skins/E04.webp', thumb: 'assets/skins/thumbs/E04.webp' },
+    { id: 'E05', name: 'Oni Red E05', cat: 'oni', src: 'assets/skins/E05.webp', thumb: 'assets/skins/thumbs/E05.webp' },
+    { id: 'E06', name: 'Honeycomb Pink', cat: 'anime', src: 'assets/skins/E06.webp', thumb: 'assets/skins/thumbs/E06.webp' },
+    { id: 'E07', name: 'ZL Cyan', cat: 'cyber', src: 'assets/skins/E07.webp', thumb: 'assets/skins/thumbs/E07.webp' },
+    { id: 'E08', name: 'Sakura Fox', cat: 'anime', src: 'assets/skins/E08.webp', thumb: 'assets/skins/thumbs/E08.webp' },
+    { id: 'E09', name: 'Galaxy Purple', cat: 'special', src: 'assets/skins/E09.webp', thumb: 'assets/skins/thumbs/E09.webp' },
+    { id: 'E10', name: 'Ember Orange', cat: 'oni', src: 'assets/skins/E10.webp', thumb: 'assets/skins/thumbs/E10.webp' },
+    { id: 'F01', name: 'Topographic Black', cat: 'topo', src: 'assets/skins/F01.webp', thumb: 'assets/skins/thumbs/F01.webp' },
+    { id: 'F02', name: 'Cyber Neon RGB', cat: 'cyber', src: 'assets/skins/F02.webp', thumb: 'assets/skins/thumbs/F02.webp' },
+    { id: 'F03', name: 'Sakura Wave', cat: 'anime', src: 'assets/skins/F03.webp', thumb: 'assets/skins/thumbs/F03.webp' },
+    { id: 'F04', name: 'Dragon Ink F04', cat: 'oni', src: 'assets/skins/F04.webp', thumb: 'assets/skins/thumbs/F04.webp' },
+    { id: 'F05', name: 'Mecha Armor', cat: 'cyber', src: 'assets/skins/F05.webp', thumb: 'assets/skins/thumbs/F05.webp' },
+    { id: 'F06', name: 'Hologram Prism', cat: 'special', src: 'assets/skins/F06.webp', thumb: 'assets/skins/thumbs/F06.webp' },
+    { id: 'F07', name: 'Carbon Forged', cat: 'topo', src: 'assets/skins/F07.webp', thumb: 'assets/skins/thumbs/F07.webp' },
+    { id: 'F08', name: 'Void Galaxy', cat: 'special', src: 'assets/skins/F08.webp', thumb: 'assets/skins/thumbs/F08.webp' },
+    { id: 'F09', name: 'Oni Mask', cat: 'oni', src: 'assets/skins/F09.webp', thumb: 'assets/skins/thumbs/F09.webp' },
+    { id: 'F10', name: 'Tech Hex RGB', cat: 'cyber', src: 'assets/skins/F10.webp', thumb: 'assets/skins/thumbs/F10.webp' },
+    { id: 's1', name: 'Animatronic Orange', cat: 'special', src: 'assets/skins/s1.webp', thumb: 'assets/skins/thumbs/s1.webp' },
+    { id: 's2', name: 'Animatronic Blue', cat: 'special', src: 'assets/skins/s2.webp', thumb: 'assets/skins/thumbs/s2.webp' },
+    { id: 's3', name: 'Animatronic Red', cat: 'special', src: 'assets/skins/s3.webp', thumb: 'assets/skins/thumbs/s3.webp' },
+    { id: 's4', name: 'Animatronic Mono', cat: 'special', src: 'assets/skins/s4.webp', thumb: 'assets/skins/thumbs/s4.webp' },
+    { id: 's5', name: 'Galaxy Cat', cat: 'anime', src: 'assets/skins/s5.webp', thumb: 'assets/skins/thumbs/s5.webp' },
+    { id: 's6', name: 'ZNGL Green', cat: 'special', src: 'assets/skins/s6.webp', thumb: 'assets/skins/thumbs/s6.webp' }
+  ];
+
+  /* ------------------------------------------------------------------------
+     2. SPLIT-TEXT REVEAL & MOTION PAUSE TOGGLE (WCAG 2.2.2)
+     ------------------------------------------------------------------------ */
+  document.querySelectorAll('[data-split]').forEach((el) => {
+    const nodes = Array.from(el.childNodes);
     el.innerHTML = '';
-    var i = 0;
-    nodes.forEach(function (node) {
-      if (node.nodeType === 3) {
-        node.textContent.split(/(\s+)/).forEach(function (part) {
-          if (!part) return;
-          if (/^\s+$/.test(part)) { el.appendChild(document.createTextNode(' ')); return; }
-          var word = document.createElement('span');
-          word.className = 'word';
-          part.split('').forEach(function (ch) {
-            var c = document.createElement('span');
-            c.className = 'char';
-            c.style.setProperty('--i', i++);
-            c.textContent = ch;
-            word.appendChild(c);
-          });
-          el.appendChild(word);
+    let charIdx = 0;
+
+    const appendWords = (text, extraClass) => {
+      text.split(/(\s+)/).forEach((part) => {
+        if (!part) return;
+        if (/^\s+$/.test(part)) {
+          el.appendChild(document.createTextNode(' '));
+          return;
+        }
+        const w = document.createElement('span');
+        w.className = extraClass ? `word ${extraClass}` : 'word';
+        for (const ch of part) {
+          const c = document.createElement('span');
+          c.className = 'char';
+          c.style.setProperty('--i', String(charIdx++));
+          c.textContent = ch;
+          w.appendChild(c);
+        }
+        el.appendChild(w);
+      });
+    };
+
+    nodes.forEach((n) => {
+      if (n.nodeType === 3) appendWords(n.textContent, '');
+      else if (n.nodeType === 1 && n.tagName === 'BR') el.appendChild(document.createElement('br'));
+      else if (n.nodeType === 1) {
+        const em = document.createElement(n.tagName.toLowerCase());
+        em.className = n.className;
+        n.textContent.split('').forEach((ch) => {
+          if (ch === ' ') {
+            em.appendChild(document.createTextNode(' '));
+            return;
+          }
+          const c = document.createElement('span');
+          c.className = 'char';
+          c.style.setProperty('--i', String(charIdx++));
+          c.textContent = ch;
+          em.appendChild(c);
         });
-      } else if (node.nodeType === 1 && node.tagName === 'BR') {
-        el.appendChild(document.createElement('br'));
-      } else if (node.nodeType === 1) {
-        // e.g. <span class="accent"> — split its text too
-        var cls = node.className;
-        node.textContent.split(/(\s+)/).forEach(function (part) {
-          if (!part) return;
-          if (/^\s+$/.test(part)) { el.appendChild(document.createTextNode(' ')); return; }
-          var word = document.createElement('span');
-          word.className = 'word ' + cls;
-          part.split('').forEach(function (ch) {
-            var c = document.createElement('span');
-            c.className = 'char';
-            c.style.setProperty('--i', i++);
-            c.textContent = ch;
-            word.appendChild(c);
-          });
-          el.appendChild(word);
-        });
+        const wrap = document.createElement('span');
+        wrap.className = 'word';
+        wrap.appendChild(em);
+        el.appendChild(wrap);
       }
     });
   });
 
-  /* ---------- BlurText: words, blur -> sharp ---------- */
-  document.querySelectorAll('[data-blur]').forEach(function (el) {
-    var words = el.textContent.trim().split(/\s+/);
-    el.innerHTML = words.map(function (w, i) {
-      return '<span class="w" style="--i:' + i + '">' + w + '</span>';
-    }).join(' ');
-  });
-
-  /* ---------- ScrollReveal: words, opacity follows scroll ---------- */
-  var srItems = [];
-  document.querySelectorAll('[data-sr]').forEach(function (el) {
-    var words = el.textContent.trim().split(/\s+/);
-    el.innerHTML = words.map(function (w) {
-      return '<span class="w">' + w + '</span>';
-    }).join(' ');
-    srItems.push({ el: el, words: Array.prototype.slice.call(el.querySelectorAll('.w')) });
-  });
-
-  /* ---------- reveal on enter (SplitText / BlurText / count-up) ---------- */
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
+  const revealIO = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
       if (entry.isIntersecting) {
         entry.target.classList.add('in');
-        io.unobserve(entry.target);
+        revealIO.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.2 });
-  document.querySelectorAll('[data-split], [data-blur], .kicker, .section-head, .chip-copy, .driver-copy, .download-copy').forEach(function (el) { io.observe(el); });
-  // clip-path wipe reveal: observe the SECTIONS, never the media themselves.
-  // An element hidden by its own clip-path reports intersectionRatio 0, so an
-  // IO on the media can never fire (deadlock: hidden -> ratio 0 -> stays hidden).
-  // The section is never clipped, so its IO fires and opens the media's clip.
-  var clipIO = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting) return;
-      var media = entry.target.querySelector('.chip-media, .driver-shot');
-      if (media) media.classList.add('in');
-      clipIO.unobserve(entry.target);
-    });
-  }, { threshold: 0.1 });
-  [document.querySelector('.chip'), document.querySelector('.driver')].forEach(function (el) { if (el) clipIO.observe(el); });
+  }, { threshold: 0.18 });
+  document.querySelectorAll('[data-split]').forEach((el) => revealIO.observe(el));
 
-  /* ---------- count-up numbers ---------- */
-  var counted = new WeakSet();
-  var countIO = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (!entry.isIntersecting || counted.has(entry.target)) return;
-      counted.add(entry.target);
-      var el = entry.target;
-      var target = parseInt(el.getAttribute('data-count'), 10) || 0;
-      if (reduced) { el.textContent = target.toLocaleString('en-US'); return; }
-      var t0 = null;
-      var dur = 1300;
-      var step = function (t) {
-        if (t0 === null) t0 = t;
-        var p = clamp((t - t0) / dur, 0, 1);
-        var eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.round(target * eased).toLocaleString('en-US');
-        if (p < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+  const motionToggle = document.getElementById('motionToggle');
+  const motionToggleLabel = document.getElementById('motionToggleLabel');
+  if (prefersReduced) document.body.classList.add('motion-paused');
+  if (motionToggle && motionToggleLabel) {
+    if (motionPaused) {
+      motionToggleLabel.textContent = 'Play';
+      motionToggle.setAttribute('aria-label', 'Play ambient motion');
+    }
+    motionToggle.addEventListener('click', () => {
+      motionPaused = !motionPaused;
+      document.body.classList.toggle('motion-paused', motionPaused);
+      motionToggleLabel.textContent = motionPaused ? 'Play' : 'Pause';
+      motionToggle.setAttribute('aria-label', motionPaused ? 'Play ambient motion' : 'Pause ambient motion');
+      if (!motionPaused) startHeroLoop();
     });
-  }, { threshold: 0.5 });
-  document.querySelectorAll('[data-count]').forEach(function (el) { countIO.observe(el); });
-
-  /* ---------- hero scrub: 121 frames (24fps) drawn on <canvas> ----------
-     WHY canvas, not <img src> swaps: swapping src drops the old frame
-     instantly and the new one shows only when decoded — on a weak GPU the
-     decode lags behind the scroll, so the hero flashes blank every step
-     (that is the "chớp nháy"). drawImage() draws from an already-decoded
-     Image object synchronously, so there is never a blank frame.
-     The video runs REVERSED: p=0 shows the assembled mouse (f121),
-     scrolling down explodes it part by part, morph-style, until p=1
-     (f001, fully exploded). */
-  var FRAMES = 121;
-  var frameImgs = [];
-  var frameLoaded = 0;
-  var hero = document.querySelector('.hero');
-  var heroCanvas = document.getElementById('heroCanvas');
-  var heroCtx = heroCanvas ? heroCanvas.getContext('2d') : null;
-  var heroCopy = document.querySelector('.hero-copy');
-  var heroCta = document.querySelector('.hero-cta');
-  var scrollCue = document.querySelector('.scroll-cue');
-  // Morph travel: how far the hero title must glide to land exactly on the
-  // skins heading's spot (PowerPoint-Morph style). Measured live so it
-  // survives fonts, zoom and viewport changes.
-  var morphDX = 0, morphDY = 0;
-  function measureMorph() {
-    if (!heroCopy) return;
-    var savedT = heroCopy.style.transform;
-    var savedO = heroCopy.style.opacity;
-    heroCopy.style.transform = '';
-    heroCopy.style.opacity = '';
-    var cr = heroCopy.getBoundingClientRect();
-    heroCopy.style.transform = savedT;
-    heroCopy.style.opacity = savedO;
-    var head = document.querySelector('.skins .section-head');
-    if (!head) return;
-    morphDX = window.innerWidth / 2 - (cr.left + cr.width / 2);
-    morphDY = head.offsetTop - cr.top; // head's offsetParent is the pinned sticky
   }
-  measureMorph();
-  window.addEventListener('resize', debounce(measureMorph, 150), { passive: true });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureMorph);
-  var heroLoading = document.getElementById('heroLoading');
-  var heroLoadCount = document.getElementById('heroLoadCount');
-  var heroScrubFill = document.getElementById('heroScrubFill');
-  var currentFrame = FRAMES - 1; // start assembled
-  function pad3(n) { return (n < 10 ? '00' : (n < 100 ? '0' : '')) + n; }
-  function sizeCanvas() {
-    if (!heroCanvas) return;
-    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    var w = Math.round(heroCanvas.clientWidth * dpr);
-    var h = Math.round(heroCanvas.clientHeight * dpr);
-    if (heroCanvas.width !== w || heroCanvas.height !== h) {
-      heroCanvas.width = w; heroCanvas.height = h;
-      drawFrame(currentFrame);
+
+  /* ------------------------------------------------------------------------
+     3. DYNAMIC IPHONE LIQUID GLASS NAVBAR GLIDER
+     ------------------------------------------------------------------------ */
+  const siteHeader = document.getElementById('siteHeader');
+  const navGlider = document.getElementById('navGlider');
+  const navItems = Array.from(document.querySelectorAll('.nav-item'));
+
+  function syncNavGlider(targetItem) {
+    const active = targetItem || document.querySelector('.nav-item.active');
+    if (!active || !navGlider || !active.offsetWidth) return;
+    navGlider.style.width = `${active.offsetWidth}px`;
+    navGlider.style.transform = `translate3d(${active.offsetLeft - 6}px, 0, 0)`;
+  }
+
+  navItems.forEach((item) => {
+    item.addEventListener('mouseenter', () => syncNavGlider(item));
+    item.addEventListener('click', () => {
+      navItems.forEach((n) => n.classList.remove('active'));
+      item.classList.add('active');
+      syncNavGlider(item);
+    });
+  });
+
+  const navCapsule = document.getElementById('navCapsule');
+  if (navCapsule) {
+    navCapsule.addEventListener('mouseleave', () => syncNavGlider(null));
+  }
+
+  window.addEventListener('resize', debounce(() => syncNavGlider(null), 120), { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncNavGlider(null));
+  syncNavGlider(null);
+
+  const sectionSpy = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const id = entry.target.id;
+      const match = navItems.find((n) => n.dataset.sec === id);
+      if (match) {
+        navItems.forEach((n) => n.classList.remove('active'));
+        match.classList.add('active');
+        syncNavGlider(match);
+      }
+    });
+  }, { rootMargin: '-38% 0px -52% 0px' });
+
+  ['hero', 'anatomy', 'skins', 'architecture', 'specs', 'driver', 'download'].forEach((id) => {
+    const sec = document.getElementById(id);
+    if (sec) sectionSpy.observe(sec);
+  });
+
+  /* ------------------------------------------------------------------------
+     4. SODA-STYLE 3D HERO: CURSOR TILT, 720° SPIN SWAP & ORB REPULSION
+     ------------------------------------------------------------------------ */
+  const productRig = document.getElementById('productRig');
+  const heroMouseImg = document.getElementById('heroMouseImg');
+  const heroShadowImg = document.getElementById('heroShadowImg');
+  const extrudeImgs = Array.from(document.querySelectorAll('.extrude-img'));
+  const studioMouseImg = document.getElementById('studioMouseImg');
+  const dlMouseImg = document.getElementById('dlMouseImg');
+  const heroEditionTag = document.getElementById('heroEditionTag');
+  const heroScriptLeft = document.getElementById('heroScriptLeft');
+  const heroBoldLeft = document.getElementById('heroBoldLeft');
+  const heroScriptRight = document.getElementById('heroScriptRight');
+  const heroBoldRight = document.getElementById('heroBoldRight');
+  const orbsFG = document.getElementById('orbsFG');
+  const orbsBG = document.getElementById('orbsBG');
+  const shardsBG = document.getElementById('shardsBG');
+  const allOrbs = Array.from(document.querySelectorAll('.floating-orb'));
+  const allShards = Array.from(document.querySelectorAll('.prism-shard'));
+  const editionCards = Array.from(document.querySelectorAll('.edition-card'));
+  const edCounter = document.getElementById('edCounter');
+  const cursorCaustic = document.getElementById('cursorCaustic');
+
+  let isSwitching = false;
+  let switchSpin = 0;
+  let heroVisible = true;
+  let heroLoopRunning = false;
+
+  const mouse = { x: 0, y: 0, px: window.innerWidth / 2, py: window.innerHeight / 2 };
+  const currentMouse = { x: 0, y: 0 };
+
+  allOrbs.forEach((orb) => {
+    orb.dataset.rx = '0';
+    orb.dataset.ry = '0';
+    orb.dataset.angle = String(Math.random() * 360);
+    orb.dataset.baseX = '0';
+    orb.dataset.baseY = '0';
+  });
+
+  function applyMouseCutoutSrc(src, label) {
+    if (heroMouseImg) {
+      heroMouseImg.src = src;
+      if (label) heroMouseImg.alt = `SMAILWOLF M3 Pro Wireless Gaming Mouse — ${label}`;
+    }
+    if (heroShadowImg) heroShadowImg.src = src;
+    extrudeImgs.forEach((img) => { img.src = src; });
+    if (studioMouseImg) studioMouseImg.src = src;
+    if (dlMouseImg) dlMouseImg.src = src;
+    document.documentElement.style.setProperty('--mouse-mask', `url("${src}")`);
+  }
+
+  function runSpinSwap(options) {
+    if (isSwitching) return;
+    isSwitching = true;
+
+    const {
+      editionKey,
+      customSrc,
+      customName
+    } = options;
+
+    const ed = EDITIONS[editionKey] || EDITIONS.pearl;
+    const finalSrc = customSrc || ed.src;
+    const finalTag = customName ? customName.toUpperCase() : ed.tag;
+
+    if (window.gsap && !motionPaused) {
+      gsap.to(document.body, {
+        '--bg-inner': ed.bgInner,
+        '--bg-mid': ed.bgMid,
+        '--bg-outer': ed.bgOuter,
+        duration: 1.35,
+        ease: 'power2.inOut'
+      });
+
+      const spinObj = { val: 0, blur: 0 };
+      gsap.to(spinObj, {
+        val: 360,
+        blur: 13,
+        duration: 0.56,
+        ease: 'power2.in',
+        onUpdate: () => {
+          switchSpin = spinObj.val;
+          if (productRig) productRig.style.filter = `blur(${spinObj.blur.toFixed(1)}px)`;
+        },
+        onComplete: () => {
+          document.body.setAttribute('data-edition', ed.key);
+          applyMouseCutoutSrc(finalSrc, finalTag);
+          if (heroEditionTag) heroEditionTag.textContent = finalTag;
+          if (heroScriptLeft) heroScriptLeft.textContent = ed.scriptLeft;
+          if (heroBoldLeft) heroBoldLeft.textContent = ed.boldLeft;
+          if (heroScriptRight) heroScriptRight.textContent = ed.scriptRight;
+          if (heroBoldRight) heroBoldRight.textContent = ed.boldRight;
+
+          gsap.to(spinObj, {
+            val: 720,
+            blur: 0,
+            duration: 1.35,
+            ease: 'back.out(0.75)',
+            onUpdate: () => {
+              switchSpin = spinObj.val;
+              if (productRig) productRig.style.filter = spinObj.blur > 0.2 ? `blur(${spinObj.blur.toFixed(1)}px)` : 'none';
+            },
+            onComplete: () => {
+              switchSpin = 0;
+              if (productRig) productRig.style.filter = 'none';
+            }
+          });
+        }
+      });
+
+      // Satellite Orbs Implode -> Swap Skin Shards -> Explode
+      let completedOrbs = 0;
+      const orbImgs = allOrbs.map((o) => o.querySelector('img')).filter(Boolean);
+
+      allOrbs.forEach((orb, i) => {
+        const bW = orb.offsetWidth / 2;
+        const bH = orb.offsetHeight / 2;
+        const centerX = window.innerWidth / 2 - orb.offsetLeft - bW;
+        const centerY = window.innerHeight / 2 - orb.offsetTop - bH;
+        const startAngle = parseFloat(orb.dataset.angle) || 0;
+        const nextBaseX = (Math.random() - 0.5) * 150;
+        const nextBaseY = (Math.random() - 0.5) * 150;
+
+        const tl = gsap.timeline();
+        tl.to(orb, {
+          x: centerX,
+          y: centerY,
+          rotation: startAngle + 45,
+          scale: 0.1,
+          opacity: 0,
+          duration: 0.46,
+          ease: 'power2.in',
+          onComplete: () => {
+            const img = orb.querySelector('img');
+            if (img) {
+              const skinCode = ed.orbSkins[orbImgs.indexOf(img) % ed.orbSkins.length];
+              img.src = `assets/skins/thumbs/${skinCode}.webp`;
+            }
+          }
+        })
+          .to(orb, { duration: 0.22 })
+          .to(orb, {
+            x: nextBaseX,
+            y: nextBaseY,
+            rotation: startAngle + 90,
+            scale: 1,
+            opacity: 1,
+            duration: 0.85,
+            ease: 'back.out(1.5)',
+            onComplete: () => {
+              orb.dataset.angle = String(startAngle + 90);
+              orb.dataset.baseX = String(nextBaseX);
+              orb.dataset.baseY = String(nextBaseY);
+              orb.dataset.rx = '0';
+              orb.dataset.ry = '0';
+              completedOrbs++;
+              if (completedOrbs >= allOrbs.length) {
+                isSwitching = false;
+              }
+            }
+          });
+      });
+    } else {
+      // Instant accessible fallback when reduced-motion / paused / offline without GSAP
+      document.body.setAttribute('data-edition', ed.key);
+      document.body.style.setProperty('--bg-inner', ed.bgInner);
+      document.body.style.setProperty('--bg-mid', ed.bgMid);
+      document.body.style.setProperty('--bg-outer', ed.bgOuter);
+      applyMouseCutoutSrc(finalSrc, finalTag);
+      if (heroEditionTag) heroEditionTag.textContent = finalTag;
+      if (heroScriptLeft) heroScriptLeft.textContent = ed.scriptLeft;
+      if (heroBoldLeft) heroBoldLeft.textContent = ed.boldLeft;
+      if (heroScriptRight) heroScriptRight.textContent = ed.scriptRight;
+      if (heroBoldRight) heroBoldRight.textContent = ed.boldRight;
+      isSwitching = false;
     }
   }
-  function drawFrame(idx) {
-    if (!heroCtx || !heroCanvas || !frameImgs[idx] || !frameImgs[idx].complete) return;
-    var cw = heroCanvas.width, ch = heroCanvas.height;
-    if (!cw || !ch) return;
-    var s = Math.max(cw / 1280, ch / 720); // cover
-    var dw = 1280 * s, dh = 720 * s;
-    var dx = (cw - dw) * 0.68; // object-position 68% — mouse sits right, text left
-    var dy = (ch - dh) / 2;
-    heroCtx.clearRect(0, 0, cw, ch);
-    heroCtx.drawImage(frameImgs[idx], dx, dy, dw, dh);
+
+  function selectEditionByIndex(idx) {
+    if (isSwitching) return;
+    activeEditionIndex = (idx + EDITION_ORDER.length) % EDITION_ORDER.length;
+    const key = EDITION_ORDER[activeEditionIndex];
+    editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === key));
+    if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 0${EDITION_ORDER.length}`;
+    runSpinSwap({ editionKey: key });
   }
-  for (var fi = 0; fi < FRAMES; fi++) {
-    var im = new Image();
-    im.src = 'assets/explode/f' + pad3(fi + 1) + '.webp';
+
+  editionCards.forEach((card, idx) => {
+    card.addEventListener('click', () => selectEditionByIndex(idx));
+  });
+
+  const edPrev = document.getElementById('edPrev');
+  const edNext = document.getElementById('edNext');
+  if (edPrev) edPrev.addEventListener('click', () => selectEditionByIndex(activeEditionIndex - 1));
+  if (edNext) edNext.addEventListener('click', () => selectEditionByIndex(activeEditionIndex + 1));
+
+  // Global Pointer Tracking + Liquid Glass Card Caustic Coordinates
+  window.addEventListener('pointermove', (e) => {
+    mouse.x = e.clientX / window.innerWidth - 0.5;
+    mouse.y = e.clientY / window.innerHeight - 0.5;
+    mouse.px = e.clientX;
+    mouse.py = e.clientY;
+
+    if (finePointer && cursorCaustic && !motionPaused) {
+      cursorCaustic.style.opacity = '1';
+      cursorCaustic.style.transform = `translate3d(${e.clientX.toFixed(1)}px, ${e.clientY.toFixed(1)}px, 0)`;
+    }
+
+    const glassTarget = e.target && e.target.closest ? e.target.closest('.liquid-glass') : null;
+    if (glassTarget) {
+      const r = glassTarget.getBoundingClientRect();
+      glassTarget.style.setProperty('--mx', `${(e.clientX - r.left).toFixed(0)}px`);
+      glassTarget.style.setProperty('--my', `${(e.clientY - r.top).toFixed(0)}px`);
+    }
+  }, { passive: true });
+
+  // Hero Visibility Observer so rAF idles when scrolled deep down the page
+  const heroSection = document.getElementById('hero');
+  if (heroSection) {
+    new IntersectionObserver((entries) => {
+      heroVisible = entries[0].isIntersecting;
+      if (heroVisible && !motionPaused) startHeroLoop();
+    }, { threshold: 0 }).observe(heroSection);
+  }
+
+  function heroTick() {
+    if (!heroVisible || motionPaused || document.hidden) {
+      heroLoopRunning = false;
+      return;
+    }
+    heroLoopRunning = true;
+
+    const time = performance.now() * 0.001;
+    currentMouse.x += (mouse.x - currentMouse.x) * 0.065;
+    currentMouse.y += (mouse.y - currentMouse.y) * 0.065;
+
+    // 3D Tilt Centerpiece Mouse + Specular Glare Tracking
+    if (productRig) {
+      const rotY = currentMouse.x * 38 + switchSpin;
+      const rotX = -currentMouse.y * 22;
+      productRig.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(18deg)`;
+      document.documentElement.style.setProperty('--glare-x', `${(50 + currentMouse.x * 55).toFixed(1)}%`);
+      document.documentElement.style.setProperty('--glare-y', `${(38 + currentMouse.y * 50).toFixed(1)}%`);
+    }
+
+    // Multi-Depth Parallax Containers
+    if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 56).toFixed(1)}px, ${(currentMouse.y * 56).toFixed(1)}px, 0)`;
+    if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -28).toFixed(1)}px, ${(currentMouse.y * -28).toFixed(1)}px, 0)`;
+    if (shardsBG) shardsBG.style.transform = `translate3d(${(currentMouse.x * -15).toFixed(1)}px, ${(currentMouse.y * -15).toFixed(1)}px, 0)`;
+
+    // Pointer Repulsion Force-Field on Floating 3D Liquid Glass Orbs
+    if (!isSwitching) {
+      allOrbs.forEach((orb, i) => {
+        const rect = orb.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = mouse.px - cx;
+        const dy = mouse.py - cy;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+        let targetRx = 0;
+        let targetRy = 0;
+        let speedMult = 1;
+
+        if (dist < 380) {
+          const force = (380 - dist) / 380;
+          targetRx = (dx / dist) * force * -78;
+          targetRy = (dy / dist) * force * -78;
+          speedMult = 1 + force * 4.5;
+        }
+
+        let rx = parseFloat(orb.dataset.rx) || 0;
+        let ry = parseFloat(orb.dataset.ry) || 0;
+        let angle = parseFloat(orb.dataset.angle) || 0;
+        const baseX = parseFloat(orb.dataset.baseX) || 0;
+        const baseY = parseFloat(orb.dataset.baseY) || 0;
+
+        rx += (targetRx - rx) * 0.1;
+        ry += (targetRy - ry) * 0.1;
+        angle += 0.18 * speedMult;
+
+        orb.dataset.rx = rx.toFixed(2);
+        orb.dataset.ry = ry.toFixed(2);
+        orb.dataset.angle = angle.toFixed(2);
+
+        const dur = [5.2, 7.0, 6.1, 8.2, 5.6, 6.6, 9.0, 10.8, 9.6][i % 9];
+        const phase = (time + i * 0.7) * ((Math.PI * 2) / dur);
+        const floatY = Math.sin(phase) * 14;
+        const floatAngle = Math.cos(phase) * 5;
+
+        orb.style.transform = `translate3d(${(rx + baseX).toFixed(1)}px, ${(ry + baseY + floatY).toFixed(1)}px, 0) rotate(${(angle + floatAngle).toFixed(1)}deg)`;
+      });
+    }
+
+    // Background Refractive Shards Float
+    allShards.forEach((sh, i) => {
+      const dur = 10 + i * 2.2;
+      const phase = (time + i * 1.3) * ((Math.PI * 2) / dur);
+      const fx = Math.cos(phase * 0.5) * 15;
+      const fy = Math.sin(phase) * 18;
+      const rot = Math.sin(phase * 0.35) * 16;
+      sh.style.transform = `translate3d(${fx.toFixed(1)}px, ${fy.toFixed(1)}px, 0) rotate(${rot.toFixed(1)}deg)`;
+    });
+
+    requestAnimationFrame(heroTick);
+  }
+
+  function startHeroLoop() {
+    if (!heroLoopRunning && !motionPaused && heroVisible) {
+      heroLoopRunning = true;
+      requestAnimationFrame(heroTick);
+    }
+  }
+  startHeroLoop();
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !motionPaused) startHeroLoop();
+  });
+
+  /* ------------------------------------------------------------------------
+     5. RISING LIQUID GLASS MICRO-DROPLETS GENERATOR
+     ------------------------------------------------------------------------ */
+  const bubblesContainer = document.getElementById('bubbles-container');
+  function spawnDroplet() {
+    if (!bubblesContainer || motionPaused || document.hidden) return;
+    if (bubblesContainer.childElementCount > 24) return;
+
+    const drop = document.createElement('span');
+    drop.className = 'liquid-droplet';
+    const size = Math.round(Math.random() * 18 + 8);
+    drop.style.width = `${size}px`;
+    drop.style.height = `${size}px`;
+    drop.style.left = `${(Math.random() * 98).toFixed(1)}%`;
+    const duration = (Math.random() * 6 + 5).toFixed(2);
+    drop.style.animation = `floatUpDroplet ${duration}s linear forwards`;
+
+    bubblesContainer.appendChild(drop);
+    setTimeout(() => drop.remove(), parseFloat(duration) * 1000);
+  }
+  if (!prefersReduced) {
+    setInterval(spawnDroplet, 520);
+  }
+
+  /* ------------------------------------------------------------------------
+     6. 121-FRAME 3D HARDWARE DISSECTION ENGINE (<canvas>)
+     ------------------------------------------------------------------------ */
+  const TOTAL_FRAMES = 121;
+  const frameImgs = [];
+  let loadedFrames = 0;
+  let currentDissectFrame = TOTAL_FRAMES - 1;
+
+  const anatomySection = document.getElementById('anatomy');
+  const anatomyFrame = document.getElementById('anatomyFrame');
+  const dissectCanvas = document.getElementById('dissectCanvas');
+  const dissectCtx = dissectCanvas ? dissectCanvas.getContext('2d') : null;
+  const dissectLoader = document.getElementById('dissectLoader');
+  const dissectCount = document.getElementById('dissectCount');
+  const anatomyBarFill = document.getElementById('anatomyBarFill');
+  const anatomyPct = document.getElementById('anatomyPct');
+  const calloutCards = Array.from(document.querySelectorAll('.anatomy-callout'));
+  const phaseBtns = Array.from(document.querySelectorAll('.phase-btn'));
+
+  const pad3 = (n) => String(n).padStart(3, '0');
+
+  function drawDissectFrame(idx) {
+    if (!dissectCtx || !dissectCanvas) return;
+    const img = frameImgs[idx];
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const cw = dissectCanvas.width;
+    const ch = dissectCanvas.height;
+    if (!cw || !ch) return;
+    const scale = Math.max(cw / 1280, ch / 720);
+    const dw = 1280 * scale;
+    const dh = 720 * scale;
+    const dx = (cw - dw) / 2;
+    const dy = (ch - dh) / 2;
+    dissectCtx.clearRect(0, 0, cw, ch);
+    dissectCtx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function sizeDissectCanvas() {
+    if (!dissectCanvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.max(320, Math.round(dissectCanvas.clientWidth * dpr));
+    const h = Math.max(180, Math.round(dissectCanvas.clientHeight * dpr));
+    if (dissectCanvas.width !== w || dissectCanvas.height !== h) {
+      dissectCanvas.width = w;
+      dissectCanvas.height = h;
+      drawDissectFrame(currentDissectFrame);
+    }
+  }
+
+  for (let i = 0; i < TOTAL_FRAMES; i++) {
+    const im = new Image();
+    im.src = `assets/explode/f${pad3(i + 1)}.webp`;
     im.onload = function () {
-      frameLoaded++;
-      if (heroLoadCount) heroLoadCount.textContent = frameLoaded + '/' + FRAMES;
-      if (frameLoaded >= FRAMES) {
-        if (heroLoading) heroLoading.classList.add('done');
-        sizeCanvas(); // first paint: assembled mouse
+      loadedFrames++;
+      if (dissectCount) dissectCount.textContent = `${loadedFrames}/${TOTAL_FRAMES}`;
+      if (i === TOTAL_FRAMES - 1) {
+        sizeDissectCanvas();
+        drawDissectFrame(TOTAL_FRAMES - 1);
       }
-      // `this` is the image that just loaded (the loop `var im` would point
-      // at the LAST image for every handler — that bug meant only f121 was
-      // ever decode-warmed in v4).
-      if (this.decode) this.decode().catch(function () {});
+      if (loadedFrames >= TOTAL_FRAMES && dissectLoader) {
+        dissectLoader.classList.add('done');
+        drawDissectFrame(currentDissectFrame);
+      }
+      if (this.decode) this.decode().catch(() => {});
     };
-    im.onerror = function () {
-      frameLoaded++;
-      if (heroLoadCount) heroLoadCount.textContent = frameLoaded + '/' + FRAMES;
-      if (frameLoaded >= FRAMES && heroLoading) heroLoading.classList.add('done');
+    im.onerror = () => {
+      loadedFrames++;
+      if (loadedFrames >= TOTAL_FRAMES && dissectLoader) dissectLoader.classList.add('done');
     };
     frameImgs.push(im);
   }
-  if (reduced && hero) hero.classList.add('reduced');
-  window.addEventListener('resize', debounce(sizeCanvas, 150), { passive: true });
 
-  /* ---------- Skins: all 67, real mouse cutouts (names from driver skins.ts) ---------- */
-  var SKINS = [
-    { id: 'default', name: 'Default', src: 'assets/mouse-hero.webp', thumb: 'assets/mouse-hero.webp' },
-    { id: 'A01', name: 'Topographic', src: 'assets/skins/A01.webp', thumb: 'assets/skins/thumbs/A01.webp' },
-    { id: 'A02', name: 'Cyber X', src: 'assets/skins/A02.webp', thumb: 'assets/skins/thumbs/A02.webp' },
-    { id: 'A03', name: 'Oni Red', src: 'assets/skins/A03.webp', thumb: 'assets/skins/thumbs/A03.webp' },
-    { id: 'A04', name: 'LED Honeycomb', src: 'assets/skins/A04.webp', thumb: 'assets/skins/thumbs/A04.webp' },
-    { id: 'A05', name: 'Sakura Anime', src: 'assets/skins/A05.webp', thumb: 'assets/skins/thumbs/A05.webp' },
-    { id: 'A06', name: 'Graffiti Purple', src: 'assets/skins/A06.webp', thumb: 'assets/skins/thumbs/A06.webp' },
-    { id: 'A07', name: 'Z-Core', src: 'assets/skins/A07.webp', thumb: 'assets/skins/thumbs/A07.webp' },
-    { id: 'A08', name: 'RGB Wave', src: 'assets/skins/A08.webp', thumb: 'assets/skins/thumbs/A08.webp' },
-    { id: 'A09', name: 'LED Cutout', src: 'assets/skins/A09.webp', thumb: 'assets/skins/thumbs/A09.webp' },
-    { id: 'A10', name: 'Galaxy Moon', src: 'assets/skins/A10.webp', thumb: 'assets/skins/thumbs/A10.webp' },
-    { id: 'B01', name: 'Topography Flow', src: 'assets/skins/B01.webp', thumb: 'assets/skins/thumbs/B01.webp' },
-    { id: 'B02', name: 'Cyber Circuit', src: 'assets/skins/B02.webp', thumb: 'assets/skins/thumbs/B02.webp' },
-    { id: 'B03', name: 'Dragon Ink', src: 'assets/skins/B03.webp', thumb: 'assets/skins/thumbs/B03.webp' },
-    { id: 'B04', name: 'Sakura Aurora', src: 'assets/skins/B04.webp', thumb: 'assets/skins/thumbs/B04.webp' },
-    { id: 'B05', name: 'Anime Cyber', src: 'assets/skins/B05.webp', thumb: 'assets/skins/thumbs/B05.webp' },
-    { id: 'B06', name: 'RGB Honeycomb', src: 'assets/skins/B06.webp', thumb: 'assets/skins/thumbs/B06.webp' },
-    { id: 'B07', name: 'Void Space', src: 'assets/skins/B07.webp', thumb: 'assets/skins/thumbs/B07.webp' },
-    { id: 'B08', name: 'Glitch Pixel', src: 'assets/skins/B08.webp', thumb: 'assets/skins/thumbs/B08.webp' },
-    { id: 'B09', name: 'Flame Ice', src: 'assets/skins/B09.webp', thumb: 'assets/skins/thumbs/B09.webp' },
-    { id: 'B10', name: 'Neon Wave', src: 'assets/skins/B10.webp', thumb: 'assets/skins/thumbs/B10.webp' },
-    { id: 'C01', name: 'Topographic (C01)', src: 'assets/skins/C01.webp', thumb: 'assets/skins/thumbs/C01.webp' },
-    { id: 'C02', name: 'Hex LED', src: 'assets/skins/C02.webp', thumb: 'assets/skins/thumbs/C02.webp' },
-    { id: 'C03', name: 'Samurai', src: 'assets/skins/C03.webp', thumb: 'assets/skins/thumbs/C03.webp' },
-    { id: 'C04', name: 'Cyber Core', src: 'assets/skins/C04.webp', thumb: 'assets/skins/thumbs/C04.webp' },
-    { id: 'C05', name: 'Esports', src: 'assets/skins/C05.webp', thumb: 'assets/skins/thumbs/C05.webp' },
-    { id: 'C06', name: 'Anime Tokyo', src: 'assets/skins/C06.webp', thumb: 'assets/skins/thumbs/C06.webp' },
-    { id: 'C07', name: 'Holographic', src: 'assets/skins/C07.webp', thumb: 'assets/skins/thumbs/C07.webp' },
-    { id: 'C08', name: 'Mecha X-01', src: 'assets/skins/C08.webp', thumb: 'assets/skins/thumbs/C08.webp' },
-    { id: 'C09', name: 'Koi Wave', src: 'assets/skins/C09.webp', thumb: 'assets/skins/thumbs/C09.webp' },
-    { id: 'C10', name: 'Galaxy LED', src: 'assets/skins/C10.webp', thumb: 'assets/skins/thumbs/C10.webp' },
-    { id: 'D01', name: 'Topographic (D01)', src: 'assets/skins/D01.webp', thumb: 'assets/skins/thumbs/D01.webp' },
-    { id: 'D02', name: 'Cyber Mecha', src: 'assets/skins/D02.webp', thumb: 'assets/skins/thumbs/D02.webp' },
-    { id: 'D03', name: 'Dragon Ink (D03)', src: 'assets/skins/D03.webp', thumb: 'assets/skins/thumbs/D03.webp' },
-    { id: 'D04', name: 'LED Honeycomb (D04)', src: 'assets/skins/D04.webp', thumb: 'assets/skins/thumbs/D04.webp' },
-    { id: 'D05', name: 'Circuit Neon', src: 'assets/skins/D05.webp', thumb: 'assets/skins/thumbs/D05.webp' },
-    { id: 'D06', name: 'Anime Eyes', src: 'assets/skins/D06.webp', thumb: 'assets/skins/thumbs/D06.webp' },
-    { id: 'D07', name: 'Wave Fuji', src: 'assets/skins/D07.webp', thumb: 'assets/skins/thumbs/D07.webp' },
-    { id: 'D08', name: 'Galaxy Orbit', src: 'assets/skins/D08.webp', thumb: 'assets/skins/thumbs/D08.webp' },
-    { id: 'D09', name: 'Hex Tech', src: 'assets/skins/D09.webp', thumb: 'assets/skins/thumbs/D09.webp' },
-    { id: 'D10', name: 'Flame Aurora', src: 'assets/skins/D10.webp', thumb: 'assets/skins/thumbs/D10.webp' },
-    { id: 'E01', name: 'Dragon 01', src: 'assets/skins/E01.webp', thumb: 'assets/skins/thumbs/E01.webp' },
-    { id: 'E02', name: 'ZL Wave', src: 'assets/skins/E02.webp', thumb: 'assets/skins/thumbs/E02.webp' },
-    { id: 'E03', name: 'Anime Purple', src: 'assets/skins/E03.webp', thumb: 'assets/skins/thumbs/E03.webp' },
-    { id: 'E04', name: 'Wave Fuji (E04)', src: 'assets/skins/E04.webp', thumb: 'assets/skins/thumbs/E04.webp' },
-    { id: 'E05', name: 'Oni Red (E05)', src: 'assets/skins/E05.webp', thumb: 'assets/skins/thumbs/E05.webp' },
-    { id: 'E06', name: 'Honeycomb Pink', src: 'assets/skins/E06.webp', thumb: 'assets/skins/thumbs/E06.webp' },
-    { id: 'E07', name: 'ZL Cyan', src: 'assets/skins/E07.webp', thumb: 'assets/skins/thumbs/E07.webp' },
-    { id: 'E08', name: 'Sakura Fox', src: 'assets/skins/E08.webp', thumb: 'assets/skins/thumbs/E08.webp' },
-    { id: 'E09', name: 'Galaxy Purple', src: 'assets/skins/E09.webp', thumb: 'assets/skins/thumbs/E09.webp' },
-    { id: 'E10', name: 'Ember Orange', src: 'assets/skins/E10.webp', thumb: 'assets/skins/thumbs/E10.webp' },
-    { id: 'F01', name: 'Topographic Black', src: 'assets/skins/F01.webp', thumb: 'assets/skins/thumbs/F01.webp' },
-    { id: 'F02', name: 'Cyber Neon RGB', src: 'assets/skins/F02.webp', thumb: 'assets/skins/thumbs/F02.webp' },
-    { id: 'F03', name: 'Sakura Wave', src: 'assets/skins/F03.webp', thumb: 'assets/skins/thumbs/F03.webp' },
-    { id: 'F04', name: 'Dragon Ink (F04)', src: 'assets/skins/F04.webp', thumb: 'assets/skins/thumbs/F04.webp' },
-    { id: 'F05', name: 'Mecha Armor', src: 'assets/skins/F05.webp', thumb: 'assets/skins/thumbs/F05.webp' },
-    { id: 'F06', name: 'Hologram Prism', src: 'assets/skins/F06.webp', thumb: 'assets/skins/thumbs/F06.webp' },
-    { id: 'F07', name: 'Carbon Forged', src: 'assets/skins/F07.webp', thumb: 'assets/skins/thumbs/F07.webp' },
-    { id: 'F08', name: 'Void Galaxy', src: 'assets/skins/F08.webp', thumb: 'assets/skins/thumbs/F08.webp' },
-    { id: 'F09', name: 'Oni Mask', src: 'assets/skins/F09.webp', thumb: 'assets/skins/thumbs/F09.webp' },
-    { id: 'F10', name: 'Tech Hex RGB', src: 'assets/skins/F10.webp', thumb: 'assets/skins/thumbs/F10.webp' },
-    { id: 's1', name: 'Animatronic Orange', src: 'assets/skins/s1.webp', thumb: 'assets/skins/thumbs/s1.webp' },
-    { id: 's2', name: 'Animatronic Blue', src: 'assets/skins/s2.webp', thumb: 'assets/skins/thumbs/s2.webp' },
-    { id: 's3', name: 'Animatronic Red', src: 'assets/skins/s3.webp', thumb: 'assets/skins/thumbs/s3.webp' },
-    { id: 's4', name: 'Animatronic Mono', src: 'assets/skins/s4.webp', thumb: 'assets/skins/thumbs/s4.webp' },
-    { id: 's5', name: 'Galaxy Cat', src: 'assets/skins/s5.webp', thumb: 'assets/skins/thumbs/s5.webp' },
-    { id: 's6', name: 'ZNGL Green', src: 'assets/skins/s6.webp', thumb: 'assets/skins/thumbs/s6.webp' },
+  window.addEventListener('resize', debounce(sizeDissectCanvas, 140), { passive: true });
+
+  phaseBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!anatomySection) return;
+      const targetP = parseFloat(btn.dataset.jump) || 0;
+      const secTop = anatomySection.offsetTop;
+      const travel = anatomySection.offsetHeight - window.innerHeight;
+      window.scrollTo({
+        top: secTop + travel * targetP,
+        behavior: motionPaused ? 'auto' : 'smooth'
+      });
+    });
+  });
+
+  /* ------------------------------------------------------------------------
+     7. 3D CYLINDRICAL COVERFLOW SKIN VAULT + ACCESSIBLE <dialog>
+     ------------------------------------------------------------------------ */
+  const skinsSection = document.getElementById('skins');
+  const skinsTrack = document.getElementById('skinsTrack');
+  const skinsCounter = document.getElementById('skinsCounter');
+  const skinsScrub = document.getElementById('skinsScrub');
+  const skinsName = document.getElementById('skinsName');
+  const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
+
+  let visibleSkins = SKINS.slice();
+  let pedestalEls = [];
+  let pedestalCenters = [];
+  let inspectedSkin = SKINS[0];
+
+  function measureSkinCardSize() {
+    if (!skinsSection) return;
+    const vh = window.innerHeight;
+    const cardW = clamp(Math.floor(vh * 0.23), 150, 215);
+    skinsSection.style.setProperty('--skin-card-w', `${cardW}px`);
+    pedestalCenters = pedestalEls.map((el) => el.offsetLeft + el.offsetWidth / 2);
+  }
+
+  function renderSkinTrack(filterKey) {
+    if (!skinsTrack) return;
+    visibleSkins = filterKey === 'all' ? SKINS.slice() : SKINS.filter((s) => s.cat === filterKey);
+    skinsTrack.innerHTML = '';
+
+    visibleSkins.forEach((skin, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'skin-pedestal liquid-glass';
+      btn.setAttribute('role', 'listitem');
+      btn.setAttribute('aria-label', `${skin.name} skin — click to inspect in 3D`);
+      btn.innerHTML = `
+        <img src="${skin.thumb}" alt="SMAILWOLF M3 Pro ${skin.name}" width="320" height="565" loading="lazy" decoding="async">
+        <figcaption>
+          <b>${skin.name}</b>
+          <span>${skin.id.toUpperCase()} · #${String(idx + 1).padStart(2, '0')}</span>
+        </figcaption>
+      `;
+      btn.addEventListener('click', () => openSkinModal(skin, idx));
+      skinsTrack.appendChild(btn);
+    });
+
+    pedestalEls = Array.from(skinsTrack.querySelectorAll('.skin-pedestal'));
+    if (skinsScrub) {
+      skinsScrub.max = String(Math.max(0, visibleSkins.length - 1));
+      skinsScrub.value = '0';
+    }
+    measureSkinCardSize();
+    updateCoverflowAtProgress(0);
+  }
+
+  function updateCoverflowAtProgress(sp) {
+    if (!skinsTrack || !visibleSkins.length || !pedestalEls.length) return;
+    const firstCenter = pedestalCenters[0] || 0;
+    const lastCenter = pedestalCenters[pedestalEls.length - 1] || firstCenter;
+    const focusX = firstCenter + sp * Math.max(0, lastCenter - firstCenter);
+    const tx = window.innerWidth / 2 - focusX;
+
+    if (!prefersReduced) {
+      skinsTrack.style.transform = `translate3d(${tx.toFixed(1)}px, 0, 0)`;
+    }
+
+    const activeIdx = clamp(Math.round(sp * (visibleSkins.length - 1)), 0, visibleSkins.length - 1);
+    if (skinsCounter) {
+      skinsCounter.textContent = `${String(activeIdx + 1).padStart(2, '0')} / ${String(visibleSkins.length).padStart(2, '0')}`;
+    }
+    if (skinsName) skinsName.textContent = visibleSkins[activeIdx].name;
+    if (skinsScrub && document.activeElement !== skinsScrub) {
+      skinsScrub.value = String(activeIdx);
+    }
+
+    const cardSpan = (pedestalEls[0] ? pedestalEls[0].offsetWidth : 200) + 22;
+    for (let i = 0; i < pedestalEls.length; i++) {
+      const el = pedestalEls[i];
+      const delta = (pedestalCenters[i] - focusX) / cardSpan;
+      let cls = '';
+      if (Math.abs(delta) < 0.55) cls = 'cf-center';
+      else if (delta < 0 && delta >= -1.65) cls = 'cf-left-1';
+      else if (delta > 0 && delta <= 1.65) cls = 'cf-right-1';
+      else if (delta < -1.65) cls = 'cf-left-2';
+      else cls = 'cf-right-2';
+
+      if (el._cf !== cls) {
+        el.classList.remove('cf-center', 'cf-left-1', 'cf-right-1', 'cf-left-2', 'cf-right-2');
+        if (cls) el.classList.add(cls);
+        el._cf = cls;
+      }
+    }
+  }
+
+  filterChips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      filterChips.forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderSkinTrack(chip.dataset.filter || 'all');
+    });
+  });
+
+  if (skinsScrub) {
+    skinsScrub.addEventListener('input', () => {
+      if (!skinsSection || !visibleSkins.length) return;
+      const ratio = visibleSkins.length > 1 ? Number(skinsScrub.value) / (visibleSkins.length - 1) : 0;
+      if (prefersReduced) {
+        updateCoverflowAtProgress(ratio);
+      } else {
+        const travel = skinsSection.offsetHeight - window.innerHeight;
+        window.scrollTo({ top: skinsSection.offsetTop + travel * ratio, behavior: 'auto' });
+      }
+    });
+  }
+
+  // Modal Dialog with `closedby="any"` + Mandatory Safari Backdrop-Click Fallback
+  const skinModal = document.getElementById('skinModal');
+  const skinModalImg = document.getElementById('skinModalImg');
+  const skinModalId = document.getElementById('skinModalId');
+  const skinModalName = document.getElementById('skinModalName');
+  const skinModalClose = document.getElementById('skinModalClose');
+  const equipHeroBtn = document.getElementById('equipHeroBtn');
+  const modalDownloadLink = document.getElementById('modalDownloadLink');
+  const modalMouseStage = document.getElementById('modalMouseStage');
+  const modalMouseRig = document.getElementById('modalMouseRig');
+
+  function openSkinModal(skin, idx) {
+    inspectedSkin = skin;
+    if (skinModalImg) {
+      skinModalImg.src = skin.src;
+      skinModalImg.alt = `SMAILWOLF M3 Pro — ${skin.name}`;
+    }
+    document.documentElement.style.setProperty('--modal-mask', `url("${skin.src}")`);
+    if (skinModalId) skinModalId.textContent = `${skin.id.toUpperCase()} · ${String(idx + 1).padStart(2, '0')}/${visibleSkins.length}`;
+    if (skinModalName) skinModalName.textContent = skin.name;
+    if (skinModal && typeof skinModal.showModal === 'function') {
+      skinModal.showModal();
+    }
+  }
+
+  if (skinModal) {
+    // Safari fallback where `closedBy` is not yet on HTMLDialogElement.prototype
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+      skinModal.addEventListener('click', (event) => {
+        if (event.target !== skinModal) return;
+        const rect = skinModal.getBoundingClientRect();
+        const inside =
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width;
+        if (!inside) skinModal.close();
+      });
+    }
+
+    if (skinModalClose) {
+      skinModalClose.addEventListener('click', () => skinModal.close());
+    }
+    if (modalDownloadLink) {
+      modalDownloadLink.addEventListener('click', () => skinModal.close());
+    }
+    if (equipHeroBtn) {
+      equipHeroBtn.addEventListener('click', () => {
+        skinModal.close();
+        window.scrollTo({ top: 0, behavior: motionPaused ? 'auto' : 'smooth' });
+        setTimeout(() => {
+          const themeMap = {
+            oni: 'crimson',
+            cyber: 'cyber',
+            anime: 'hologram',
+            special: 'hologram',
+            topo: 'pearl'
+          };
+          const edKey = themeMap[inspectedSkin.cat] || 'pearl';
+          runSpinSwap({
+            editionKey: edKey,
+            customSrc: inspectedSkin.src,
+            customName: `${inspectedSkin.name} · ${inspectedSkin.id.toUpperCase()}`
+          });
+        }, motionPaused ? 0 : 420);
+      });
+    }
+  }
+
+  if (modalMouseStage && modalMouseRig && finePointer) {
+    modalMouseStage.addEventListener('pointermove', (e) => {
+      if (motionPaused) return;
+      const r = modalMouseStage.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      modalMouseRig.style.transform = `rotateX(${(-py * 24).toFixed(1)}deg) rotateY(${(px * 30).toFixed(1)}deg)`;
+      modalMouseRig.style.setProperty('--mmx', `${((px + 0.5) * 100).toFixed(0)}%`);
+      modalMouseRig.style.setProperty('--mmy', `${((py + 0.5) * 100).toFixed(0)}%`);
+    });
+    modalMouseStage.addEventListener('pointerleave', () => {
+      modalMouseRig.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    });
+  }
+
+  renderSkinTrack('all');
+  window.addEventListener('resize', debounce(measureSkinCardSize, 140), { passive: true });
+
+  /* ------------------------------------------------------------------------
+     8. INTERACTIVE 3D WAFER STACK, BENTO CALCULATORS & LIVE DRIVER STUDIO
+     ------------------------------------------------------------------------ */
+  const LAYER_DATA = [
+    {
+      badge: 'LAYER 01 · TRANSPORT',
+      code: 'usagePage: 0xFF01 · usage: 0x0010',
+      title: 'Zero-Kernel Serialized WebHID Pipeline',
+      body: 'Commands travel as 64-byte Report ID 240 packets through a strict one-at-a-time queue (500 ms reply window, 3 s send guard) while unsolicited DPI, battery, and wireless status reports route cleanly to live UI listeners.'
+    },
+    {
+      badge: 'LAYER 02 · INTEGRITY',
+      code: 'chk = sum(bytes[3..63]) & 0xFF',
+      title: 'Mod-256 Checksum & Unsolicited Report Guard',
+      body: 'Every config read/write validates byte[2] against the modulo-256 sum of bytes 3..63. Live unsolicited reports (250 DPI push, 237 status, 48 battery) are filtered out of command replies so active writes never desynchronize.'
+    },
+    {
+      badge: 'LAYER 03 · CONTROLLER',
+      code: 'FR2012A · 48 MHz · 512 KB Flash',
+      title: 'Stock Firmware v2.1.3 Preserved 100%',
+      body: 'Writes target documented onboard configuration registers ([240, 15] config, [240, 9] keymap, [240, 13] + [240, 16] macro commit) without ever flashing or risking the factory bootloader.'
+    },
+    {
+      badge: 'LAYER 04 · SENSING & POWER',
+      code: 'PAW3311 Optical + 10-Bit ADC Ch.11',
+      title: 'True Hardware DPI + Calibrated Battery Engine',
+      body: 'Combines hardware-stored PAW3311 DPI steps with our sleep-aware lithium discharge model (3–14 mA active, 0.05 mA sleep, 150 mA USB-C charge, custom cell capacity, and manual 100% full-charge sync).'
+    }
   ];
 
-  /* ---------- scroll engine: one rAF loop ---------- */
-  var skinsSection = document.querySelector('.skins');
-  var skinsTrack = document.getElementById('skinsTrack');
-  var skinsCounter = document.getElementById('skinsCounter');
-  var skinsBarFill = document.getElementById('skinsBarFill');
-  var skinsName = document.getElementById('skinsName');
-  var progressBar = document.querySelector('.scroll-progress');
-  var chipMedia = document.querySelector('.chip-media');
-  var driverShot = document.querySelector('.driver-shot');
-  var dlMouseImg = document.querySelector('.download-mouse img');
-  var dlCard = document.querySelector('.download-card');
-  var dlSection = document.querySelector('.download');
-  var tiltRect = null; // driver-shot rect, refreshed each scroll frame for the tilt handler
-  var auroraIdleT = 0;
-  var toTopBtn = document.getElementById('toTop');
-  var toTopRing = toTopBtn ? toTopBtn.querySelector('.tt-ring') : null;
-  var velTracks = Array.prototype.slice.call(document.querySelectorAll('.velocity-track'));
-  var velW = 0, velOff = 0, lastVelY = 0, velSkewT = 0;
-  function measureVel() {
-    var sp = document.querySelector('.velocity-track span');
-    if (sp) velW = sp.offsetWidth;
-  }
-  function applyVel(skew) {
-    if (!velW) return;
-    var off = ((velOff % velW) + velW) % velW;
-    velTracks.forEach(function (tr) {
-      tr.style.transform = 'translate3d(' + (-off).toFixed(1) + 'px,0,0) skewX(' + skew.toFixed(2) + 'deg)';
+  const waferLayers = Array.from(document.querySelectorAll('.wafer-layer'));
+  const insBadge = document.getElementById('insBadge');
+  const insCode = document.getElementById('insCode');
+  const insTitle = document.getElementById('insTitle');
+  const insBody = document.getElementById('insBody');
+  const waferStage = document.getElementById('waferStage');
+
+  waferLayers.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.layer) || 0;
+      waferLayers.forEach((l) => l.classList.toggle('active', l === btn));
+      const d = LAYER_DATA[idx] || LAYER_DATA[0];
+      if (insBadge) insBadge.textContent = d.badge;
+      if (insCode) insCode.textContent = d.code;
+      if (insTitle) insTitle.textContent = d.title;
+      if (insBody) insBody.textContent = d.body;
     });
-  }
-  measureVel();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureVel);
-  window.addEventListener('resize', debounce(measureVel, 150), { passive: true });
-  if (toTopBtn) toTopBtn.addEventListener('click', function () {
-    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
   });
-  var ticking = false;
 
-  // magnetic-button + magnet-canvas rect cache. Hoisted to the IIFE top level
-  // in v11: onScroll's read phase calls it, so it must NOT live inside the
-  // `if (fxFinePointer && !reduced)` block (block-scoped functions are invisible
-  // outside their block). magBtns/magRects/magnetRect are hoisted vars.
-  function cacheFxRects() {
-    if (!magBtns) return; // FX section hasn't run yet (first onScroll frame)
-    magRects = magBtns.map(function (btn) {
-      var r = btn.getBoundingClientRect();
-      return { btn: btn, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+  if (waferStage && finePointer) {
+    waferStage.addEventListener('pointermove', (e) => {
+      if (motionPaused) return;
+      const r = waferStage.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      waferStage.style.transform = `rotateX(${(22 - py * 14).toFixed(1)}deg) rotateY(${(-18 + px * 18).toFixed(1)}deg) rotateZ(4deg)`;
     });
-    var mc = document.getElementById('magnetSpecs');
-    if (mc) { var mr = mc.getBoundingClientRect(); magnetRect = { left: mr.left, top: mr.top }; }
+    waferStage.addEventListener('pointerleave', () => {
+      waferStage.style.transform = 'rotateX(22deg) rotateY(-18deg) rotateZ(4deg)';
+    });
   }
 
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    requestAnimationFrame(function () {
-      ticking = false;
-      var y = window.scrollY || window.pageYOffset;
-      var H = vh();
-
-      // progress bar
-      var max = document.documentElement.scrollHeight - H;
-      if (progressBar && max > 0) progressBar.style.transform = 'scaleX(' + (y / max) + ')';
-      // back-to-top button + its circular progress ring
-      if (toTopBtn) {
-        toTopBtn.classList.toggle('show', y > 600);
-        if (toTopRing && max > 0) toTopRing.style.strokeDashoffset = (131.95 * (1 - y / max)).toFixed(1);
-      }
-
-      // aurora idle pause: freeze the blobs 2s after the last scroll, so the
-      // download card's backdrop-filter stops re-blurring every frame while idle.
-      if (dlSection) dlSection.classList.remove('aurora-idle');
-      clearTimeout(auroraIdleT);
-      auroraIdleT = setTimeout(function () { if (dlSection) dlSection.classList.add('aurora-idle'); }, 2000);
-
-      if (reduced) return;
-
-      // READ PHASE (v11 lag fix, skill Priority 3: no layout thrashing):
-      // every layout read for this frame happens here, BEFORE any style write,
-      // so no read waits on a style recalc caused by an earlier write.
-      var heroR = hero ? hero.getBoundingClientRect() : null;
-      var skinsR = skinsSection ? skinsSection.getBoundingClientRect() : null;
-      var srRects = srItems.map(function (item) { return item.el.getBoundingClientRect(); });
-      var chipR = chipMedia ? chipMedia.getBoundingClientRect() : null;
-      var driverR = driverShot ? driverShot.getBoundingClientRect() : null;
-      var dlCardR = dlCard ? dlCard.getBoundingClientRect() : null;
-      var dlMouseR = dlMouseImg ? dlMouseImg.getBoundingClientRect() : null;
-      tiltRect = driverR; // the tilt handler reuses this, no layout read per mousemove
-      cacheFxRects(); // magnetic-button + magnet-canvas rects (was a 2nd scroll rAF)
-
-      // hero video scrub (REVERSED): p=0 assembled mouse, scrolling down
-      // explodes it part by part, morph-style, until p=1 fully exploded.
-      if (hero && heroCanvas && heroR) {
-        var r = heroR;
-        var p = clamp(-r.top / (r.height - H), 0, 1);
-        var idx = (FRAMES - 1) - Math.round(p * (FRAMES - 1));
-        if (idx !== currentFrame) {
-          currentFrame = idx;
-          drawFrame(idx);
-        }
-        if (heroScrubFill) heroScrubFill.style.transform = 'scaleX(' + p.toFixed(3) + ')';
-        // Morph (PowerPoint-style): the hero title glides toward the skins
-        // heading as you scroll — same font, shrinks and slides to the next
-        // heading's spot, then hands over to it as its letters rise.
-        if (heroCopy) {
-          heroCopy.style.transform = 'translate(' + (morphDX * p).toFixed(1) + 'px, ' + (morphDY * p).toFixed(1) + 'px) scale(' + (1 - p * 0.4).toFixed(3) + ')';
-          heroCopy.style.opacity = Math.max(0, 1 - p * 1.1).toFixed(2);
-        }
-        // the buttons are not part of the next heading — they leave early
-        if (heroCta) heroCta.style.opacity = Math.max(0, 1 - p * 2.5).toFixed(2);
-        if (scrollCue) scrollCue.style.opacity = p < 0.12 ? '1' : '0';
-        if (heroCanvas) heroCanvas.style.transform = 'scale(' + (1 + p * 0.05).toFixed(3) + ')';
-      }
-
-      // skins: vertical scroll pulls the shelf horizontally through all 67 mice
-      if (skinsSection && skinsTrack && skinsR) {
-        var sr2 = skinsR;
-        var sp = clamp(-sr2.top / (sr2.height - H), 0, 1);
-        var maxX = Math.max(0, skinsTrack.scrollWidth - window.innerWidth);
-        var trackX = -sp * maxX;
-        skinsTrack.style.transform = 'translate3d(' + trackX.toFixed(1) + 'px, 0, 0)';
-        if (skinsBarFill) skinsBarFill.style.transform = 'scaleX(' + sp.toFixed(3) + ')';
-        var si = Math.min(SKINS.length - 1, Math.floor(sp * SKINS.length));
-        if (skinsCounter) skinsCounter.textContent = String(si + 1).padStart(2, '0') + ' / ' + SKINS.length;
-        if (skinsName) skinsName.textContent = SKINS[si].name;
-        // depth-of-field blur: bucket per item by distance from viewport centre.
-        // Classes change ONLY when an item crosses a threshold, so during
-        // continuous scroll the compositor just moves cached layers — the
-        // blur itself is never recomputed per frame (that is what lags).
-        if (!reduced && skinItems.length) {
-          var cx = window.innerWidth / 2;
-          var vw = window.innerWidth;
-          for (var bi = 0; bi < skinItems.length; bi++) {
-            var it = skinItems[bi];
-            var midX = trackX + skinOffsets[bi] + skinWidths[bi] / 2;
-            var d = Math.abs(midX - cx) / vw;
-            var b = d < 0.35 ? 0 : (d < 0.75 ? 1 : 2);
-            if (it._blur !== b) {
-              it._blur = b;
-              it.classList.toggle('blur-1', b === 1);
-              it.classList.toggle('blur-2', b === 2);
-            }
-            var pop = d < 0.35;
-            if (it._pop !== pop) {
-              it._pop = pop;
-              it.classList.toggle('pop', pop);
-            }
-          }
-        }
-      }
-
-      // ScrollReveal: word opacity follows scroll
-      srItems.forEach(function (item, si) {
-        var r = srRects[si];
-        if (r.bottom < 0 || r.top > H) return;
-        var p = clamp((H * 0.88 - r.top) / (r.height + H * 0.25), 0, 1);
-        if (p === item._lastP) return; // unchanged: skip ~120 setProperty writes
-        item._lastP = p;
-        var n = item.words.length;
-        item.words.forEach(function (w, i) {
-          w.style.setProperty('--o', clamp((p * (n + 1) - i) / 1.4, 0.14, 1).toFixed(2));
-        });
+  // Bento Card 3D Tilt & Simulators
+  if (finePointer) {
+    document.querySelectorAll('[data-tilt3d]').forEach((card) => {
+      card.addEventListener('pointermove', (e) => {
+        if (motionPaused) return;
+        const r = card.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        card.style.transform = `rotateX(${(-py * 10).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg) translateY(-4px)`;
       });
+      card.addEventListener('pointerleave', () => {
+        card.style.transform = '';
+      });
+    });
+  }
 
-      // scroll parallax + rotation: media drifts against the scroll and
-      // straightens as it passes the viewport centre (transform only).
-      // driver-shot is a TiltedCard (tilt owns its transform) — it gets the
-      // clip reveal only, never a parallax transform.
-      (function () {
-        function px(el, r, maxY, baseRot, rotRange) {
-          if (!el || !r) return;
-          if (r.bottom < -100 || r.top > H + 100) return;
-          var q = clamp((H - r.top) / (r.height + H), 0, 1);
-          el.style.transform = 'translate3d(0,' + ((0.5 - q) * maxY).toFixed(1) + 'px,0) rotate(' + (baseRot + q * rotRange).toFixed(2) + 'deg)';
-        }
-        px(chipMedia, chipR, 44, -3, 3);
-        px(dlMouseImg, dlMouseR, 30, 0, 0);
-        // driver-shot is a TiltedCard: its transform belongs to the tilt loop,
-        // so its scroll parallax uses the standalone `translate` property.
-        if (driverShot && driverR) {
-          var dr2 = driverR;
-          if (dr2.bottom >= -100 && dr2.top <= H + 100) {
-            var dq = clamp((H - dr2.top) / (dr2.height + H), 0, 1);
-            driverShot.style.translate = '0 ' + ((0.5 - dq) * -28).toFixed(1) + 'px';
-          }
-        }
-        // download card drifts with scroll; the mouse grows slightly as it passes
-        if (dlCard && dlCardR) {
-          var dc = dlCardR;
-          if (dc.bottom >= -100 && dc.top <= H + 100) {
-            var cq = clamp((H - dc.top) / (dc.height + H), 0, 1);
-            dlCard.style.transform = 'translate3d(0,' + ((0.5 - cq) * 18).toFixed(1) + 'px,0)';
-          }
-        }
-        if (dlMouseImg && dlMouseR) {
-          var dm = dlMouseR;
-          if (dm.bottom >= -100 && dm.top <= H + 100) {
-            var mq = clamp((H - dm.top) / (dm.height + H), 0, 1);
-            dlMouseImg.style.scale = (0.96 + mq * 0.08).toFixed(3);
-          }
-        }
-      })();
+  // Bento DPI Simulator
+  const bentoDpiNum = document.getElementById('bentoDpiNum');
+  const bentoDpiStageTag = document.getElementById('bentoDpiStageTag');
+  const bentoDpiBar = document.getElementById('bentoDpiBar');
+  const dpiPills = Array.from(document.querySelectorAll('#bentoDpiPills .sim-pill'));
 
-      // ScrollVelocity marquee: offset follows scroll velocity, slight skew.
-      // No new loop — driven by this same scroll rAF; stops when scrolling stops.
-      if (velTracks.length && velW) {
-        var vel = y - lastVelY;
-        lastVelY = y;
-        velOff += vel * 0.5;
-        var skew = Math.max(-6, Math.min(6, vel * 0.12));
-        applyVel(skew);
-        clearTimeout(velSkewT);
-        velSkewT = setTimeout(function () { applyVel(0); }, 150);
+  dpiPills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      dpiPills.forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      const dpi = Number(pill.dataset.dpi) || 1600;
+      const stage = pill.dataset.stage || '1';
+      if (bentoDpiNum) bentoDpiNum.textContent = dpi.toLocaleString('en-US');
+      if (bentoDpiStageTag) bentoDpiStageTag.textContent = `STAGE ${stage} / 6`;
+      if (bentoDpiBar) bentoDpiBar.style.width = `${Math.max(12, Math.round((dpi / 12000) * 100))}%`;
+    });
+  });
+
+  // Bento Polling & Runtime Simulator
+  const bentoHzNum = document.getElementById('bentoHzNum');
+  const bentoLatencyTag = document.getElementById('bentoLatencyTag');
+  const bentoMa = document.getElementById('bentoMa');
+  const bentoHrs = document.getElementById('bentoHrs');
+  const hzPills = Array.from(document.querySelectorAll('#bentoHzPills .sim-pill'));
+
+  hzPills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      hzPills.forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      const hz = Number(pill.dataset.hz) || 1000;
+      if (bentoHzNum) bentoHzNum.textContent = hz.toLocaleString('en-US');
+      if (bentoLatencyTag) bentoLatencyTag.textContent = pill.dataset.ms || '1.0 ms';
+      if (bentoMa) bentoMa.textContent = pill.dataset.ma || '14 mA';
+      if (bentoHrs) bentoHrs.textContent = pill.dataset.hrs || '28.6 hrs';
+    });
+  });
+
+  // Count-up Numbers on First Scroll View
+  const countSeen = new WeakSet();
+  const countIO = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting || countSeen.has(entry.target)) return;
+      countSeen.add(entry.target);
+      const el = entry.target;
+      const target = parseInt(el.dataset.count || '0', 10);
+      if (motionPaused || !target) {
+        el.textContent = target.toLocaleString('en-US');
+        return;
+      }
+      const start = performance.now();
+      const dur = 1100;
+      const tick = (now) => {
+        const p = clamp((now - start) / dur, 0, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased).toLocaleString('en-US');
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-count]').forEach((el) => countIO.observe(el));
+
+  // Interactive 3D Driver Studio
+  const studioHexOut = document.getElementById('studioHexOut');
+  const studioVerifyTag = document.getElementById('studioVerifyTag');
+  const stDpiVal = document.getElementById('stDpiVal');
+  const stDpiSub = document.getElementById('stDpiSub');
+  const stBatVal = document.getElementById('stBatVal');
+  const stSyncBtn = document.getElementById('stSyncBtn');
+  const spKicker = document.getElementById('spKicker');
+  const spTitle = document.getElementById('spTitle');
+  const spDesc = document.getElementById('spDesc');
+
+  function emitStudioHex(prefixBytes, note) {
+    const bytes = prefixBytes.split(' ').map((h) => parseInt(h, 16) || 0);
+    const sum = bytes.slice(3).reduce((a, b) => (a + b) & 0xff, 0);
+    const chk = sum.toString(16).toUpperCase().padStart(2, '0');
+    if (studioHexOut) {
+      studioHexOut.textContent = `TX [64B] → ${prefixBytes} 00 00 00 ... · CHK 0x${chk} (${note})`;
+    }
+    if (studioVerifyTag) {
+      studioVerifyTag.textContent = '✓ ROUND-TRIP VERIFIED';
+    }
+  }
+
+  const STUDIO_TABS = {
+    dashboard: {
+      kicker: 'INTERACTIVE BUTTON MAP',
+      title: 'Click Any Pin on the Mouse',
+      desc: 'Every button write builds a 64-byte [240, 9, 165, 34, ...] HID report, computes the mod-256 checksum, and verifies persistence with a live read-back.',
+      hex: 'F0 0E 00 00 00 00 00 00',
+      note: 'READ CONFIG'
+    },
+    keys: {
+      kicker: '6-BUTTON HARDWARE REMAP',
+      title: 'Direct Onboard Key Matrix',
+      desc: 'Bind Left, Right, Middle, Forward, Back, shortcuts (Ctrl+C / Ctrl+V), media keys, or stored macros straight into non-volatile flash.',
+      hex: 'F0 09 A5 22 2C 01 06 00',
+      note: 'WRITE KEYS'
+    },
+    dpi: {
+      kicker: 'PAW3311 6-STAGE ENGINE',
+      title: 'Smooth-Gliding DPI Presets',
+      desc: 'Switch between Office (1,600), Gaming (3,200), or Design (800) presets — written immediately via [240, 15] with little-endian register encoding.',
+      hex: 'F0 0F AE 0A 2F 03 80 0C',
+      note: 'SET DPI 3200'
+    },
+    macro: {
+      kicker: 'REAL-TIME DELTA RECORDER',
+      title: 'performance.now() Precision',
+      desc: 'Captures true millisecond intervals (clamped 2 ms–5,000 ms) with input-field isolation so typing macro names never hijacks keystrokes.',
+      hex: 'F0 0D 12 04 1E 00 16 00',
+      note: 'COMMIT MACRO'
+    },
+    battery: {
+      kicker: 'CALIBRATED DISCHARGE ENGINE',
+      title: '100% Full-Charge Sync & Custom mAh',
+      desc: 'Calibrate cell capacity (default 500 mAh / 400 mAh usable), auto-detect USB-C charging over 2.4 GHz, and reset to 100.0% in one click.',
+      hex: 'F0 30 00 00 00 00 64 00',
+      note: 'BATTERY SYNC'
+    }
+  };
+
+  const railTabs = Array.from(document.querySelectorAll('.rail-tab'));
+  railTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      railTabs.forEach((t) => {
+        const active = t === tab;
+        t.classList.toggle('active', active);
+        t.setAttribute('aria-selected', String(active));
+      });
+      const info = STUDIO_TABS[tab.dataset.stab] || STUDIO_TABS.dashboard;
+      if (spKicker) spKicker.textContent = info.kicker;
+      if (spTitle) spTitle.textContent = info.title;
+      if (spDesc) spDesc.textContent = info.desc;
+      emitStudioHex(info.hex, info.note);
+    });
+  });
+
+  const hotspotPins = Array.from(document.querySelectorAll('.hotspot-pin'));
+  hotspotPins.forEach((pin) => {
+    pin.addEventListener('click', () => {
+      hotspotPins.forEach((p) => p.classList.remove('active'));
+      pin.classList.add('active');
+      const label = pin.dataset.pin || 'Button';
+      const hex = pin.dataset.hex || 'F0 09 A5 22 2C 01 00 00';
+      if (spKicker) spKicker.textContent = 'LIVE PIN SELECTED';
+      if (spTitle) spTitle.textContent = label;
+      emitStudioHex(hex, label.toUpperCase());
+    });
+  });
+
+  const presetBtns = Array.from(document.querySelectorAll('[data-preset]'));
+  presetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      presetBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      const p = btn.dataset.preset;
+      if (p === 'gaming') {
+        if (stDpiVal) stDpiVal.textContent = '3,200 DPI';
+        if (stDpiSub) stDpiSub.textContent = 'Stage 4 of 6 · Gaming Preset';
+        emitStudioHex('F0 0F AE 0A 2F 03 80 0C', 'GAMING 3200 DPI');
+      } else if (p === 'office') {
+        if (stDpiVal) stDpiVal.textContent = '1,600 DPI';
+        if (stDpiSub) stDpiSub.textContent = 'Stage 2 of 6 · Office Preset';
+        emitStudioHex('F0 0F AE 0A 2F 01 40 06', 'OFFICE 1600 DPI');
       } else {
-        lastVelY = y;
+        if (stDpiVal) stDpiVal.textContent = '800 DPI';
+        if (stDpiSub) stDpiSub.textContent = 'Stage 1 of 6 · Design Preset';
+        emitStudioHex('F0 0F AE 0A 2F 00 20 03', 'DESIGN 800 DPI');
       }
     });
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
-  onScroll();
-
-  /* ---------- TiltedCard: pointer tilt, lerped ---------- */
-  var tilts = [];
-  if (finePointer && !reduced) {
-    var tiltRunning = false;
-    function tiltLoop() {
-      tiltRunning = true;
-      var any = false;
-      tilts.forEach(function (t) {
-        t.rx += (t.tx - t.rx) * 0.14;
-        t.ry += (t.ty - t.ry) * 0.14;
-        if (Math.abs(t.rx) > 0.02 || Math.abs(t.ry) > 0.02 || t.active) {
-          any = true;
-          t.el.style.transform = 'rotateX(' + t.rx.toFixed(2) + 'deg) rotateY(' + t.ry.toFixed(2) + 'deg)';
-        }
-      });
-      if (any || tilts.some(function (t) { return t.active; })) requestAnimationFrame(tiltLoop);
-      else tiltRunning = false; // settled: stop. No 400ms polling timer — a
-      // pointermove wakes the loop again (see the handlers below).
-    }
-    function wakeTilt() {
-      if (!tiltRunning) { tiltRunning = true; requestAnimationFrame(tiltLoop); }
-    }
-    document.querySelectorAll('[data-tilt]').forEach(function (el) {
-      var t = { el: el, rx: 0, ry: 0, tx: 0, ty: 0, active: false };
-      el.addEventListener('pointermove', function (e) {
-        var r = tiltRect || el.getBoundingClientRect();
-        var px = (e.clientX - r.left) / r.width - 0.5;
-        var py = (e.clientY - r.top) / r.height - 0.5;
-        t.ty = px * 10;
-        t.tx = -py * 8;
-        t.active = true;
-        wakeTilt();
-      });
-      el.addEventListener('pointerleave', function () { t.tx = 0; t.ty = 0; t.active = false; wakeTilt(); });
-      tilts.push(t);
-    });
-    tiltLoop();
-  }
-
-  /* ---------- Skins track: build all 67 cutouts, click to zoom ---------- */
-  var track = document.getElementById('skinsTrack');
-  var skinItems = [];
-  var skinOffsets = [];
-  var skinWidths = [];
-  function cacheSkinGeometry() {
-    skinItems = Array.prototype.slice.call(track.querySelectorAll('.skin-item'));
-    skinOffsets = skinItems.map(function (el) { return el.offsetLeft; });
-    skinWidths = skinItems.map(function (el) { return el.offsetWidth; });
-  }
-  // fitSkins: size the mice from LIVE measurements, never from estimates.
-  // v3-v5 guessed the head height and got it wrong on Ethan's machine
-  // (fonts render taller there) — the mice heads kept getting cut.
-  // Every input here is measured off the real layout, so it adapts to any
-  // font rendering, zoom level or viewport height.
-  function fitSkins() {
-    if (!track || !skinsSection) return;
-    var sticky = document.querySelector('.skins-sticky');
-    var head = document.querySelector('.skins .section-head');
-    var prog = document.querySelector('.skins-progress');
-    var fig = track.querySelector('figcaption');
-    if (!sticky || !head || !prog || !fig) return;
-    var cs = function (el, prop) { return parseFloat(window.getComputedStyle(el)[prop]) || 0; };
-    var fixed = cs(sticky, 'paddingTop') + cs(sticky, 'paddingBottom')
-      + head.offsetHeight + cs(head, 'marginBottom')
-      + prog.offsetHeight + cs(prog, 'marginTop') + 8; // 8px safety
-    var capH = fig.offsetHeight + cs(fig, 'marginTop');
-    // NOTE: measure against the VIEWPORT, not the sticky's own height —
-    // the sticky is min-height:100svh so it grows with its content; using
-    // its rect height made the math circular (big mice -> tall sticky ->
-    // big 'available' -> big mice) and the heads kept getting cut.
-    var available = window.innerHeight - fixed;
-    var w = Math.floor((available - capH) * 0.566); // mouse aspect 944:1667
-    w = Math.max(120, Math.min(260, Math.floor(window.innerWidth * 0.18), w));
-    skinsSection.style.setProperty('--skin-w', w + 'px');
-    cacheSkinGeometry();
-  }
-  var detail = document.getElementById('skinDetail');
-  var detailImg = document.getElementById('skinDetailImg');
-  var detailId = document.getElementById('skinDetailId');
-  var detailName = document.getElementById('skinDetailName');
-  var closeBtn = document.getElementById('skinClose');
-  var lastFocus = null;
-
-  if (track) {
-    SKINS.forEach(function (s, i) {
-      var item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'skin-item';
-      item.setAttribute('role', 'listitem');
-      item.setAttribute('aria-label', 'Skin ' + s.name + ' — click to enlarge');
-      item.innerHTML =
-        '<img src="' + s.thumb + '" alt="SMAILWOLF M3 Pro mouse with the ' + s.name + '" width="472" height="834" loading="lazy" decoding="async">' +
-        '<figcaption><b>' + s.name + '</b><span>' + s.id.toUpperCase() + ' · IN APP</span></figcaption>';
-      item.addEventListener('click', function () { openDetail(i); });
-      track.appendChild(item);
-    });
-    cacheSkinGeometry();
-    fitSkins();
-    window.addEventListener('resize', debounce(function () { cacheSkinGeometry(); fitSkins(); }, 150), { passive: true });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitSkins);
-
-    function openDetail(i) {
-      var s = SKINS[i];
-      lastFocus = document.activeElement;
-      detailImg.src = s.src;
-      detailImg.alt = 'The ' + s.name + ' skin for the SMAILWOLF M3 Pro mouse';
-      detailId.textContent = s.id === 'default' ? 'DEFAULT' : s.id;
-      detailName.textContent = s.name;
-      detail.hidden = false;
-      void detail.offsetWidth; // reflow so the clip-path transition runs
-      detail.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      closeBtn.focus();
-    }
-    function closeDetail() {
-      detail.classList.remove('open');
-      document.body.style.overflow = '';
-      setTimeout(function () { detail.hidden = true; }, 450);
-      if (lastFocus && lastFocus.focus) lastFocus.focus();
-    }
-    closeBtn.addEventListener('click', closeDetail);
-    detail.addEventListener('click', function (e) { if (e.target === detail) closeDetail(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !detail.hidden) closeDetail(); });
-  }
-  /* ================= FX PACK v8 — react-bits / threeui / galaxy, vanilla =================
-     All rAF work is transform/opacity or canvas, paused offscreen, skipped under
-     reduced motion. Nothing here touches the hero video or the morph. */
-  var fxFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  var galaxies = [];
-  var glow = document.getElementById('cursorGlow');
-  var glowX = -999, glowY = -999, glowTX = -999, glowTY = -999, glowShown = false;
-  var sparksCanvas = document.getElementById('clickSparks');
-  var sparksCtx = sparksCanvas ? sparksCanvas.getContext('2d') : null;
-  var sparks = [];
-  var trail = []; // PixelTrail squares: fading footprints behind the cursor
-  var fxRunning = false, fxRaf = 0, fxFrame = 0;
-  function fxStart() {
-    if (fxRunning || reduced || document.hidden) return;
-    fxRunning = true;
-    fxRaf = requestAnimationFrame(fxTick);
-  }
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) {
-      if (fxRunning) cancelAnimationFrame(fxRaf);
-      fxRunning = false;
-    } else {
-      fxStart(); // resumes only if something is actually busy (fxTick self-stops)
-    }
   });
-  function fxTick(now) {
-    var busy = false;
-    fxFrame++;
-    galaxies.forEach(function (g) {
-      if (!g.visible || !g.ctx) return;
-      busy = true;
-      if (fxFrame % 4 !== 0) return; // twinkle at ~15fps: same look, 1/4 the canvas work
-      var ctx = g.ctx;
-      ctx.clearRect(0, 0, g.w, g.h);
-      g.stars.forEach(function (s) {
-        var tw = 0.35 + 0.65 * Math.abs(Math.sin(now / s.period + s.phase));
-        ctx.globalAlpha = tw * s.a;
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, 6.2832);
-        ctx.fill();
-      });
-      ctx.globalAlpha = 1;
-    });
-    if (glow && glowShown) {
-      glowX += (glowTX - glowX) * 0.14;
-      glowY += (glowTY - glowY) * 0.14;
-      if (Math.abs(glowTX - glowX) > 0.3 || Math.abs(glowTY - glowY) > 0.3) busy = true;
-      glow.style.transform = 'translate3d(' + glowX.toFixed(1) + 'px,' + glowY.toFixed(1) + 'px,0)';
-    }
-    if (sparksCtx && (sparks.length || trail.length)) {
-      busy = true;
-      sparksCtx.clearRect(0, 0, sparksCanvas.width, sparksCanvas.height);
-      sparks = sparks.filter(function (sp) { return sp.life > 0; });
-      trail = trail.filter(function (sq) { return sq.life > 0; });
-      trail.forEach(function (sq) {
-        sq.life -= 0.045;
-        sparksCtx.globalAlpha = Math.max(0, sq.life) * 0.55;
-        sparksCtx.fillStyle = sq.color;
-        var s = sq.size * (0.5 + sq.life * 0.5);
-        sparksCtx.fillRect(sq.x - s / 2, sq.y - s / 2, s, s);
-      });
-      sparks.forEach(function (sp) {
-        sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.12; sp.life -= 0.03;
-        sparksCtx.globalAlpha = Math.max(0, sp.life);
-        sparksCtx.strokeStyle = sp.color;
-        sparksCtx.lineWidth = 2;
-        sparksCtx.beginPath();
-        sparksCtx.moveTo(sp.x, sp.y);
-        sparksCtx.lineTo(sp.x - sp.vx * 3, sp.y - sp.vy * 3);
-        sparksCtx.stroke();
-      });
-      sparksCtx.globalAlpha = 1;
-      if (!sparks.length && !trail.length) sparksCtx.clearRect(0, 0, sparksCanvas.width, sparksCanvas.height);
-    }
-    // MagnetLines: redraw only while the pointer moved or lines are settling
-    if (magnet && magnet.visible && magnet.dirty && magnet.ctx) {
-      var mctx = magnet.ctx;
-      mctx.clearRect(0, 0, magnet.w, magnet.h);
-      mctx.strokeStyle = 'rgba(233,231,226,.28)';
-      mctx.lineWidth = 1.5;
-      mctx.lineCap = 'round';
-      var still = false;
-      magnet.pts.forEach(function (pt) {
-        var dx = magnet.mx - pt.x, dy = magnet.my - pt.y;
-        var d = Math.sqrt(dx * dx + dy * dy);
-        var target = d < 200 ? Math.atan2(dy, dx) : 0;
-        var diff = target - pt.a;
-        while (diff > Math.PI / 2) diff -= Math.PI;
-        while (diff < -Math.PI / 2) diff += Math.PI;
-        if (Math.abs(diff) > 0.02) still = true;
-        pt.a += diff * 0.25;
-        var len = 8, c = Math.cos(pt.a), si = Math.sin(pt.a);
-        mctx.beginPath();
-        mctx.moveTo(pt.x - c * len, pt.y - si * len);
-        mctx.lineTo(pt.x + c * len, pt.y + si * len);
-        mctx.stroke();
-      });
-      magnet.dirty = still;
-      busy = true;
-    }
-    if (busy) { fxRaf = requestAnimationFrame(fxTick); }
-    else { fxRunning = false; }
-  }
-  function makeGalaxy(canvas) {
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    var g = { canvas: canvas, ctx: ctx, stars: [], w: 0, h: 0, visible: false };
-    function size() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      var r = canvas.getBoundingClientRect();
-      g.w = r.width; g.h = r.height;
-      canvas.width = Math.max(1, Math.round(r.width * dpr));
-      canvas.height = Math.max(1, Math.round(r.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.stars = [];
-      var n = Math.max(40, Math.min(70, Math.round((r.width * r.height) / 9000)));
-      for (var i = 0; i < n; i++) {
-        g.stars.push({ x: Math.random() * r.width, y: Math.random() * r.height, r: 0.5 + Math.random() * 1.3, a: 0.35 + Math.random() * 0.65, period: 900 + Math.random() * 2400, phase: Math.random() * 6.2832 });
-      }
-      if (reduced) {
-        ctx.clearRect(0, 0, g.w, g.h);
-        g.stars.forEach(function (s) { ctx.globalAlpha = s.a; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.2832); ctx.fill(); });
-        ctx.globalAlpha = 1;
-      }
-    }
-    size();
-    window.addEventListener('resize', debounce(size, 150), { passive: true });
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (entries) {
-        g.visible = entries[0].isIntersecting;
-        if (g.visible) { size(); fxStart(); }
-      }, { threshold: 0 }).observe(canvas);
-    } else { g.visible = true; }
-    galaxies.push(g);
-  }
-  makeGalaxy(document.getElementById('galaxyDownload'));
-  makeGalaxy(document.getElementById('galaxyFooter'));
 
-  // ---- CircularText (react-bits): badge chars on a ring, radius measured live ----
-  var badgeSpan = document.querySelector('.circ-badge span');
-  var badgeText = badgeSpan ? badgeSpan.textContent : '';
-  function buildBadge() {
-    if (!badgeSpan) return;
-    var badge = badgeSpan.parentElement;
-    var R = badge.offsetWidth / 2;
-    badgeSpan.textContent = '';
-    for (var i = 0; i < badgeText.length; i++) {
-      var ch = document.createElement('i');
-      ch.className = 'cb-char';
-      ch.textContent = badgeText[i] === ' ' ? '\u00A0' : badgeText[i];
-      ch.style.transform = 'rotate(' + (i * (360 / badgeText.length)).toFixed(1) + 'deg) translateY(' + (-R).toFixed(0) + 'px)';
-      badgeSpan.appendChild(ch);
-    }
-  }
-  buildBadge();
-  window.addEventListener('resize', debounce(buildBadge, 150), { passive: true });
-
-  // ---- DecryptedText (react-bits): the footer line scrambles in, then resolves ----
-  (function () {
-    var el = document.querySelector('.footer-copy');
-    if (!el || reduced) return;
-    var finalText = el.textContent;
-    var pool = '!<>-_\\/[]{}=+*^?#01';
-    // wall-clock reveal (~85 chars/s) on a plain interval: each tick reveals
-    // by elapsed real time, so it finishes in ~1.3s whether frames or timers
-    // run fast or throttled (headless rAF timestamps freeze; this does not).
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries[0].isIntersecting) return;
-      io.disconnect();
-      var t0 = performance.now();
-      var iv = setInterval(function () {
-        var revealed = Math.floor((performance.now() - t0) / 12);
-        var out = '';
-        for (var i = 0; i < finalText.length; i++) {
-          out += i < revealed ? finalText[i] : pool[(Math.random() * pool.length) | 0];
-        }
-        el.textContent = out;
-        if (revealed >= finalText.length) { clearInterval(iv); el.textContent = finalText; }
-      }, 30);
-    }, { threshold: 0.4 });
-    io.observe(el);
-  })();
-
-  // ---- ClickSpark (react-bits): a burst of sparks on every click ----
-  if (sparksCanvas && sparksCtx && !reduced) {
-    (function sizeSparks() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      sparksCanvas.width = Math.round(window.innerWidth * dpr);
-      sparksCanvas.height = Math.round(window.innerHeight * dpr);
-      sparksCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    })();
-    window.addEventListener('resize', debounce(function () {
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      sparksCanvas.width = Math.round(window.innerWidth * dpr);
-      sparksCanvas.height = Math.round(window.innerHeight * dpr);
-      sparksCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }, 150), { passive: true });
-    document.addEventListener('pointerdown', function (e) {
-      for (var i = 0; i < 8; i++) {
-        var a = Math.random() * 6.2832, sp = 3 + Math.random() * 5;
-        sparks.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 1, color: i % 2 ? '#EA580C' : '#ffffff' });
-      }
-      fxStart();
+  if (stSyncBtn && stBatVal) {
+    stSyncBtn.addEventListener('click', () => {
+      stBatVal.textContent = '100.0%';
+      stSyncBtn.textContent = '✓ Synced 400 mAh';
+      emitStudioHex('F0 30 00 00 00 00 64 01', 'SYNC 100% FULL');
+      setTimeout(() => {
+        stSyncBtn.textContent = '⚡ Sync 100%';
+      }, 2200);
     });
   }
 
-  // ---- Cursor glow blob + magnetic buttons (fine pointers only) ----
-  if (fxFinePointer && !reduced) {
-    document.addEventListener('pointermove', function (e) {
-      glowTX = e.clientX; glowTY = e.clientY;
-      if (!glowShown) {
-        glowShown = true; glowX = glowTX; glowY = glowTY;
-        if (glow) glow.style.opacity = '1';
-      }
-      fxStart();
-    }, { passive: true });
-    // rects cached on scroll/resize — the old code read getBoundingClientRect
-    // for 5 buttons on EVERY mousemove (layout thrash on weak machines).
-    var magBtns = Array.prototype.slice.call(document.querySelectorAll('.magnetic'));
-    var magRects = [];
-    var magnetRect = null;
-    cacheFxRects();
-    window.addEventListener('resize', debounce(cacheFxRects, 150), { passive: true });
-    // (the scroll listener that called cacheFxRects was removed in v11 — onScroll
-    // now calls it in its read phase, so there is only one scroll rAF.)
-    // spotlight: a radial glow follows the cursor inside the hovered spec card
-    var specsSec = document.querySelector('.specs');
-    if (specsSec) specsSec.addEventListener('pointermove', function (e) {
-      var card = e.target.closest ? e.target.closest('.spec-card') : null;
-      if (!card) return;
-      var r = card.getBoundingClientRect();
-      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  /* ------------------------------------------------------------------------
+     9. UNIFIED READ-THEN-WRITE SCROLL 3D ENGINE (ZERO LAYOUT THRASHING)
+     ------------------------------------------------------------------------ */
+  const scrollProgress = document.getElementById('scrollProgress');
+  const toTopBtn = document.getElementById('toTop');
+  const toTopRing = document.getElementById('toTopRing');
+  const studioWindow = document.getElementById('studioWindow');
+  const marqueeTracks = Array.from(document.querySelectorAll('.marquee-track'));
+
+  let marqueeSpanW = 0;
+  let marqueeOffset = 0;
+  let lastScrollY = window.scrollY || 0;
+  let skewResetTimer = 0;
+  let scrollTicking = false;
+
+  function measureMarquee() {
+    const firstSpan = document.querySelector('.marquee-track span');
+    if (firstSpan) marqueeSpanW = firstSpan.offsetWidth;
+  }
+  measureMarquee();
+  window.addEventListener('resize', debounce(measureMarquee, 150), { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureMarquee);
+
+  function applyMarquee(skewDeg) {
+    if (!marqueeSpanW) return;
+    const off = ((marqueeOffset % marqueeSpanW) + marqueeSpanW) % marqueeSpanW;
+    marqueeTracks.forEach((tr) => {
+      const rev = tr.classList.contains('reverse');
+      const x = rev ? -marqueeSpanW + off : -off;
+      tr.style.transform = `translate3d(${x.toFixed(1)}px, 0, 0) skewX(${skewDeg.toFixed(2)}deg)`;
     });
-    document.addEventListener('pointermove', function (e) {
-      magRects.forEach(function (m) {
-        var dx = e.clientX - m.cx, dy = e.clientY - m.cy;
-        var d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 90 && d > 0.1) {
-          var pull = Math.min(10, d * 0.12);
-          m.btn.style.transform = 'translate(' + (dx / d * pull).toFixed(1) + 'px,' + (dy / d * pull).toFixed(1) + 'px)';
+  }
+
+  if (toTopBtn) {
+    toTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: motionPaused ? 'auto' : 'smooth' });
+    });
+  }
+
+  // Magnetic Buttons (Cached Rects Refreshed in Scroll Read Phase)
+  const magneticBtns = Array.from(document.querySelectorAll('.magnetic'));
+  let magneticRects = [];
+
+  function refreshMagneticRects() {
+    magneticRects = magneticBtns.map((btn) => {
+      const r = btn.getBoundingClientRect();
+      return { btn, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+    });
+  }
+
+  if (finePointer) {
+    window.addEventListener('pointermove', (e) => {
+      if (motionPaused) return;
+      for (let i = 0; i < magneticRects.length; i++) {
+        const m = magneticRects[i];
+        const dx = e.clientX - m.cx;
+        const dy = e.clientY - m.cy;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 85 && d > 0.5) {
+          const pull = Math.min(9, d * 0.12);
+          m.btn.style.transform = `translate3d(${((dx / d) * pull).toFixed(1)}px, ${((dy / d) * pull).toFixed(1)}px, 0)`;
         } else if (m.btn.style.transform) {
           m.btn.style.transform = '';
         }
-      });
+      }
     }, { passive: true });
   }
 
-  // ---- AnimatedList stagger for the driver feature list ----
-  (function () {
-    var list = document.querySelector('.driver-list');
-    if (!list || reduced) return;
-    list.classList.add('js-stagger');
-    var io = new IntersectionObserver(function (entries) {
-      if (!entries[0].isIntersecting) return;
-      io.disconnect();
-      Array.prototype.forEach.call(list.children, function (li, i) {
-        li.style.transitionDelay = (i * 90) + 'ms';
-        li.classList.add('in');
-      });
-    }, { threshold: 0.2 });
-    io.observe(list);
-  })();
+  function onScrollFrame() {
+    scrollTicking = false;
+    const y = window.scrollY || window.pageYOffset;
+    const H = window.innerHeight;
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - H);
 
+    // ---- PHASE 1: ALL DOM GEOMETRY READS ----
+    const anatomyRect = anatomySection ? anatomySection.getBoundingClientRect() : null;
+    const skinsRect = skinsSection ? skinsSection.getBoundingClientRect() : null;
+    const studioRect = studioWindow ? studioWindow.getBoundingClientRect() : null;
+    if (finePointer) refreshMagneticRects();
 
-  /* ================= FX PACK v9 — more scroll effects + more elements ================= */
-  // ---- RotatingText (react-bits): verified facts rotate under the chip lede ----
-  (function () {
-    var el = document.getElementById('rotWord');
-    if (!el || reduced) return;
-    var words = ['DPI 800–12000', 'Polling 125–1000 Hz', 'Battery estimate', 'Key remapping', '67 skins'];
-    var i = 0, visible = false;
-    new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; }, { threshold: 0 }).observe(el);
-    setInterval(function () {
-      if (!visible) return;
-      el.classList.add('swap');
-      setTimeout(function () {
-        i = (i + 1) % words.length;
-        el.textContent = words[i];
-        el.classList.remove('swap');
-      }, 300);
-    }, 2400);
-  })();
+    // ---- PHASE 2: COMPOSITOR-ONLY WRITES ----
+    const globalRatio = clamp(y / maxScroll, 0, 1);
+    if (scrollProgress) scrollProgress.style.transform = `scaleX(${globalRatio.toFixed(4)})`;
+    if (siteHeader) siteHeader.classList.toggle('condensed', y > 48);
 
-  // ---- MagnetLines (react-bits): a grid of lines in the specs section that bend
-  // toward the cursor. Redraws ONLY when the pointer moved (dirty flag) and the
-  // section is visible — otherwise the canvas sits still and costs nothing.
-  var magnet = null;
-  (function () {
-    var canvas = document.getElementById('magnetSpecs');
-    if (!canvas || reduced || !fxFinePointer) return;
-    var ctx = canvas.getContext('2d');
-    magnet = { canvas: canvas, ctx: ctx, pts: [], w: 0, h: 0, visible: false, dirty: true, mx: -9999, my: -9999 };
-    function sizeMagnet() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-      var r = canvas.getBoundingClientRect();
-      magnet.w = r.width; magnet.h = r.height;
-      canvas.width = Math.max(1, Math.round(r.width * dpr));
-      canvas.height = Math.max(1, Math.round(r.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      magnet.pts = [];
-      var gap = 30;
-      for (var y = gap / 2; y < r.height; y += gap) {
-        for (var x = gap / 2; x < r.width; x += gap) {
-          magnet.pts.push({ x: x, y: y, a: 0 });
-        }
+    if (toTopBtn) {
+      toTopBtn.classList.toggle('show', y > 520);
+      if (toTopRing) toTopRing.style.strokeDashoffset = (125.66 * (1 - globalRatio)).toFixed(1);
+    }
+
+    // 02: 121-Frame 3D Hardware Dissection Scrub
+    if (anatomySection && anatomyRect) {
+      const travel = Math.max(1, anatomyRect.height - H);
+      const p = clamp(-anatomyRect.top / travel, 0, 1);
+      const idx = (TOTAL_FRAMES - 1) - Math.round(p * (TOTAL_FRAMES - 1));
+      if (idx !== currentDissectFrame) {
+        currentDissectFrame = idx;
+        drawDissectFrame(idx);
       }
-      magnet.dirty = true;
-      fxStart();
-    }
-    sizeMagnet();
-    window.addEventListener('resize', debounce(sizeMagnet, 150), { passive: true });
-    new IntersectionObserver(function (entries) {
-      magnet.visible = entries[0].isIntersecting;
-      if (magnet.visible) { sizeMagnet(); magnet.dirty = true; fxStart(); }
-    }, { threshold: 0 }).observe(canvas);
-    document.addEventListener('pointermove', function (e) {
-      if (!magnet.visible || !magnetRect) return;
-      magnet.mx = e.clientX - magnetRect.left;
-      magnet.my = e.clientY - magnetRect.top;
-      magnet.dirty = true;
-      fxStart();
-    }, { passive: true });
-  })();
+      if (anatomyBarFill) anatomyBarFill.style.transform = `scaleX(${p.toFixed(3)})`;
+      if (anatomyPct) anatomyPct.textContent = `${Math.round(p * 100)}% EXPLODED`;
 
-  // ---- ImageTrail (react-bits): skin thumbnails trail the cursor over the shelf ----
-  (function () {
-    var wrap = document.getElementById('imgTrail');
-    if (!wrap || reduced || !fxFinePointer || !SKINS.length) return;
-    var pool = [], next = 0, lastSpawn = 0, n = 0;
-    for (var i = 0; i < 10; i++) {
-      var im = document.createElement('img');
-      im.alt = '';
-      wrap.appendChild(im);
-      pool.push(im);
-    }
-    document.addEventListener('pointermove', function (e) {
-      if (!e.target || !e.target.closest || !e.target.closest('.skins')) return;
-      var now = performance.now();
-      if (now - lastSpawn < 50) return;
-      lastSpawn = now;
-      var skin = SKINS[n % SKINS.length];
-      n++;
-      var el = pool[next % pool.length];
-      next++;
-      el.src = skin.thumb;
-      el.style.left = (e.clientX - 38) + 'px';
-      el.style.top = (e.clientY - 67) + 'px';
-      el.animate([
-        { opacity: 1, transform: 'translate(0,0) rotate(' + ((Math.random() * 24 - 12).toFixed(0)) + 'deg) scale(1)' },
-        { opacity: 0, transform: 'translate(0,26px) rotate(' + ((Math.random() * 30 - 15).toFixed(0)) + 'deg) scale(.72)' }
-      ], { duration: 650, easing: 'ease-out' });
-    }, { passive: true });
-  })();
+      const activePhase = p < 0.25 ? 0 : p < 0.52 ? 1 : p < 0.78 ? 2 : 3;
+      calloutCards.forEach((c, ci) => c.classList.toggle('active', ci === activePhase));
+      phaseBtns.forEach((b, bi) => b.classList.toggle('active', bi === activePhase));
 
-  // ---- PixelTrail pusher: a few fading squares behind the cursor (drawn in fxTick) ----
-  if (fxFinePointer && !reduced) {
-    (function () {
-      var lastX = -9999, lastY = -9999, lastT = 0;
-      document.addEventListener('pointermove', function (e) {
-        var now = performance.now();
-        var d = Math.sqrt((e.clientX - lastX) * (e.clientX - lastX) + (e.clientY - lastY) * (e.clientY - lastY));
-        if (d < 18 && now - lastT < 24) return;
-        lastX = e.clientX; lastY = e.clientY; lastT = now;
-        trail.push({ x: e.clientX, y: e.clientY, life: 1, size: 8 + Math.random() * 10, color: Math.random() < 0.7 ? '#EA580C' : '#ffffff' });
-        if (trail.length > 40) trail.splice(0, trail.length - 40);
-        fxStart();
-      }, { passive: true });
-    })();
+      if (anatomyFrame && !motionPaused) {
+        const entryTilt = clamp(1 - (-anatomyRect.top + H * 0.6) / (H * 0.6), 0, 1);
+        const rx = entryTilt * 11;
+        const sc = 1 - entryTilt * 0.05;
+        anatomyFrame.style.transform = `rotateX(${rx.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+      }
+    }
+
+    // 03: 67-Skin 3D Coverflow Scroll Glide
+    if (skinsSection && skinsRect && !prefersReduced) {
+      const skinTravel = Math.max(1, skinsRect.height - H);
+      const sp = clamp(-skinsRect.top / skinTravel, 0, 1);
+      updateCoverflowAtProgress(sp);
+    }
+
+    // 06: 3D Driver Studio Window Scroll-Upright Perspective Tilt
+    if (studioWindow && studioRect && !motionPaused) {
+      if (studioRect.bottom > -100 && studioRect.top < H + 100) {
+        const approach = clamp((studioRect.top - H * 0.15) / (H * 0.75), 0, 1);
+        const tiltX = approach * 16;
+        const scale = 1 - approach * 0.06;
+        studioWindow.style.transform = `rotateX(${tiltX.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+      }
+    }
+
+    // Velocity Marquee Strips
+    if (!motionPaused && marqueeSpanW > 0) {
+      const vel = y - lastScrollY;
+      marqueeOffset += 0.8 + Math.abs(vel) * 0.38;
+      const skew = clamp(vel * 0.1, -5, 5);
+      applyMarquee(skew);
+      clearTimeout(skewResetTimer);
+      skewResetTimer = setTimeout(() => applyMarquee(0), 140);
+    }
+    lastScrollY = y;
   }
 
-  // ---- lag fix: pause CSS animations while their section is offscreen ----
-  (function () {
-    if (!('IntersectionObserver' in window)) return;
-    var io2 = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        entry.target.classList.toggle('fx-off', !entry.isIntersecting);
-      });
-    }, { threshold: 0 });
-    ['.hero', '.download', '.ribbon'].forEach(function (sel) {
-      var el = document.querySelector(sel);
-      if (el) io2.observe(el);
-    });
-  })();
-
-
-  /* ================= FX PACK v10 — spec/chip-facts stagger ================= */
-  (function () {
-    var els = document.querySelectorAll('.spec-card, .chip-facts > div');
-    if (!els.length) return;
-    if (reduced || !('IntersectionObserver' in window)) {
-      Array.prototype.forEach.call(els, function (el) { el.classList.add('in'); });
-      return;
+  function requestScrollFrame() {
+    if (!scrollTicking) {
+      scrollTicking = true;
+      requestAnimationFrame(onScrollFrame);
     }
-    var stagIO = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('in');
-        stagIO.unobserve(entry.target);
-      });
-    }, { threshold: 0.2 });
-    // stagger restarts per group (chip-facts first in the document, then specs)
-    var ci = 0, si = 0;
-    Array.prototype.forEach.call(els, function (el) {
-      if (el.parentElement && el.parentElement.classList.contains('chip-facts')) {
-        el.style.transitionDelay = (ci * 70) + 'ms';
-        ci++;
-      } else {
-        el.style.transitionDelay = (si * 70) + 'ms';
-        si++;
-      }
-      stagIO.observe(el);
-    });
-  })();
+  }
 
+  window.addEventListener('scroll', requestScrollFrame, { passive: true });
+  window.addEventListener('resize', requestScrollFrame, { passive: true });
+  sizeDissectCanvas();
+  onScrollFrame();
 })();

@@ -1,228 +1,813 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMAILWOLF M3 Pro — Driver Remake · Download v3.0.6</title>
-<meta name="description" content="Clean-room driver remake for the SMAILWOLF M3 Pro mouse: remap keys, DPI 800–12000, polling up to 1000 Hz, 67 skins, self-updating in-app. Windows 10/11. Free.">
-<meta name="theme-color" content="#17172B">
-<link rel="icon" href="assets/mouse-hero.webp" type="image/webp">
-<link rel="preload" href="assets/fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/fira-sans-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMAILWOLF M3 Pro — 3D Liquid Glass Driver · v3.0.13</title>
+  <meta name="description" content="Experience the SMAILWOLF M3 Pro clean-room driver in 3D Liquid Glass. Direct 64-byte WebHID control, 12,000 DPI PAW3311 precision, 1,000 Hz polling, 67 sculpted skins, and native builds for Windows, macOS, and Linux.">
+  <meta name="theme-color" content="#04293a">
+  <link rel="icon" href="assets/mouse-hero.webp" type="image/webp">
+
+  <!-- Local self-hosted fallback fonts -->
+  <link rel="preload" href="assets/fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/fira-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/mouse-hero.webp" as="image" type="image/webp" fetchpriority="high">
+
+  <!-- Editorial & Geometric Display Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Galada&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Outfit:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
 </head>
-<body>
-<div class="scroll-progress" aria-hidden="true"></div>
+<body data-edition="pearl">
+  <!-- Top Optical Scroll Progress Filament -->
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
+  <!-- Ambient Liquid Caustics & Refractive Mesh Background -->
+  <div class="ambient-mesh" id="ambientMesh" aria-hidden="true">
+    <span class="mesh-orb m1"></span>
+    <span class="mesh-orb m2"></span>
+    <span class="mesh-orb m3"></span>
+    <div class="mesh-noise"></div>
+  </div>
 
-<main>
-  <!-- ============ HERO — VIDEO MỔ XẺ FULL-BLEED, CUỘN ĐỂ XEM ============ -->
-  <section class="hero" id="hero">
-    <div class="hero-sticky">
-      <div class="hero-video">
-        <canvas id="heroCanvas" role="img" aria-label="Dissection video of the SMAILWOLF M3 Pro mouse: the assembled mouse explodes into parts as you scroll down" width="1280" height="720"></canvas>
-        <div class="hero-scrub" aria-hidden="true"><span class="hero-scrub-fill" id="heroScrubFill"></span></div>
-        <p class="hero-loading" id="heroLoading">Loading video… <b id="heroLoadCount">0/121</b></p>
-      </div>
-      <div class="hero-scrim" aria-hidden="true"></div>
-      <div class="hero-inner">
-        <div class="hero-copy">
-          <h1 class="hero-title" data-split aria-label="SMAILWOLF M3 PRO">SMAILWOLF<br><span class="accent">M3 PRO</span></h1>
-          <div class="hero-cta">
-            <a class="btn btn-primary btn-lg star-border magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.6-rust/SMAILWOLF-M3-Pro-Driver_3.0.6_x64-setup.exe">
-              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16"/></svg>
-              Download installer · v3.0.6
+  <!-- Rising Refractive Liquid Glass Micro-Droplets -->
+  <div id="bubbles-container" aria-hidden="true"></div>
+
+  <!-- Cursor Caustic Spotlight -->
+  <div id="cursorCaustic" aria-hidden="true"></div>
+
+  <!-- ================= FLOATING IPHONE LIQUID GLASS NAVBAR ================= -->
+  <header class="site-header" id="siteHeader">
+    <a href="#hero" class="brand-pill liquid-glass" aria-label="SMAILWOLF M3 Pro Home">
+      <img src="assets/brand-logo.png" alt="SMAILWOLF" class="brand-logo" width="132" height="34">
+      <span class="brand-badge">M3 PRO</span>
+    </a>
+
+    <nav class="nav-capsule liquid-glass" id="navCapsule" aria-label="Primary sections">
+      <span class="nav-glider" id="navGlider" aria-hidden="true"></span>
+      <a href="#hero" class="nav-item active" data-sec="hero">3D Stage</a>
+      <a href="#anatomy" class="nav-item" data-sec="anatomy">Anatomy</a>
+      <a href="#skins" class="nav-item" data-sec="skins">67 Skins</a>
+      <a href="#architecture" class="nav-item" data-sec="architecture">Silicon</a>
+      <a href="#specs" class="nav-item" data-sec="specs">Specs</a>
+      <a href="#driver" class="nav-item" data-sec="driver">Studio</a>
+      <a href="#download" class="nav-item" data-sec="download">Download</a>
+    </nav>
+
+    <div class="header-actions">
+      <button type="button" class="motion-toggle liquid-pill" id="motionToggle" aria-label="Pause ambient motion">
+        <span class="mt-dot" aria-hidden="true"></span>
+        <span id="motionToggleLabel">Pause</span>
+      </button>
+      <a href="#download" class="header-cta liquid-pill magnetic">
+        <span>Get v3.0.13</span>
+        <span class="cta-orb" aria-hidden="true">↓</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= 01 / 3D INTERACTIVE MOUSE HERO STAGE ================= -->
+    <section class="hero" id="hero" aria-label="SMAILWOLF M3 Pro 3D Interactive Stage">
+      <div class="hero-content">
+
+        <!-- Far-Background Floating Refractive Prisms (Parallax Layer -2) -->
+        <div class="shards-container" id="shardsBG" aria-hidden="true">
+          <div class="prism-shard p1 liquid-orb-shell"></div>
+          <div class="prism-shard p2 liquid-orb-shell"></div>
+          <div class="prism-shard p3 liquid-orb-shell"></div>
+          <div class="prism-shard p4 liquid-orb-shell"></div>
+        </div>
+
+        <!-- Left Editorial Column -->
+        <div class="hero-left">
+          <div class="eyebrow-pill liquid-pill">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span>CLEAN-ROOM RUST + TAURI 2 · v3.0.13</span>
+          </div>
+
+          <h1 class="main-title">
+            <span class="script-word" id="heroScriptLeft">Pure</span><br>
+            <span class="bold-word" id="heroBoldLeft">Precision</span>
+          </h1>
+
+          <p class="hero-description" id="heroDesc">
+            Zero kernel bloat. Zero vendor spyware.<br>
+            Direct 64-byte WebHID control for the SMAILWOLF M3 Pro —<br>
+            sculpted in native Rust and refracted through Liquid Glass.
+          </p>
+
+          <div class="cta-group">
+            <a href="#download" class="primary-btn liquid-glass magnetic">
+              <span>Download Driver</span>
+              <span class="plus-icon" aria-hidden="true">+</span>
             </a>
-            <a class="btn btn-ghost btn-lg magnetic" href="https://discord.gg/H6WkXburX" target="_blank" rel="noopener">Discord</a>
+            <a href="#anatomy" class="secondary-btn liquid-pill magnetic">
+              <span>Dissect in 3D</span>
+            </a>
+          </div>
+
+          <div class="award-badge liquid-glass">
+            <div class="award-icon" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="3.2" fill="currentColor"/>
+                <path d="M12 1.5V4.5M12 19.5V22.5M1.5 12H4.5M19.5 12H22.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="award-text">
+              <span class="award-title">VERIFIED HARDWARE PROTOCOL</span>
+              <span class="award-subtitle">WINDOWS · MACOS · LINUX · PAW3311</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mid-Background Floating 3D Liquid Glass Orbs (Behind Mouse, Repelled by Pointer) -->
+        <div class="orbs-container-bg" id="orbsBG" aria-hidden="true">
+          <div class="floating-orb b7">
+            <div class="orb-glass"><img src="assets/skins/thumbs/A10.webp" alt="" loading="eager"></div>
+          </div>
+          <div class="floating-orb b8">
+            <div class="orb-glass orb-pure"><span>1K Hz</span></div>
+          </div>
+          <div class="floating-orb b9">
+            <div class="orb-glass"><img src="assets/skins/thumbs/D08.webp" alt="" loading="eager"></div>
+          </div>
+        </div>
+
+        <!-- Centerpiece 3D Volumetric Real Mouse Stage -->
+        <div class="hero-center" id="heroCenter">
+          <div class="mouse-3d-viewport">
+            <div class="mouse-3d-rig" id="productRig">
+              <!-- Deep 3D Aura & Rotating Telemetry Halo -->
+              <div class="rig-aura" aria-hidden="true">
+                <div class="orbital-ring">
+                  <svg viewBox="0 0 320 320" width="320" height="320">
+                    <defs>
+                      <path id="heroOrbitPath" d="M 160, 160 m -132, 0 a 132,132 0 1,1 264,0 a 132,132 0 1,1 -264,0"/>
+                    </defs>
+                    <text>
+                      <textPath href="#heroOrbitPath" startOffset="0%">
+                        PAW3311 OPTICAL • 12,000 DPI • 1,000 HZ POLLING • FR2012A 48 MHZ • WEBHID 0xFF01 •
+                      </textPath>
+                    </text>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Volumetric Shadow & Physical Thickness Extrusion -->
+              <div class="rig-shadow" aria-hidden="true">
+                <img id="heroShadowImg" src="assets/mouse-hero.webp" alt="" width="944" height="1667">
+              </div>
+              <div class="rig-extrude e3" aria-hidden="true">
+                <img class="extrude-img" src="assets/mouse-hero.webp" alt="" width="944" height="1667">
+              </div>
+              <div class="rig-extrude e2" aria-hidden="true">
+                <img class="extrude-img" src="assets/mouse-hero.webp" alt="" width="944" height="1667">
+              </div>
+              <div class="rig-extrude e1" aria-hidden="true">
+                <img class="extrude-img" src="assets/mouse-hero.webp" alt="" width="944" height="1667">
+              </div>
+
+              <!-- Crisp Authentic High-Resolution M3 Pro Cutout -->
+              <div class="rig-main">
+                <img id="heroMouseImg" src="assets/mouse-hero.webp" alt="SMAILWOLF M3 Pro Wireless Gaming Mouse — Arctic Pearl Edition" width="944" height="1667" fetchpriority="high">
+                <!-- Pixel-Masked iPhone Liquid Glass Specular Glare -->
+                <div class="rig-glare" id="heroMouseGlare" aria-hidden="true"></div>
+              </div>
+
+              <!-- Floating 3D Z-Space Liquid Glass Telemetry Chips -->
+              <div class="rig-hud hud-dpi liquid-pill" aria-hidden="true">
+                <span class="hud-dot"></span>
+                <span><b>12,000</b> DPI</span>
+              </div>
+              <div class="rig-hud hud-hz liquid-pill" aria-hidden="true">
+                <span><b>1,000 Hz</b> · 1ms</span>
+              </div>
+              <div class="rig-hud hud-skin liquid-pill" aria-hidden="true">
+                <span id="heroEditionTag">ARCTIC PEARL</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Foreground Floating 3D Liquid Glass Orbs & Mini Skins (Repelled by Pointer Force-Field) -->
+        <div class="orbs-container" id="orbsFG" aria-hidden="true">
+          <div class="floating-orb b1">
+            <div class="orb-glass"><img src="assets/skins/thumbs/A05.webp" alt="" loading="eager"></div>
+          </div>
+          <div class="floating-orb b2">
+            <div class="orb-glass orb-pure"><span>PAW3311</span></div>
+          </div>
+          <div class="floating-orb b3">
+            <div class="orb-glass"><img src="assets/skins/thumbs/B10.webp" alt="" loading="eager"></div>
+          </div>
+          <div class="floating-orb b4">
+            <div class="orb-glass orb-pure"><span>58g</span></div>
+          </div>
+          <div class="floating-orb b5">
+            <div class="orb-glass"><img src="assets/skins/thumbs/E08.webp" alt="" loading="eager"></div>
+          </div>
+          <div class="floating-orb b6">
+            <div class="orb-glass"><img src="assets/skins/thumbs/F06.webp" alt="" loading="eager"></div>
+          </div>
+        </div>
+
+        <!-- Right Edition Switcher Column -->
+        <div class="hero-right">
+          <div class="product-carousel">
+            <p class="carousel-kicker">3D EDITION SWITCHER · CLICK TO SPIN</p>
+            <div class="carousel-cards" id="editionCards" role="group" aria-label="Choose mouse 3D edition">
+              <button type="button" class="edition-card liquid-glass active" data-edition="pearl" aria-label="Switch to Arctic Pearl edition">
+                <img src="assets/skins/thumbs/default.webp" alt="Arctic Pearl M3 Pro" width="160" height="282">
+                <span class="card-info">
+                  <strong>Arctic Pearl</strong>
+                  <em>Stock Shell</em>
+                </span>
+              </button>
+              <button type="button" class="edition-card liquid-glass" data-edition="crimson" aria-label="Switch to Oni Crimson edition">
+                <img src="assets/skins/thumbs/A03.webp" alt="Oni Crimson M3 Pro" width="160" height="282">
+                <span class="card-info">
+                  <strong>Oni Crimson</strong>
+                  <em>Skin A03</em>
+                </span>
+              </button>
+              <button type="button" class="edition-card liquid-glass" data-edition="cyber" aria-label="Switch to Cyber Prism edition">
+                <img src="assets/skins/thumbs/F02.webp" alt="Cyber Prism M3 Pro" width="160" height="282">
+                <span class="card-info">
+                  <strong>Cyber Prism</strong>
+                  <em>Skin F02</em>
+                </span>
+              </button>
+              <button type="button" class="edition-card liquid-glass" data-edition="hologram" aria-label="Switch to Liquid Hologram edition">
+                <img src="assets/skins/thumbs/C07.webp" alt="Liquid Hologram M3 Pro" width="160" height="282">
+                <span class="card-info">
+                  <strong>Liquid Holo</strong>
+                  <em>Skin C07</em>
+                </span>
+              </button>
+            </div>
+
+            <div class="carousel-nav">
+              <button type="button" class="nav-arrow liquid-pill" id="edPrev" aria-label="Previous edition">←</button>
+              <span class="ed-counter" id="edCounter">01 / 04</span>
+              <button type="button" class="nav-arrow liquid-pill" id="edNext" aria-label="Next edition">→</button>
+            </div>
+          </div>
+
+          <h2 class="side-title">
+            <span class="script-word" id="heroScriptRight">Liquid</span><br>
+            <span class="bold-word" id="heroBoldRight">Control</span>
+          </h2>
+        </div>
+
+        <!-- Bottom Center Liquid Glass Scroll Prompt -->
+        <a href="#anatomy" class="scroll-pill liquid-pill" aria-label="Scroll down to 3D hardware anatomy">
+          <span class="scroll-wheel-icon" aria-hidden="true"><i></i></span>
+          <span>SCROLL TO DISSECT</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ================= VELOCITY LIQUID GLASS RIBBON 01 ================= -->
+    <div class="glass-marquee liquid-glass" aria-hidden="true">
+      <div class="marquee-track">
+        <span>SMAILWOLF M3 PRO &bull; PAW3311 12,000 DPI &bull; 1,000 HZ POLLING &bull; 67 REAL SKINS &bull; CLEAN-ROOM RUST + TAURI 2 &bull; ZERO BLOAT &bull;&nbsp;</span>
+        <span>SMAILWOLF M3 PRO &bull; PAW3311 12,000 DPI &bull; 1,000 HZ POLLING &bull; 67 REAL SKINS &bull; CLEAN-ROOM RUST + TAURI 2 &bull; ZERO BLOAT &bull;&nbsp;</span>
+        <span>SMAILWOLF M3 PRO &bull; PAW3311 12,000 DPI &bull; 1,000 HZ POLLING &bull; 67 REAL SKINS &bull; CLEAN-ROOM RUST + TAURI 2 &bull; ZERO BLOAT &bull;&nbsp;</span>
+      </div>
+    </div>
+
+    <!-- ================= 02 / 3D SCROLL-DRIVEN HARDWARE DISSECTION ================= -->
+    <section class="anatomy" id="anatomy" aria-labelledby="anatomy-title">
+      <div class="anatomy-sticky">
+        <div class="section-header compact">
+          <p class="kicker-pill liquid-pill">02 · SCROLL-DRIVEN 3D HARDWARE ANATOMY</p>
+          <h2 id="anatomy-title" class="section-title" data-split>Dissected to the <em>Silicon.</em></h2>
+          <p class="section-sub">Scroll down to explode all 121 studio frames in real time — every switch, optical lens, microcontroller, and lithium cell inside the real M3 Pro.</p>
+        </div>
+
+        <div class="anatomy-stage-wrap">
+          <div class="anatomy-3d-frame liquid-glass" id="anatomyFrame">
+            <canvas id="dissectCanvas" width="1280" height="720" role="img" aria-label="Interactive 121-frame 3D explosion of the SMAILWOLF M3 Pro mouse"></canvas>
+            <div class="frame-specular" aria-hidden="true"></div>
+            <p class="dissect-loader liquid-pill" id="dissectLoader">
+              <span>3D Frames</span> <b id="dissectCount">0/121</b>
+            </p>
+
+            <!-- 4 Scroll-Synchronized 3D Liquid Glass Callout HUDs -->
+            <article class="anatomy-callout c-tl liquid-glass active" data-phase="0">
+              <span class="callout-index">01 / EXOSKELETON</span>
+              <h3>Sculpted Shell &amp; Switches</h3>
+              <p>Contoured ABS chassis paired with crisp microswitches and a tactile grooved scroll encoder.</p>
+            </article>
+
+            <article class="anatomy-callout c-tr liquid-glass" data-phase="1">
+              <span class="callout-index">02 / OPTICAL CORE</span>
+              <h3>PixArt PAW3311 Sensor</h3>
+              <p>Hardware-native 800 to 12,000 DPI across 6 onboard stages with zero artificial smoothing.</p>
+            </article>
+
+            <article class="anatomy-callout c-bl liquid-glass" data-phase="2">
+              <span class="callout-index">03 / LOGIC BOARD</span>
+              <h3>FR2012A 48 MHz MCU</h3>
+              <p>32-bit controller with 512 KB flash running untouched firmware v2.1.3 over 64-byte HID frames.</p>
+            </article>
+
+            <article class="anatomy-callout c-br liquid-glass" data-phase="3">
+              <span class="callout-index">04 / POWER CELL</span>
+              <h3>500 mAh Li-Po Battery</h3>
+              <p>~400 mAh usable energy delivering up to 133 hours at 125 Hz with sleep-aware tracking.</p>
+            </article>
+          </div>
+        </div>
+
+        <div class="anatomy-dock liquid-glass">
+          <div class="phase-pills" role="group" aria-label="Jump to dissection stage">
+            <button type="button" class="phase-btn active" data-jump="0.04">01 Shell</button>
+            <button type="button" class="phase-btn" data-jump="0.38">02 PAW3311</button>
+            <button type="button" class="phase-btn" data-jump="0.66">03 FR2012A</button>
+            <button type="button" class="phase-btn" data-jump="0.95">04 500 mAh</button>
+          </div>
+          <div class="anatomy-bar" aria-hidden="true"><i id="anatomyBarFill"></i></div>
+          <span class="anatomy-pct" id="anatomyPct">0% EXPLODED</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 03 / 3D CYLINDRICAL COVERFLOW SKIN VAULT ================= -->
+    <section class="skins-vault" id="skins" aria-labelledby="skins-title">
+      <div class="skins-sticky">
+        <div class="section-header compact">
+          <p class="kicker-pill liquid-pill">03 · 3D COVERFLOW VAULT · 67 REAL CUTOUTS</p>
+          <h2 id="skins-title" class="section-title" data-split>67 Sculpted <em>Identities.</em></h2>
+          <p class="section-sub">Scroll to glide through all 67 precision-cut mouse shells in 3D Coverflow. Click any mouse to inspect in 3D or equip it onto the Hero Stage.</p>
+
+          <div class="skin-filters liquid-glass" id="skinFilters" role="toolbar" aria-label="Filter mouse skins">
+            <button type="button" class="filter-chip active" data-filter="all">All 67</button>
+            <button type="button" class="filter-chip" data-filter="cyber">Cyber &amp; RGB</button>
+            <button type="button" class="filter-chip" data-filter="anime">Anime &amp; Sakura</button>
+            <button type="button" class="filter-chip" data-filter="topo">Topographic</button>
+            <button type="button" class="filter-chip" data-filter="oni">Oni &amp; Dragon</button>
+            <button type="button" class="filter-chip" data-filter="special">Special Series</button>
+          </div>
+        </div>
+
+        <div class="coverflow-viewport" id="coverflowViewport">
+          <div class="coverflow-track" id="skinsTrack" role="list" aria-label="All 67 SMAILWOLF M3 Pro skins">
+            <!-- Populated by app.js with all 67 real mouse cutouts -->
+          </div>
+        </div>
+
+        <div class="skins-dock liquid-glass">
+          <span class="skins-counter" id="skinsCounter" aria-live="polite">01 / 67</span>
+          <input type="range" id="skinsScrub" class="liquid-range" min="0" max="66" value="0" aria-label="Scrub through all mouse skins">
+          <span class="skins-active-name" id="skinsName">Default</span>
+        </div>
+      </div>
+
+      <!-- Native Top-Layer Accessible Light-Dismiss Dialog -->
+      <dialog id="skinModal" class="skin-dialog liquid-glass" closedby="any" aria-labelledby="skinModalName">
+        <div class="skin-dialog-inner">
+          <button type="button" class="dialog-close liquid-pill" id="skinModalClose" aria-label="Close skin inspector">✕ Close</button>
+          <div class="dialog-3d-stage" id="modalMouseStage">
+            <div class="modal-mouse-rig" id="modalMouseRig">
+              <img id="skinModalImg" src="assets/mouse-hero.webp" alt="Selected SMAILWOLF M3 Pro skin" width="472" height="834">
+              <div class="modal-mouse-glare" id="skinModalGlare" aria-hidden="true"></div>
+            </div>
+            <p class="modal-drag-hint">Move cursor to tilt in 3D</p>
+          </div>
+          <div class="dialog-meta">
+            <span class="kicker-pill liquid-pill" id="skinModalId">DEFAULT · 01/67</span>
+            <h3 id="skinModalName">Arctic Pearl</h3>
+            <p>Normalized to a razor-sharp 944×1667 alpha silhouette so every button callout anchor aligns pixel-for-pixel inside the desktop driver. Skins personalize the app stage without altering mouse hardware.</p>
+            <div class="dialog-actions">
+              <button type="button" class="primary-btn liquid-glass" id="equipHeroBtn">
+                <span>Equip on 3D Hero Stage</span>
+                <span class="plus-icon" aria-hidden="true">✦</span>
+              </button>
+              <a href="#download" class="secondary-btn liquid-pill" id="modalDownloadLink">Get Driver v3.0.13</a>
+            </div>
+          </div>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- ================= 04 / 3D ISOMETRIC SILICON & WEBHID STACK ================= -->
+    <section class="architecture scroll-3d-section" id="architecture" aria-labelledby="arch-title">
+      <div class="arch-container">
+        <!-- Interactive 4-Layer Exploded 3D Liquid Glass Wafer Stack -->
+        <div class="wafer-column">
+          <div class="wafer-stage" id="waferStage" aria-label="Interactive 4-layer 3D hardware and protocol stack">
+            <button type="button" class="wafer-layer w-l0 liquid-glass active" data-layer="0">
+              <span class="wafer-tag">LAYER 01 · TRANSPORT</span>
+              <strong>WebHID 0xFF01 · 64-Byte Frame</strong>
+              <code>F0 0F AE 0A 2F ... [64B]</code>
+            </button>
+
+            <button type="button" class="wafer-layer w-l1 liquid-glass" data-layer="1">
+              <span class="wafer-tag">LAYER 02 · INTEGRITY</span>
+              <strong>Mod-256 Checksum &amp; Queue Guard</strong>
+              <code>Byte[2] = Σ Bytes[3..63] &amp; 0xFF</code>
+            </button>
+
+            <button type="button" class="wafer-layer w-l2 liquid-glass" data-layer="2">
+              <span class="wafer-tag">LAYER 03 · CONTROLLER</span>
+              <strong>FR2012A 32-Bit MCU · 48 MHz</strong>
+              <code>512 KB Flash · Stock FW v2.1.3</code>
+            </button>
+
+            <button type="button" class="wafer-layer w-l3 liquid-glass" data-layer="3">
+              <span class="wafer-tag">LAYER 04 · SENSING &amp; POWER</span>
+              <strong>PAW3311 Optical + 10-Bit ADC Ch.11</strong>
+              <code>12,000 DPI · 500 mAh Sleep-Aware</code>
+            </button>
+          </div>
+          <p class="wafer-caption">Click any 3D glass wafer layer to inspect wire-level telemetry</p>
+        </div>
+
+        <!-- Engineering Copy & Live Inspector -->
+        <div class="arch-copy">
+          <p class="kicker-pill liquid-pill">04 · CLEAN-ROOM SILICON &amp; PROTOCOL</p>
+          <h2 id="arch-title" class="section-title" data-split>Measured on the <em>Real Wire.</em></h2>
+          <p class="arch-lede">
+            No kernel drivers. No background telemetry daemons. Every command in v3.0.13 was captured off the live USB bus, verified with round-trip read-backs, and hardened with unsolicited-packet filtering so DPI button presses never collide with active writes.
+          </p>
+
+          <div class="layer-inspector liquid-glass" id="layerInspector" aria-live="polite">
+            <div class="inspector-head">
+              <span class="inspector-badge" id="insBadge">LAYER 01 · TRANSPORT</span>
+              <code id="insCode">usagePage: 0xFF01 · usage: 0x0010</code>
+            </div>
+            <h3 id="insTitle">Zero-Kernel Serialized WebHID Pipeline</h3>
+            <p id="insBody">Commands travel as 64-byte Report ID 240 packets through a strict one-at-a-time queue (500 ms reply window, 3 s send guard) while unsolicited DPI, battery, and wireless status reports route cleanly to live UI listeners.</p>
+          </div>
+
+          <div class="arch-facts-grid">
+            <div class="fact-pill liquid-glass">
+              <span>MCU CLOCK</span>
+              <strong>FR2012A · 48 MHz</strong>
+            </div>
+            <div class="fact-pill liquid-glass">
+              <span>ONBOARD FLASH</span>
+              <strong>512 KB Non-Volatile</strong>
+            </div>
+            <div class="fact-pill liquid-glass">
+              <span>FIRMWARE BASELINE</span>
+              <strong>v2.1.3 · Untouched</strong>
+            </div>
+            <div class="fact-pill liquid-glass">
+              <span>PROTOCOL TESTS</span>
+              <strong>160+ Automated Checks</strong>
+            </div>
+          </div>
+
+          <div class="honest-note liquid-glass">
+            <strong>Why Battery Is Labelled “Estimated” — Full Transparency:</strong>
+            <p>The M3 Pro PCB has no dedicated Coulomb fuel-gauge IC; stock firmware reports 100% until low-voltage cutoff. Our engine models real polling-rate current draw (3–14 mA), idle sleep (0.05 mA), USB-C cable detection, custom mAh calibration, and one-click <b>Sync 100%</b> when fully charged.</p>
           </div>
         </div>
       </div>
-      <p class="scroll-cue"><span></span>SCROLL</p>
-    </div>
-  </section>
+    </section>
 
-  <!-- ============ KỆ SKIN — CUỘN DỌC, KÉO NGANG ============ -->
-  <div class="velocity" aria-hidden="true"><div class="velocity-track"><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span></div></div>
-  <section class="skins" id="skin" aria-labelledby="skin-title">
-    <div class="skins-sticky">
-      <div class="section-head">
-        <p class="kicker">02 / SKIN SHELF — SCROLL DOWN TO SLIDE</p>
-        <h2 id="skin-title" data-split>67 skins.<br>Pick one.</h2>
-        <p class="section-sub" data-blur>Scroll down and the shelf slides sideways. Click a mouse to zoom in.</p>
+    <!-- ================= 05 / 3D INTERACTIVE LIQUID GLASS BENTO SPECS ================= -->
+    <section class="specs-bento scroll-3d-section" id="specs" aria-labelledby="specs-title">
+      <div class="section-header">
+        <p class="kicker-pill liquid-pill">05 · INTERACTIVE TELEMETRY MATRIX</p>
+        <h2 id="specs-title" class="section-title" data-split>Every Number <em>Verified.</em></h2>
+        <p class="section-sub">Test the live hardware math directly inside these 3D Liquid Glass cards.</p>
       </div>
-      <div class="skins-viewport">
-        <div class="skins-track" id="skinsTrack" role="list" aria-label="All 67 mouse skins">
-          <!-- figures injected by app.js from SKINS data -->
+
+      <div class="bento-grid">
+        <!-- Bento 1: Interactive DPI Stage Simulator -->
+        <article class="bento-card span-2 liquid-glass" data-tilt3d>
+          <div class="bento-top">
+            <div>
+              <span class="bento-kicker">OPTICAL RESOLUTION · PIXART PAW3311</span>
+              <p class="bento-big"><span data-count="12000" id="bentoDpiNum">12,000</span> <small>DPI</small></p>
+            </div>
+            <span class="bento-chip liquid-pill" id="bentoDpiStageTag">STAGE 6 / 6</span>
+          </div>
+          <p class="bento-desc">6 hardware-stored stages (50–50,000 protocol range, 800–12,000 native sweet spot). Click a stage below to preview live sensitivity scaling:</p>
+          <div class="interactive-pills" id="bentoDpiPills" role="group" aria-label="Preview DPI stages">
+            <button type="button" class="sim-pill" data-dpi="800" data-stage="1">800</button>
+            <button type="button" class="sim-pill" data-dpi="1600" data-stage="2">1,600</button>
+            <button type="button" class="sim-pill" data-dpi="2400" data-stage="3">2,400</button>
+            <button type="button" class="sim-pill" data-dpi="3200" data-stage="4">3,200</button>
+            <button type="button" class="sim-pill" data-dpi="6400" data-stage="5">6,400</button>
+            <button type="button" class="sim-pill active" data-dpi="12000" data-stage="6">12,000</button>
+          </div>
+          <div class="glass-meter" aria-hidden="true"><i id="bentoDpiBar" style="width: 100%"></i></div>
+        </article>
+
+        <!-- Bento 2: Interactive Polling Rate & Runtime Calculator -->
+        <article class="bento-card liquid-glass" data-tilt3d>
+          <div class="bento-top">
+            <div>
+              <span class="bento-kicker">REPORT RATE &amp; RUNTIME</span>
+              <p class="bento-big"><span id="bentoHzNum" data-count="1000">1,000</span> <small>Hz</small></p>
+            </div>
+            <span class="bento-chip liquid-pill" id="bentoLatencyTag">1.0 ms</span>
+          </div>
+          <p class="bento-desc">Select a 2.4 GHz polling rate to calculate real current draw &amp; estimated battery life:</p>
+          <div class="interactive-pills compact" id="bentoHzPills" role="group" aria-label="Simulate polling rate">
+            <button type="button" class="sim-pill" data-hz="125" data-ms="8.0 ms" data-ma="3 mA" data-hrs="133.3 hrs">125</button>
+            <button type="button" class="sim-pill" data-hz="250" data-ms="4.0 ms" data-ma="5 mA" data-hrs="80.0 hrs">250</button>
+            <button type="button" class="sim-pill" data-hz="500" data-ms="2.0 ms" data-ma="8 mA" data-hrs="50.0 hrs">500</button>
+            <button type="button" class="sim-pill active" data-hz="1000" data-ms="1.0 ms" data-ma="14 mA" data-hrs="28.6 hrs">1000</button>
+          </div>
+          <div class="calc-readout liquid-pill">
+            <span>Draw: <b id="bentoMa">14 mA</b></span>
+            <span>Runtime: <b id="bentoHrs">28.6 hrs</b></span>
+          </div>
+        </article>
+
+        <!-- Bento 3: Tri-Mode Connectivity -->
+        <article class="bento-card liquid-glass" data-tilt3d>
+          <span class="bento-kicker">TRI-MODE ARCHITECTURE</span>
+          <p class="bento-big"><span data-count="3">3</span> <small>Modes</small></p>
+          <h3>2.4 GHz · USB-C · BT</h3>
+          <p class="bento-desc">Automatic transport detection including simultaneous USB-C cable charge sensing while gaming wireless over the 2.4 GHz receiver.</p>
+        </article>
+
+        <!-- Bento 4: 6-Button Remap & Macro Engine -->
+        <article class="bento-card liquid-glass" data-tilt3d>
+          <span class="bento-kicker">ONBOARD MEMORY</span>
+          <p class="bento-big"><span data-count="6">6</span> <small>Buttons</small></p>
+          <h3>Remap + Delta Macros</h3>
+          <p class="bento-desc">Bind mouse actions, modifier shortcuts, or high-precision macros recorded with real <code>performance.now()</code> keystroke deltas.</p>
+        </article>
+
+        <!-- Bento 5: Featherweight Cross-Platform Rust Core -->
+        <article class="bento-card liquid-glass" data-tilt3d>
+          <span class="bento-kicker">NATIVE TAURI 2 ENGINE</span>
+          <p class="bento-big"><span data-count="18">18</span> <small>MB</small></p>
+          <h3>Win · macOS · Linux</h3>
+          <p class="bento-desc">20× lighter than bloated OEM suites. Silent in-app self-updater, system tray battery widget, and Lite Mode for low-spec laptops.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ================= 06 / 3D INTERACTIVE LIQUID GLASS DRIVER STUDIO ================= -->
+    <section class="driver-studio scroll-3d-section" id="driver" aria-labelledby="driver-title">
+      <div class="section-header">
+        <p class="kicker-pill liquid-pill">06 · LIVE 3D DESKTOP STUDIO · 100% ENGLISH UI</p>
+        <h2 id="driver-title" class="section-title" data-split>Desktop Control, <em>Refracted.</em></h2>
+        <p class="section-sub">Interact with the live driver interface below — click tabs, trigger mouse button callouts, or test 100% Battery Sync to watch real 64-byte WebHID packets synthesize on the fly.</p>
+      </div>
+
+      <div class="studio-perspective">
+        <div class="studio-window liquid-glass" id="studioWindow">
+          <!-- Window Top Bar -->
+          <div class="studio-topbar">
+            <div class="win-dots" aria-hidden="true">
+              <i class="wd-red"></i><i class="wd-amber"></i><i class="wd-green"></i>
+            </div>
+            <div class="studio-brand">
+              <img src="assets/brand-logo.png" alt="" width="96" height="25">
+              <span class="studio-ver liquid-pill">v3.0.13-rust · LIVE SIMULATOR</span>
+            </div>
+            <div class="studio-conn liquid-pill">
+              <span class="conn-active">2.4GHz</span>
+              <span>USB-C</span>
+              <span>BT</span>
+            </div>
+          </div>
+
+          <!-- Window Body -->
+          <div class="studio-body">
+            <!-- Left Navigation Rail -->
+            <aside class="studio-rail" role="tablist" aria-label="Driver Studio preview tabs">
+              <button type="button" role="tab" aria-selected="true" class="rail-tab active" data-stab="dashboard">Dashboard</button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="keys">Key Bindings</button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="dpi">DPI &amp; Sensor</button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="macro">Macro Studio</button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="battery">Battery &amp; Sync</button>
+            </aside>
+
+            <!-- Center Interactive Telemetry + Mouse Hotspot Stage -->
+            <div class="studio-stage">
+              <div class="studio-metrics">
+                <div class="s-metric liquid-glass">
+                  <span>ACTIVE DPI</span>
+                  <strong id="stDpiVal">1,600 DPI</strong>
+                  <small id="stDpiSub">Stage 2 of 6 · PAW3311</small>
+                </div>
+                <div class="s-metric liquid-glass">
+                  <span>POLLING RATE</span>
+                  <strong id="stHzVal">1,000 Hz</strong>
+                  <small>1.0 ms · 2.4 GHz Receiver</small>
+                </div>
+                <div class="s-metric liquid-glass">
+                  <span>BATTERY (ESTIMATED)</span>
+                  <strong id="stBatVal">94.8%</strong>
+                  <button type="button" class="mini-sync-btn" id="stSyncBtn">⚡ Sync 100%</button>
+                </div>
+                <div class="s-metric liquid-glass">
+                  <span>FIRMWARE</span>
+                  <strong>v2.1.3</strong>
+                  <small>FR2012A · Checksum OK</small>
+                </div>
+              </div>
+
+              <div class="studio-mouse-canvas">
+                <div class="studio-panel-info liquid-glass" id="studioPanelInfo">
+                  <span class="sp-kicker" id="spKicker">INTERACTIVE BUTTON MAP</span>
+                  <h3 id="spTitle">Click Any Pin on the Mouse</h3>
+                  <p id="spDesc">Every button write builds a 64-byte <code>[240, 9, 165, 34, ...]</code> HID report, computes the mod-256 checksum, and verifies persistence with a live read-back.</p>
+                  <div class="sp-quick-actions" id="spActions">
+                    <button type="button" class="sim-pill active" data-preset="gaming">Gaming 3200 DPI</button>
+                    <button type="button" class="sim-pill" data-preset="office">Office 1600 DPI</button>
+                    <button type="button" class="sim-pill" data-preset="sniper">Design 800 DPI</button>
+                  </div>
+                </div>
+
+                <div class="studio-mouse-figure">
+                  <img id="studioMouseImg" src="assets/mouse-hero.webp" alt="Interactive M3 Pro button map" width="320" height="565" loading="lazy">
+                  <button type="button" class="hotspot-pin hp-left active" data-pin="Left Click" data-hex="F0 09 A5 22 2C 01 00 00"><span>Left Click</span></button>
+                  <button type="button" class="hotspot-pin hp-right" data-pin="Right Click" data-hex="F0 09 A5 22 2C 02 00 00"><span>Right Click</span></button>
+                  <button type="button" class="hotspot-pin hp-middle" data-pin="Middle Wheel" data-hex="F0 09 A5 22 2C 04 00 00"><span>Middle Scroll</span></button>
+                  <button type="button" class="hotspot-pin hp-dpi" data-pin="DPI Cycle (Fixed)" data-hex="F0 0F AE 0A 2F 03 40 06"><span>DPI Cycle</span></button>
+                  <button type="button" class="hotspot-pin hp-fwd" data-pin="Side 1 · Ctrl+C" data-hex="F0 09 A5 22 2C 01 06 00"><span>Forward · Copy</span></button>
+                  <button type="button" class="hotspot-pin hp-back" data-pin="Side 2 · Ctrl+V" data-hex="F0 09 A5 22 2C 01 19 00"><span>Back · Paste</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live 64-Byte WebHID Hex Packet Inspector Bar -->
+          <div class="studio-hexbar">
+            <span class="hex-status"><i class="live-dot"></i> WEBHID 64B WIRE</span>
+            <code id="studioHexOut">TX [64B] → F0 0F AE 0A 2F 03 40 06 00 00 00 ... · CHK 0x8B MATCHED</code>
+            <span class="hex-verified" id="studioVerifyTag">✓ ROUND-TRIP VERIFIED</span>
+          </div>
         </div>
       </div>
-      <div class="skins-progress">
-        <span class="skins-counter" id="skinsCounter" aria-live="polite">01 / 67</span>
-        <div class="skins-bar" aria-hidden="true"><i id="skinsBarFill"></i></div>
-        <span class="skins-name" id="skinsName">Default</span>
+    </section>
+
+    <!-- ================= VELOCITY LIQUID GLASS RIBBON 02 ================= -->
+    <div class="glass-marquee liquid-glass" aria-hidden="true">
+      <div class="marquee-track reverse">
+        <span>WINDOWS X64 INSTALLER &amp; PORTABLE &bull; MACOS DMG &amp; APP BUNDLE &bull; LINUX APPIMAGE &amp; DEB &bull; OPEN SOURCE MIT &bull;&nbsp;</span>
+        <span>WINDOWS X64 INSTALLER &amp; PORTABLE &bull; MACOS DMG &amp; APP BUNDLE &bull; LINUX APPIMAGE &amp; DEB &bull; OPEN SOURCE MIT &bull;&nbsp;</span>
+        <span>WINDOWS X64 INSTALLER &amp; PORTABLE &bull; MACOS DMG &amp; APP BUNDLE &bull; LINUX APPIMAGE &amp; DEB &bull; OPEN SOURCE MIT &bull;&nbsp;</span>
       </div>
     </div>
-    <div class="skin-detail" id="skinDetail" hidden role="dialog" aria-modal="true" aria-labelledby="skinDetailName">
-      <button class="skin-close" id="skinClose" type="button" aria-label="Close skin zoom">✕ CLOSE</button>
-      <div class="skin-detail-body">
-        <img id="skinDetailImg" src="assets/mouse-hero.webp" alt="" width="472" height="834">
-        <div class="skin-detail-meta">
-          <p class="kicker" id="skinDetailId">DEFAULT</p>
-          <h3 id="skinDetailName">Default</h3>
-          <p>Change it in the app: Dashboard → Mouse Skin. A skin only changes the look — it never touches the real mouse.</p>
-          <a class="btn btn-primary" href="#tai-xuong">Download the driver to use this skin</a>
+
+    <!-- ================= 07 / MULTI-PLATFORM 3D LIQUID GLASS DOWNLOAD VAULT ================= -->
+    <section class="download-vault scroll-3d-section" id="download" aria-labelledby="download-title">
+      <div class="download-shell liquid-glass">
+        <div class="download-copy">
+          <p class="kicker-pill liquid-pill">07 · FREE &amp; OPEN-SOURCE RELEASE · v3.0.13</p>
+          <h2 id="download-title" class="section-title" data-split>One Driver. <em>Every OS.</em></h2>
+          <p class="download-sub">
+            Latest stable release <b>v3.0.13-rust</b> · Clean-room Tauri 2 + Rust architecture · Zero telemetry, zero accounts, zero bloat.
+          </p>
+
+          <!-- 3 Native OS Liquid Glass Cards -->
+          <div class="os-cards-grid">
+            <div class="os-card liquid-glass">
+              <div class="os-head">
+                <span class="os-badge">🪟 WINDOWS 10 / 11 (x64)</span>
+                <span class="os-size">~18 MB</span>
+              </div>
+              <p>Native WebView2 + silent in-app self-updater &amp; system tray battery popup.</p>
+              <div class="os-links">
+                <a class="os-btn primary magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe">
+                  Download .setup.exe
+                </a>
+                <a class="os-btn ghost magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64.zip">
+                  Portable .zip
+                </a>
+              </div>
+            </div>
+
+            <div class="os-card liquid-glass">
+              <div class="os-head">
+                <span class="os-badge">🍎 MACOS</span>
+                <span class="os-size">.dmg + .app</span>
+              </div>
+              <p>Retina ICNS bundle &amp; portable zipped <code>.app</code> built automatically via CI.</p>
+              <div class="os-links">
+                <a class="os-btn primary magnetic" href="https://github.com/huyzoz/Smail-Wolf-M3-Pro/actions" target="_blank" rel="noopener">
+                  macOS .dmg / .app
+                </a>
+                <a class="os-btn ghost magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases" target="_blank" rel="noopener">
+                  All Releases ↗
+                </a>
+              </div>
+            </div>
+
+            <div class="os-card liquid-glass">
+              <div class="os-head">
+                <span class="os-badge">🐧 LINUX (amd64)</span>
+                <span class="os-size">.AppImage + .deb</span>
+              </div>
+              <p>Portable single-file AppImage &amp; Debian installer with SHA-256 verification.</p>
+              <div class="os-links">
+                <a class="os-btn primary magnetic" href="https://github.com/huyzoz/Smail-Wolf-M3-Pro/actions" target="_blank" rel="noopener">
+                  Linux .AppImage / .deb
+                </a>
+                <a class="os-btn ghost magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">
+                  Build from Source
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="download-meta-row">
+            <p class="smartscreen-note">
+              <b>Security &amp; Checksums:</b> Binaries are open-source and unsigned — if Windows SmartScreen prompts on first launch, verify <code>SHA256SUMS.txt</code> on GitHub and choose <em>More info → Run anyway</em>. Mouse stock firmware v2.1.3 is never flashed or modified.
+            </p>
+            <div class="community-row">
+              <a class="secondary-btn liquid-pill magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">
+                ★ Star on GitHub
+              </a>
+              <a class="secondary-btn liquid-pill magnetic" href="https://discord.gg/H6WkXburX" target="_blank" rel="noopener">
+                Join Discord Community
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating 3D Liquid Glass Mouse Showcase Pedestal -->
+        <div class="download-pedestal" aria-hidden="true">
+          <div class="pedestal-orb liquid-glass">
+            <img id="dlMouseImg" src="assets/skins/C07.webp" alt="" width="472" height="834" loading="lazy" decoding="async">
+            <div class="dl-orbit">
+              <svg viewBox="0 0 260 260" width="260" height="260">
+                <defs>
+                  <path id="dlOrbitPath" d="M 130, 130 m -106, 0 a 106,106 0 1,1 212,0 a 106,106 0 1,1 -212,0"/>
+                </defs>
+                <text>
+                  <textPath href="#dlOrbitPath">
+                    V3.0.13 RELEASE • WINDOWS • MACOS • LINUX • FREE &amp; OPEN SOURCE •
+                  </textPath>
+                </text>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
-  <!-- ============ CHIP ============ -->
-  <section class="chip" id="chip" aria-labelledby="chip-title">
-    <div class="chip-media">
-      <img src="assets/chip.webp" alt="Exploded diagram of a chip's layers: heat spreader, silicon die, substrate and circuit board" width="1200" height="782" loading="lazy" decoding="async">
-    </div>
-    <div class="chip-copy">
-      <p class="kicker">03 / THE CHIP INSIDE</p>
-      <h2 id="chip-title" data-split>Chip FR2012A.</h2>
-      <p class="chip-lede" data-sr>Everything in this driver was measured from the real chip. No guessing, no made-up specs. The FR2012 runs at 48 MHz, has 512 KB of flash, and an ADC channel that reads battery voltage — the only way software can know how much battery is left.</p>
-      <p class="rotating">Measured on the real mouse: <b id="rotWord">DPI 800–12000</b></p>
-      <dl class="chip-facts">
-        <div><dt>Chip</dt><dd>FR2012A · 48 MHz</dd></div>
-        <div><dt>Flash</dt><dd>512 KB</dd></div>
-        <div><dt>Battery sensing</dt><dd>10-bit ADC · channel 11</dd></div>
-        <div><dt>Stock firmware</dt><dd>v2.1.3 · untouched</dd></div>
-      </dl>
-      <p class="chip-note">This mouse has <b>no dedicated battery-gauge chip</b> — the battery level in the app is an estimate based on polling rate, not an absolute measurement. Saying it upfront so there is no misunderstanding.</p>
-    </div>
-  </section>
-
-  <!-- ============ THÔNG SỐ ============ -->
-  <section class="specs" id="thong-so" aria-labelledby="specs-title">
-    <canvas class="magnet" id="magnetSpecs" aria-hidden="true"></canvas>
-    <div class="section-head">
-      <p class="kicker">04 / SPECS — VERIFIED ON THE REAL MOUSE</p>
-      <h2 id="specs-title" data-split>Every number<br>has proof.</h2>
-    </div>
-    <div class="spec-grid">
-      <article class="spec-card">
-        <p class="spec-num"><span data-count="12000">0</span><small> DPI</small></p>
-        <h3>Max DPI</h3>
-        <p>6 steps: 800 · 1600 · 2400 · 3200 · 6400 · 12000. Switch with the DPI button on the mouse — the app reads the exact step in use.</p>
-        <div class="bar" aria-hidden="true"><i style="--w:100%"></i></div>
-      </article>
-      <article class="spec-card">
-        <p class="spec-num"><span data-count="1000">0</span><small> Hz</small></p>
-        <h3>Polling rate</h3>
-        <p>2.4G: 125 / 250 / 500 / 1000 Hz. Wired: 1000 Hz. Bluetooth: 125 Hz. The app shows the exact rate currently running.</p>
-        <div class="bar" aria-hidden="true"><i style="--w:82%"></i></div>
-      </article>
-      <article class="spec-card">
-        <p class="spec-num"><span data-count="500">0</span><small> mAh</small></p>
-        <h3>Battery <em>(estimated)</em></h3>
-        <p>500 mAh cell, ~400 mAh usable. The app estimates from polling rate: 125 Hz ≈ 133 hours, 1000 Hz ≈ 29 hours. The real low-battery signal is the blinking red LED.</p>
-        <div class="bar" aria-hidden="true"><i style="--w:64%"></i></div>
-      </article>
-      <article class="spec-card">
-        <p class="spec-num"><span data-count="3">0</span><small> modes</small></p>
-        <h3>Connection</h3>
-        <p>Type-C wired · 2.4G via dongle · Bluetooth. The app auto-detects the active mode — no manual switching.</p>
-        <div class="bar" aria-hidden="true"><i style="--w:45%"></i></div>
-      </article>
-      <article class="spec-card">
-        <p class="spec-num"><span data-count="6">0</span><small> keys</small></p>
-        <h3>Key mapping</h3>
-        <p>Remap 6 keys: left, right, middle, back, forward, DPI. The DPI button is fixed, same as the stock app — this driver does not break that rule.</p>
-        <div class="bar" aria-hidden="true"><i style="--w:72%"></i></div>
-      </article>
-      <article class="spec-card">
-        <p class="spec-num"><span data-count="67">0</span><small> skins</small></p>
-        <h3>Mouse skins</h3>
-        <p>67 skins ready for the 3D model in the app. Changing a skin never touches the real mouse — it is just the interface.</p>
-        <div class="bar" aria-hidden="true"><i style="--w:90%"></i></div>
-      </article>
-    </div>
-  </section>
-
-  <!-- ============ DRIVER APP ============ -->
-  <section class="driver" id="driver" aria-labelledby="driver-title">
-    <div class="driver-copy">
-      <p class="kicker">05 / DRIVER APP — REALLY RUNS ON WINDOWS</p>
-      <h2 id="driver-title" data-split>App v3.0.6.</h2>
-      <p class="driver-lede" data-sr>The screenshot below is app v3.0.6 running on Windows, connected to the real mouse over the 2.4G dongle. Every number is read from the mouse over USB HID — none of it is typed in by hand.</p>
-      <ul class="driver-list">
-        <li><b>Key mapping</b> — remap 6 keys, saved straight to the mouse.</li>
-        <li><b>DPI + Polling</b> — change steps and rates, written back to onboard memory.</li>
-        <li><b>Estimated battery</b> — drains with real usage time, never resets to 100%.</li>
-        <li><b>Self-update</b> — it tells you when a new version is out; one click downloads it, kills the old app and opens the new installer.</li>
-        <li><b>67 skins</b> — change the look of the 3D model in the app.</li>
-      </ul>
-    </div>
-    <figure class="driver-shot tilt" data-tilt>
-      <img src="assets/app-ui.webp" alt="Driver app v3.0.6 running: key mapping, DPI 1600, polling 125 Hz, estimated battery 100%, firmware 2.1.3" width="1280" height="720" loading="lazy" decoding="async">
-      <figcaption>App v3.0.6 · connected to the real mouse · real screenshot, not staged</figcaption>
-    </figure>
-  </section>
-
-  <div class="ribbon" aria-hidden="true"></div>
-
-  <!-- ============ DOWNLOAD ============ -->
-  <div class="velocity" aria-hidden="true"><div class="velocity-track"><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span><span>SMAILWOLF M3 PRO &bull; 12000 DPI &bull; 1000 HZ &bull; 67 SKINS &bull;&nbsp;</span></div></div>
-  <section class="download" id="tai-xuong" aria-labelledby="download-title">
-    <canvas class="galaxy" id="galaxyDownload" aria-hidden="true"></canvas>
-    <div class="aurora" aria-hidden="true"><i class="aurora-a"></i><i class="aurora-b"></i></div>
-    <div class="download-card">
-      <div class="download-copy">
-        <p class="kicker">06 / DOWNLOAD — FREE, NO ACCOUNT</p>
-        <h2 id="download-title" class="shiny" data-sr>Download. Plug in. Done.</h2>
-        <p class="download-sub">Latest build <b>v3.0.6-rust</b> · released 09/11/2026 · Windows 10/11 64-bit.</p>
-        <div class="download-btns">
-          <a class="btn btn-primary btn-lg star-border magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.6-rust/SMAILWOLF-M3-Pro-Driver_3.0.6_x64-setup.exe">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 19h16"/></svg>
-            Download .setup · 17.8 MB
-          </a>
-          <a class="btn btn-ghost btn-lg magnetic" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.6-rust/SMAILWOLF-M3-Pro-Driver_3.0.6_x64.zip">Portable build · .zip</a>
-        </div>
-        <p class="download-sha">SHA-256 .setup: <code title="614261efac40b8e5456714bd3d97ba615a52346534f136d454f9d4aacfffa8fb">614261efac40b8e5…</code> · <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/tag/v3.0.6-rust" target="_blank" rel="noopener">see the full list on GitHub ↗</a></p>
-        <p class="download-note">The installer is <b>unsigned</b>, so Windows SmartScreen will warn — check the SHA-256, then click “Run anyway”. The app does <b>not</b> update mouse firmware and never touches your data.</p>
-        <div class="download-community">
-          <a class="btn btn-discord btn-lg magnetic" href="https://discord.gg/H6WkXburX" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.2a18 18 0 0 0-5.5 0L8.6 3a19.7 19.7 0 0 0-4.9 1.5A20.4 20.4 0 0 0 .2 18.1a19.9 19.9 0 0 0 6 3l1.3-2.1a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.1 0l.5.4a12.9 12.9 0 0 1-2 1l1.2 2.1a19.8 19.8 0 0 0 6-3A20.3 20.3 0 0 0 20.3 4.4ZM8 15.3c-1.2 0-2.1-1-2.1-2.3S6.8 10.7 8 10.7s2.2 1 2.1 2.3c0 1.2-.9 2.3-2.1 2.3Zm8 0c-1.2 0-2.1-1-2.1-2.3s.9-2.3 2.1-2.3 2.2 1 2.1 2.3c0 1.2-.9 2.3-2.1 2.3Z"/></svg>
-            Join Discord — Q&A, bug reports, skin requests
-          </a>
-        </div>
+  <!-- ================= MONUMENTAL LIQUID GLASS FOOTER ================= -->
+  <footer class="site-footer">
+    <div class="footer-grid liquid-glass">
+      <div class="footer-col">
+        <img src="assets/brand-logo.png" alt="SMAILWOLF" class="footer-logo" width="148" height="38" loading="lazy">
+        <p>Clean-room desktop driver remake for the SMAILWOLF M3 Pro wireless mouse (PAW3311 · FR2012A · FW 2.1.3). Built with Tauri 2, Rust, and WebHID.</p>
       </div>
-      <div class="download-mouse" aria-hidden="true">
-        <img src="assets/mouse-hero.webp" alt="" width="472" height="834" loading="lazy" decoding="async">
-        <div class="circ-badge"><span>DOWNLOAD &#8226; V3.0.6 &#8226; FREE &#8226; WINDOWS &#8226;&nbsp;</span></div>
+      <div class="footer-col">
+        <h4>NAVIGATION</h4>
+        <a href="#hero">3D Interactive Stage</a>
+        <a href="#anatomy">121-Frame Anatomy</a>
+        <a href="#skins">67 Skin Coverflow</a>
+        <a href="#driver">Live Driver Studio</a>
+      </div>
+      <div class="footer-col">
+        <h4>OPEN SOURCE</h4>
+        <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">GitHub Repository (duyzoz)</a>
+        <a href="https://github.com/huyzoz/Smail-Wolf-M3-Pro/actions" target="_blank" rel="noopener">Multi-OS CI Builds (huyzoz)</a>
+        <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases" target="_blank" rel="noopener">Release Changelog &amp; SHA-256</a>
+        <a href="https://discord.gg/H6WkXburX" target="_blank" rel="noopener">Discord Support &amp; Skin Requests</a>
       </div>
     </div>
-  </section>
-</main>
 
-<footer class="footer">
-  <canvas class="galaxy" id="galaxyFooter" aria-hidden="true"></canvas>
-  <div class="footer-inner">
-    <div>
-      <p class="footer-brand">SMAILWOLF <b>M3 PRO</b> · DRIVER REMAKE</p>
-      <p>A clean-room remake from the HID protocol measured on the real mouse — no source code, no assets taken from the stock app. Protocol measured from stock app v1.3.2, firmware baseline 2.1.3.</p>
-    </div>
-    <div>
-      <p class="footer-head">LINKS</p>
-      <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">GitHub — source code</a>
-      <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases" target="_blank" rel="noopener">All releases</a>
-      <a href="https://discord.gg/H6WkXburX" target="_blank" rel="noopener">Discord</a>
-    </div>
-    <div>
-      <p class="footer-head">MOTION</p>
-      <p>Motion language follows React Bits (SplitText, BlurText, ScrollReveal, TiltedCard) — effects reused, no 3D models. No heavy WebGL, no animation libraries — smooth even on weak machines.</p>
-    </div>
+    <p class="footer-wordmark" aria-hidden="true">SMAILWOLF</p>
+    <p class="footer-legal">© 2026 ZoZ Engineering · Independent clean-room open-source project; SMAILWOLF is a trademark of its respective hardware manufacturer.</p>
+  </footer>
+
+  <!-- Floating Liquid Glass Back-to-Top Ring -->
+  <button type="button" id="toTop" class="to-top liquid-glass" aria-label="Scroll back to top">
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <circle class="tt-bg" cx="24" cy="24" r="20"/>
+      <circle class="tt-fg" id="toTopRing" cx="24" cy="24" r="20"/>
+    </svg>
+    <span aria-hidden="true">↑</span>
+  </button>
+
+  <!-- Optical SVG Filters for Liquid Glass Refraction -->
+  <svg class="optical-svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="frosted" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.0125" numOctaves="3" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="28" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Preload Key Edition Cutouts for Instant Zero-Lag 720° Spin Swap -->
+  <div class="preload-vault" aria-hidden="true">
+    <img src="assets/skins/A03.webp" alt="">
+    <img src="assets/skins/F02.webp" alt="">
+    <img src="assets/skins/C07.webp" alt="">
   </div>
-  <p class="footer-copy">© 2026 ZoZ Development · SMAILWOLF is the manufacturer's trademark; this driver is an independent remake, not affiliated with the manufacturer.</p>
-</footer>
 
-<div id="imgTrail" aria-hidden="true"></div>
-<button id="toTop" class="to-top" aria-label="Back to top" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><circle class="tt-ring-bg" cx="24" cy="24" r="21"/><circle class="tt-ring" cx="24" cy="24" r="21"/></svg><span aria-hidden="true">&uarr;</span></button>
-<canvas id="clickSparks" aria-hidden="true"></canvas>
-<div id="cursorGlow" aria-hidden="true"></div>
-<script src="app.js" defer></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
