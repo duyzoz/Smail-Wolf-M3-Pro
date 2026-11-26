@@ -1205,8 +1205,10 @@ body:not(.is-light-tone) .rig-ground-shadow {
   display: inline-block;
   overflow: clip;
   vertical-align: bottom;
-  padding-bottom: 0.08em;
-  margin-bottom: -0.08em;
+  padding-bottom: 0.18em;
+  margin-bottom: -0.18em;
+  padding-right: 0.08em;
+  margin-right: -0.04em;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -2672,7 +2674,7 @@ body.motion-paused .scroll-capsule-track i {
   .anatomy-3d-frame { width: min(100%, 840px, calc((100svh - 10.5rem) * 1.777)); }
 }
 
-/* Tablet & Compact Viewports (< 1040px) — Zero Hidden Nav, Zero DOM-Order Flip! */
+/* Tablet & Compact Viewports (< 1040px) — Zero Hidden Nav, Zero DOM-Order Flip, Zero Orb Behind Stacked Text! */
 @media (max-width: 1040px) {
   html { scroll-padding-top: 7.5rem; }
 
@@ -2683,8 +2685,14 @@ body.motion-paused .scroll-capsule-track i {
 
   .nav-capsule {
     order: 3;
-    width: 100%;
+    flex: 1 1 100%;
+    min-width: 0;
     justify-content: flex-start;
+  }
+
+  .orbs-container,
+  .orbs-container-bg {
+    display: none;
   }
 
   .hero {
