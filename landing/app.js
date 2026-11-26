@@ -160,6 +160,7 @@
      Runs ONLY on the 1-2 elements currently touched/settling -> 0% idle CPU!
      ------------------------------------------------------------------------ */
   const LIQUID_SELECTOR = [
+    '.liquid-taskbar-dock',
     '.brand-pill',
     '.nav-capsule',
     '.motion-toggle',
@@ -339,11 +340,12 @@
         // large panels pull & stretch subtly so edges stay crisp inside the viewport!
         const diag = Math.sqrt(r.width * r.width + r.height * r.height);
         const isLarge = diag > 540;
+        const isTaskbarDock = el.classList && el.classList.contains('liquid-taskbar-dock');
         const isParentWithHoveredChild = i === 1;
 
-        const pullAmp = isParentWithHoveredChild ? 4.5 : (isLarge ? 7.5 : 11.5);
-        const stretchAmp = isParentWithHoveredChild ? 0.014 : (isLarge ? 0.022 : 0.056);
-        const skewAmp = isParentWithHoveredChild ? 0.5 : (isLarge ? 0.85 : 2.1);
+        const pullAmp = isTaskbarDock ? 3.8 : (isParentWithHoveredChild ? 4.5 : (isLarge ? 7.5 : 11.5));
+        const stretchAmp = isTaskbarDock ? 0.013 : (isParentWithHoveredChild ? 0.014 : (isLarge ? 0.022 : 0.056));
+        const skewAmp = isTaskbarDock ? 0.38 : (isParentWithHoveredChild ? 0.5 : (isLarge ? 0.85 : 2.1));
 
         st.targetTx = nx * pullAmp;
         st.targetTy = ny * pullAmp;
@@ -453,6 +455,7 @@
           el.style.transform = '';
         });
         activeLiquidEls.clear();
+        snapAllLiquidDocks();
       } else {
         wakeHeroLoop();
       }
@@ -460,43 +463,409 @@
   }
 
   /* ------------------------------------------------------------------------
-     4. CONTRAST-PROOF LIQUID GLASS TASKBAR GLIDER
+     4. UNIVERSAL 2-LAYER IOS 26 VISCOUS WATER-DROPLET TASKBAR ENGINE
+     - Frame 1 (.liquid-taskbar-dock): Crystal Water-Glass Dock Channel
+     - Hover Preview (.liquid-dock-ghost): Soft misty guide on non-active tabs
+       (NEVER steals or moves the active droplet before clicking!)
+     - Frame 2 (.liquid-dock-droplet): Convex Water-Lens Capsule protruding
+       outside Frame 1 that sucks & stretches like viscous liquid water on click!
      ------------------------------------------------------------------------ */
   const siteHeader = document.getElementById('siteHeader');
-  const navGlider = document.getElementById('navGlider');
-  const navItems = Array.from(document.querySelectorAll('.nav-item'));
+  const dockControllers = new Map();
+  const activeDocks = new Set();
+  let dockLoopRunning = false;
+  let lastDockTickTime = 0;
 
-  function syncNavGlider(targetItem) {
-    const active = targetItem || document.querySelector('.nav-item.active');
-    if (!active || !navGlider || !active.offsetWidth) return;
-    navGlider.style.width = `${active.offsetWidth}px`;
-    navGlider.style.transform = `translate3d(${active.offsetLeft - 5}px, 0, 0)`;
+  function renderDockDropletImmediate(st) {
+    const left = Math.min(st.posA, st.posB);
+    const span = Math.max(24, Math.abs(st.posB - st.posA));
+    if (st.isVertical) {
+      st.droplet.style.width = '';
+      st.droplet.style.height = `${span.toFixed(2)}px`;
+      st.droplet.style.transform = `translate3d(0, ${left.toFixed(2)}px, 0) scaleX(1)`;
+    } else {
+      st.droplet.style.height = '';
+      st.droplet.style.width = `${span.toFixed(2)}px`;
+      st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scaleY(1)`;
+    }
+    st.droplet.style.setProperty('--flow-shift', '0%');
+    st.droplet.style.setProperty('--flow-energy', '0');
   }
 
+  function dockPhysicsTick(now) {
+    if (!activeDocks.size || document.hidden) {
+      dockLoopRunning = false;
+      lastDockTickTime = 0;
+      return;
+    }
+    if (motionPaused) {
+      snapAllLiquidDocks();
+      dockLoopRunning = false;
+      lastDockTickTime = 0;
+      return;
+    }
+
+    dockLoopRunning = true;
+    const rawDt = lastDockTickTime ? (now - lastDockTickTime) / 1000 : 1 / 60;
+    lastDockTickTime = now;
+    const dt = clamp(rawDt, 0.004, 0.034);
+    const h = dt * 0.5;
+
+    activeDocks.forEach((st) => {
+      // Leading edge reaches out immediately with capillary suction;
+      // trailing edge stretches into a glossy water bridge & coalesces smoothly (~0.82s)!
+      const stiffLead = 188;
+      const dampLead = 23.2;
+      const stiffTrail = 43.5;
+      const dampTrail = 9.4;
+
+      const stiffA = st.dir >= 0 ? stiffTrail : stiffLead;
+      const dampA = st.dir >= 0 ? dampTrail : dampLead;
+      const stiffB = st.dir >= 0 ? stiffLead : stiffTrail;
+      const dampB = st.dir >= 0 ? dampLead : dampTrail;
+
+      for (let s = 0; s < 2; s++) {
+        const accA = (st.targetA - st.posA) * stiffA - st.velA * dampA;
+        st.velA += accA * h;
+        st.posA += st.velA * h;
+
+        const accB = (st.targetB - st.posB) * stiffB - st.velB * dampB;
+        st.velB += accB * h;
+        st.posB += st.velB * h;
+
+        const accSw = (0 - st.swell) * 96 - st.velSwell * 10.6;
+        st.velSwell += accSw * h;
+        st.swell += st.velSwell * h;
+      }
+
+      const naturalSpan = Math.max(26, st.targetB - st.targetA);
+      const left = Math.min(st.posA, st.posB);
+      const curSpan = Math.max(24, Math.abs(st.posB - st.posA));
+      const stretch = Math.max(0, (curSpan - naturalSpan) / naturalSpan);
+
+      // Coalesce plump: as trailing edge rushes in & bridge contracts, water bulges proud!
+      const trailSpeed = Math.abs(st.dir >= 0 ? st.velA : st.velB);
+      const nearTarget = Math.abs((st.dir >= 0 ? st.targetA - st.posA : st.targetB - st.posB)) < naturalSpan * 0.55;
+      const arrivalPlump = nearTarget ? Math.min(0.085, (trailSpeed / 950) * 0.09) : 0;
+      const neckPinch = Math.min(0.11, stretch * 0.055);
+      const crossScale = clamp(1 + st.swell + arrivalPlump - neckPinch, 0.89, 1.18);
+
+      const avgVel = (st.velA + st.velB) * 0.5;
+      const flowShift = clamp(avgVel * 0.042, -34, 34);
+      const flowEnergy = clamp(Math.abs(avgVel) / 260 + stretch * 0.6 + Math.abs(st.swell) * 2.4, 0, 1);
+
+      const settled =
+        Math.abs(st.targetA - st.posA) < 0.14 &&
+        Math.abs(st.targetB - st.posB) < 0.14 &&
+        Math.abs(st.velA) < 1.2 &&
+        Math.abs(st.velB) < 1.2 &&
+        Math.abs(st.swell) < 0.002 &&
+        Math.abs(st.velSwell) < 0.02;
+
+      if (settled) {
+        st.posA = st.targetA;
+        st.posB = st.targetB;
+        st.velA = 0;
+        st.velB = 0;
+        st.swell = 0;
+        st.velSwell = 0;
+        renderDockDropletImmediate(st);
+        activeDocks.delete(st);
+      } else {
+        if (st.isVertical) {
+          st.droplet.style.width = '';
+          st.droplet.style.height = `${curSpan.toFixed(2)}px`;
+          st.droplet.style.transform = `translate3d(0, ${left.toFixed(2)}px, 0) scaleX(${crossScale.toFixed(4)})`;
+        } else {
+          st.droplet.style.height = '';
+          st.droplet.style.width = `${curSpan.toFixed(2)}px`;
+          st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scaleY(${crossScale.toFixed(4)})`;
+        }
+        st.droplet.style.setProperty('--flow-shift', `${flowShift.toFixed(1)}%`);
+        st.droplet.style.setProperty('--flow-energy', flowEnergy.toFixed(3));
+      }
+    });
+
+    if (activeDocks.size > 0) {
+      requestAnimationFrame(dockPhysicsTick);
+    } else {
+      dockLoopRunning = false;
+      lastDockTickTime = 0;
+    }
+  }
+
+  function wakeDockPhysics() {
+    if (!dockLoopRunning && !motionPaused && activeDocks.size > 0 && !document.hidden) {
+      dockLoopRunning = true;
+      lastDockTickTime = 0;
+      requestAnimationFrame(dockPhysicsTick);
+    }
+  }
+
+  function syncTabAccessibility(tabs, activeTab, isTablist) {
+    tabs.forEach((t) => {
+      const isActive = t === activeTab;
+      t.classList.toggle('active', isActive);
+      if (isTablist || t.getAttribute('role') === 'tab') {
+        t.setAttribute('aria-selected', String(isActive));
+        t.toggleAttribute('focusgroupstart', isActive);
+      } else if (t.tagName === 'A') {
+        if (isActive) t.setAttribute('aria-current', 'true');
+        else t.removeAttribute('aria-current');
+      } else if (t.tagName === 'BUTTON') {
+        t.setAttribute('aria-pressed', String(isActive));
+      }
+    });
+  }
+
+  function createLiquidDock(dockEl) {
+    const tabs = Array.from(dockEl.children).filter((c) => c.tagName === 'A' || c.tagName === 'BUTTON');
+    if (!tabs.length) return null;
+
+    let ghost = dockEl.querySelector(':scope > .liquid-dock-ghost');
+    if (!ghost) {
+      ghost = document.createElement('span');
+      ghost.className = 'liquid-dock-ghost';
+      ghost.setAttribute('aria-hidden', 'true');
+      dockEl.prepend(ghost);
+    }
+
+    let droplet = dockEl.querySelector(':scope > .liquid-dock-droplet');
+    if (!droplet) {
+      droplet = document.createElement('span');
+      droplet.className = 'liquid-dock-droplet';
+      droplet.setAttribute('aria-hidden', 'true');
+      ghost.after(droplet);
+    }
+
+    const isTablist = dockEl.getAttribute('role') === 'tablist';
+    const initialActive = tabs.find((t) => t.classList.contains('active')) || tabs[0];
+    syncTabAccessibility(tabs, initialActive, isTablist);
+
+    const st = {
+      dockEl,
+      tabs,
+      ghost,
+      droplet,
+      isTablist,
+      isVertical: false,
+      scrollable: false,
+      activeTab: initialActive,
+      hoveredTab: null,
+      initialized: false,
+      posA: 0,
+      posB: 72,
+      velA: 0,
+      velB: 0,
+      targetA: 0,
+      targetB: 72,
+      dir: 1,
+      swell: 0,
+      velSwell: 0
+    };
+
+    function getBoundsForTab(tab) {
+      if (st.isVertical) {
+        return [tab.offsetTop - 2, tab.offsetTop + tab.offsetHeight + 2];
+      }
+      const bleed = st.scrollable ? 1 : 3;
+      return [tab.offsetLeft - bleed, tab.offsetLeft + tab.offsetWidth + bleed];
+    }
+
+    function updateGhost(tab) {
+      st.hoveredTab = tab;
+      if (!tab || tab === st.activeTab || !tab.offsetWidth) {
+        ghost.style.opacity = '0';
+        return;
+      }
+      if (st.isVertical) {
+        ghost.style.width = '';
+        ghost.style.height = `${tab.offsetHeight}px`;
+        ghost.style.transform = `translate3d(0, ${tab.offsetTop}px, 0)`;
+      } else {
+        ghost.style.height = '';
+        ghost.style.width = `${tab.offsetWidth}px`;
+        ghost.style.transform = `translate3d(${tab.offsetLeft}px, 0, 0)`;
+      }
+      ghost.style.opacity = '1';
+    }
+
+    function measure(snapImmediate) {
+      const wasVertical = st.isVertical;
+      st.isVertical = getComputedStyle(dockEl).flexDirection === 'column';
+      dockEl.classList.toggle('is-vertical', st.isVertical);
+
+      if (!st.isVertical) {
+        dockEl.classList.remove('is-scrollable');
+        const last = tabs[tabs.length - 1];
+        const neededW = last ? last.offsetLeft + last.offsetWidth + 6 : 0;
+        st.scrollable = dockEl.clientWidth > 0 && neededW > dockEl.clientWidth + 2;
+        dockEl.classList.toggle('is-scrollable', st.scrollable);
+      } else {
+        st.scrollable = false;
+        dockEl.classList.remove('is-scrollable');
+      }
+
+      if (!st.activeTab || !st.activeTab.offsetWidth) return;
+      const [a, b] = getBoundsForTab(st.activeTab);
+      st.targetA = a;
+      st.targetB = b;
+
+      if (snapImmediate || !st.initialized || wasVertical !== st.isVertical || motionPaused) {
+        st.posA = a;
+        st.posB = b;
+        st.velA = 0;
+        st.velB = 0;
+        st.swell = 0;
+        st.velSwell = 0;
+        st.initialized = true;
+        renderDockDropletImmediate(st);
+      } else {
+        activeDocks.add(st);
+        wakeDockPhysics();
+      }
+
+      if (st.hoveredTab) updateGhost(st.hoveredTab);
+    }
+
+    function setActive(nextTab, opts = {}) {
+      if (!nextTab || !tabs.includes(nextTab)) return;
+      const changed = nextTab !== st.activeTab;
+      st.activeTab = nextTab;
+      syncTabAccessibility(tabs, nextTab, isTablist);
+
+      // Hide hover preview once that tab becomes the active droplet target
+      if (st.hoveredTab === nextTab) ghost.style.opacity = '0';
+
+      if (!nextTab.offsetWidth) {
+        measure(true);
+        return;
+      }
+
+      const [nextA, nextB] = getBoundsForTab(nextTab);
+      if (changed) {
+        st.dir = nextA >= st.posA ? 1 : -1;
+      }
+      st.targetA = nextA;
+      st.targetB = nextB;
+
+      // Scroll only the horizontal dock scroller (NEVER hijack page scroll!)
+      if (st.scrollable && opts.scrollDock !== false) {
+        const desiredLeft = nextTab.offsetLeft - (dockEl.clientWidth - nextTab.offsetWidth) * 0.5;
+        dockEl.scrollTo({
+          left: Math.max(0, desiredLeft),
+          behavior: motionPaused ? 'auto' : 'smooth'
+        });
+      }
+
+      if (opts.animate === false || motionPaused || !st.initialized) {
+        st.posA = nextA;
+        st.posB = nextB;
+        st.velA = 0;
+        st.velB = 0;
+        st.swell = 0;
+        st.velSwell = 0;
+        st.initialized = true;
+        activeDocks.delete(st);
+        renderDockDropletImmediate(st);
+      } else if (changed || Math.abs(nextA - st.posA) > 0.5 || Math.abs(nextB - st.posB) > 0.5) {
+        // Inject surface-tension plump impulse so the water droplet lifts & sucks smoothly!
+        st.velSwell = clamp(st.velSwell + 1.28, -2, 2.2);
+        activeDocks.add(st);
+        wakeDockPhysics();
+      }
+    }
+
+    tabs.forEach((tab, idx) => {
+      tab.addEventListener('pointerenter', () => updateGhost(tab));
+      tab.addEventListener('focus', () => {
+        if (tab !== st.activeTab) updateGhost(tab);
+      });
+      tab.addEventListener('blur', () => {
+        if (st.hoveredTab === tab) ghost.style.opacity = '0';
+      });
+      tab.addEventListener('click', () => {
+        setActive(tab, { animate: true, scrollDock: true });
+      });
+
+      if (isTablist && !('focusGroup' in HTMLElement.prototype)) {
+        tab.addEventListener('keydown', (ev) => {
+          const nextKeys = st.isVertical ? ['ArrowDown', 'ArrowRight'] : ['ArrowRight', 'ArrowDown'];
+          const prevKeys = st.isVertical ? ['ArrowUp', 'ArrowLeft'] : ['ArrowLeft', 'ArrowUp'];
+          let nextIdx = -1;
+          if (nextKeys.includes(ev.key)) nextIdx = (idx + 1) % tabs.length;
+          else if (prevKeys.includes(ev.key)) nextIdx = (idx - 1 + tabs.length) % tabs.length;
+          else if (ev.key === 'Home') nextIdx = 0;
+          else if (ev.key === 'End') nextIdx = tabs.length - 1;
+          if (nextIdx >= 0) {
+            ev.preventDefault();
+            tabs[nextIdx].focus();
+            tabs[nextIdx].click();
+          }
+        });
+      }
+    });
+
+    dockEl.addEventListener('pointerleave', () => updateGhost(null));
+    dockEl.classList.add('dock-ready');
+    measure(true);
+
+    const api = {
+      measure,
+      setActive,
+      getActive: () => st.activeTab
+    };
+    dockControllers.set(dockEl.id || dockEl, api);
+    return api;
+  }
+
+  function snapAllLiquidDocks() {
+    dockControllers.forEach((ctrl) => ctrl.measure(true));
+  }
+
+  document.querySelectorAll('[data-liquid-dock]').forEach((el) => createLiquidDock(el));
+
+  window.addEventListener('resize', debounce(() => {
+    dockControllers.forEach((ctrl) => ctrl.measure(true));
+  }, 120), { passive: true });
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      dockControllers.forEach((ctrl) => ctrl.measure(true));
+    });
+  }
+
+  const navDock = dockControllers.get('navCapsule');
+  const navItems = Array.from(document.querySelectorAll('.nav-item'));
+  let navClickLockUntil = 0;
+
   navItems.forEach((item) => {
-    item.addEventListener('mouseenter', () => syncNavGlider(item));
     item.addEventListener('click', () => {
-      navItems.forEach((n) => n.classList.remove('active'));
-      item.classList.add('active');
-      syncNavGlider(item);
+      // Lock scroll spy during smooth scroll so droplet sucks directly to clicked tab!
+      navClickLockUntil = performance.now() + 1150;
     });
   });
 
-  const navCapsule = document.getElementById('navCapsule');
-  if (navCapsule) navCapsule.addEventListener('mouseleave', () => syncNavGlider(null));
-
-  window.addEventListener('resize', debounce(() => syncNavGlider(null), 120), { passive: true });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncNavGlider(null));
-  syncNavGlider(null);
+  // Also sync top taskbar cleanly when in-page CTA / footer section anchors are clicked
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    if (anchor.classList.contains('nav-item')) return;
+    anchor.addEventListener('click', () => {
+      const secId = (anchor.getAttribute('href') || '').slice(1);
+      const match = navItems.find((n) => n.dataset.sec === secId);
+      if (match && navDock) {
+        navClickLockUntil = performance.now() + 1150;
+        navDock.setActive(match, { animate: true, scrollDock: true });
+      }
+    });
+  });
 
   const sectionSpy = new IntersectionObserver((entries) => {
+    if (performance.now() < navClickLockUntil) return;
     entries.forEach((entry) => {
       if (!entry.isIntersecting) return;
       const match = navItems.find((n) => n.dataset.sec === entry.target.id);
-      if (match) {
-        navItems.forEach((n) => n.classList.remove('active'));
-        match.classList.add('active');
-        syncNavGlider(match);
+      if (match && navDock && navDock.getActive() !== match) {
+        navDock.setActive(match, { animate: true, scrollDock: true });
       }
     });
   }, { rootMargin: '-36% 0px -52% 0px' });
@@ -851,9 +1220,15 @@
 
   window.addEventListener('resize', debounce(sizeDissectCanvas, 150), { passive: true });
 
-  phaseBtns.forEach((btn) => {
+  const anatomyPhaseDock = dockControllers.get('anatomyPhaseDock');
+  let phaseClickLockUntil = 0;
+  let lastAnatomyPhase = 0;
+
+  phaseBtns.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
       if (!anatomySection) return;
+      phaseClickLockUntil = performance.now() + 950;
+      lastAnatomyPhase = idx;
       const targetP = parseFloat(btn.dataset.jump) || 0;
       const travel = anatomySection.offsetHeight - window.innerHeight;
       window.scrollTo({
@@ -1230,16 +1605,28 @@
   const railTabs = Array.from(document.querySelectorAll('.rail-tab'));
   railTabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      railTabs.forEach((t) => {
-        const active = t === tab;
-        t.classList.toggle('active', active);
-        t.setAttribute('aria-selected', String(active));
-      });
       const info = STUDIO_TABS[tab.dataset.stab] || STUDIO_TABS.dashboard;
       if (spKicker) spKicker.textContent = info.kicker;
       if (spTitle) spTitle.textContent = info.title;
       if (spDesc) spDesc.textContent = info.desc;
       emitStudioHex(info.hex, info.note);
+    });
+  });
+
+  const connTabs = Array.from(document.querySelectorAll('.conn-tab'));
+  connTabs.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.conn || '2.4GHz';
+      if (mode === '2.4GHz') {
+        if (stHzVal) stHzVal.textContent = '1,000 Hz';
+        emitStudioHex('F0 ED 01 03 E8 00 00 00', '2.4GHZ DONGLE LINK');
+      } else if (mode === 'USB-C') {
+        if (stHzVal) stHzVal.textContent = '1,000 Hz';
+        emitStudioHex('F0 ED 02 03 E8 01 64 00', 'USB-C DIRECT + CHARGE');
+      } else {
+        if (stHzVal) stHzVal.textContent = '125 Hz';
+        emitStudioHex('F0 ED 03 00 7D 00 00 00', 'BLUETOOTH 5.2 LOW-POWER');
+      }
     });
   });
 
@@ -1344,7 +1731,14 @@
 
       const activePhase = p < 0.25 ? 0 : p < 0.52 ? 1 : p < 0.78 ? 2 : 3;
       calloutCards.forEach((c, ci) => c.classList.toggle('active', ci === activePhase));
-      phaseBtns.forEach((b, bi) => b.classList.toggle('active', bi === activePhase));
+      if (activePhase !== lastAnatomyPhase && performance.now() > phaseClickLockUntil) {
+        lastAnatomyPhase = activePhase;
+        if (anatomyPhaseDock && phaseBtns[activePhase]) {
+          anatomyPhaseDock.setActive(phaseBtns[activePhase], { animate: true, scrollDock: false });
+        } else {
+          phaseBtns.forEach((b, bi) => b.classList.toggle('active', bi === activePhase));
+        }
+      }
 
       if (anatomyFrame && !motionPaused) {
         const entryTilt = clamp(1 - (-anatomyRect.top + H * 0.6) / (H * 0.6), 0, 1);

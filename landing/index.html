@@ -74,9 +74,10 @@
       <span class="brand-badge">M3 PRO</span>
     </a>
 
-    <nav class="nav-capsule liquid-bar" id="navCapsule" aria-label="Primary sections">
-      <span class="nav-glider" id="navGlider" aria-hidden="true"></span>
-      <a href="#hero" class="nav-item active" data-sec="hero">Stage</a>
+    <nav class="nav-capsule liquid-bar liquid-taskbar-dock" id="navCapsule" data-liquid-dock aria-label="Primary sections">
+      <span class="liquid-dock-ghost" aria-hidden="true"></span>
+      <span class="liquid-dock-droplet" id="navGlider" aria-hidden="true"></span>
+      <a href="#hero" class="nav-item active" aria-current="true" data-sec="hero">Stage</a>
       <a href="#anatomy" class="nav-item" data-sec="anatomy">Anatomy</a>
       <a href="#skins" class="nav-item" data-sec="skins">67 Skins</a>
       <a href="#architecture" class="nav-item" data-sec="architecture">Silicon</a>
@@ -311,11 +312,11 @@
         </div>
 
         <div class="anatomy-dock liquid-glass">
-          <div class="phase-pills" role="group" aria-label="Jump to dissection stage">
-            <button type="button" class="phase-btn active" data-jump="0.04">01 Shell</button>
-            <button type="button" class="phase-btn" data-jump="0.38">02 PAW3311</button>
-            <button type="button" class="phase-btn" data-jump="0.66">03 FR2012A</button>
-            <button type="button" class="phase-btn" data-jump="0.95">04 500 mAh</button>
+          <div class="phase-pills liquid-taskbar-dock" id="anatomyPhaseDock" data-liquid-dock role="group" aria-label="Jump to dissection stage">
+            <button type="button" class="phase-btn active" aria-pressed="true" data-jump="0.04">01 Shell</button>
+            <button type="button" class="phase-btn" aria-pressed="false" data-jump="0.38">02 PAW3311</button>
+            <button type="button" class="phase-btn" aria-pressed="false" data-jump="0.66">03 FR2012A</button>
+            <button type="button" class="phase-btn" aria-pressed="false" data-jump="0.95">04 500 mAh</button>
           </div>
           <div class="anatomy-bar" aria-hidden="true"><i id="anatomyBarFill"></i></div>
           <span class="anatomy-pct" id="anatomyPct">0% EXPLODED</span>
@@ -331,13 +332,13 @@
           <h2 id="skins-title" class="section-title" data-split>67 Sculpted <em>Identities.</em></h2>
           <p class="section-sub">Scroll vertically to glide across all 67 real transparent mouse cutouts in 60fps 3D Coverflow. Select any mouse to inspect or equip it onto the Hero Stage.</p>
 
-          <div class="skin-filters liquid-glass" id="skinFilters" role="toolbar" aria-label="Filter mouse skins">
-            <button type="button" class="filter-chip active" data-filter="all">All 67</button>
-            <button type="button" class="filter-chip" data-filter="cyber">Cyber &amp; RGB</button>
-            <button type="button" class="filter-chip" data-filter="anime">Anime &amp; Sakura</button>
-            <button type="button" class="filter-chip" data-filter="topo">Topographic</button>
-            <button type="button" class="filter-chip" data-filter="oni">Oni &amp; Dragon</button>
-            <button type="button" class="filter-chip" data-filter="special">Special Series</button>
+          <div class="skin-filters liquid-glass liquid-taskbar-dock" id="skinFilters" data-liquid-dock role="group" aria-label="Filter mouse skins">
+            <button type="button" class="filter-chip active" aria-pressed="true" data-filter="all">All 67</button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="cyber">Cyber &amp; RGB</button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="anime">Anime &amp; Sakura</button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="topo">Topographic</button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="oni">Oni &amp; Dragon</button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="special">Special Series</button>
           </div>
         </div>
 
@@ -473,13 +474,13 @@
             <span class="bento-chip liquid-pill" id="bentoDpiStageTag">STAGE 6 / 6</span>
           </div>
           <p class="bento-desc">6 hardware-stored stages (800–12,000 native sweet spot). Select a stage to preview live register scaling:</p>
-          <div class="interactive-pills" id="bentoDpiPills" role="group" aria-label="Preview DPI stages">
-            <button type="button" class="sim-pill" data-dpi="800" data-stage="1">800</button>
-            <button type="button" class="sim-pill" data-dpi="1600" data-stage="2">1,600</button>
-            <button type="button" class="sim-pill" data-dpi="2400" data-stage="3">2,400</button>
-            <button type="button" class="sim-pill" data-dpi="3200" data-stage="4">3,200</button>
-            <button type="button" class="sim-pill" data-dpi="6400" data-stage="5">6,400</button>
-            <button type="button" class="sim-pill active" data-dpi="12000" data-stage="6">12,000</button>
+          <div class="interactive-pills liquid-taskbar-dock" id="bentoDpiPills" data-liquid-dock role="group" aria-label="Preview DPI stages">
+            <button type="button" class="sim-pill" aria-pressed="false" data-dpi="800" data-stage="1">800</button>
+            <button type="button" class="sim-pill" aria-pressed="false" data-dpi="1600" data-stage="2">1,600</button>
+            <button type="button" class="sim-pill" aria-pressed="false" data-dpi="2400" data-stage="3">2,400</button>
+            <button type="button" class="sim-pill" aria-pressed="false" data-dpi="3200" data-stage="4">3,200</button>
+            <button type="button" class="sim-pill" aria-pressed="false" data-dpi="6400" data-stage="5">6,400</button>
+            <button type="button" class="sim-pill active" aria-pressed="true" data-dpi="12000" data-stage="6">12,000</button>
           </div>
           <div class="glass-meter" aria-hidden="true"><i id="bentoDpiBar" style="transform: scaleX(1)"></i></div>
         </article>
@@ -493,11 +494,11 @@
             <span class="bento-chip liquid-pill" id="bentoLatencyTag">1.0 ms</span>
           </div>
           <p class="bento-desc">Select a 2.4 GHz polling rate to compute active current draw and battery endurance:</p>
-          <div class="interactive-pills compact" id="bentoHzPills" role="group" aria-label="Simulate polling rate">
-            <button type="button" class="sim-pill" data-hz="125" data-ms="8.0 ms" data-ma="3 mA" data-hrs="133.3 hrs">125</button>
-            <button type="button" class="sim-pill" data-hz="250" data-ms="4.0 ms" data-ma="5 mA" data-hrs="80.0 hrs">250</button>
-            <button type="button" class="sim-pill" data-hz="500" data-ms="2.0 ms" data-ma="8 mA" data-hrs="50.0 hrs">500</button>
-            <button type="button" class="sim-pill active" data-hz="1000" data-ms="1.0 ms" data-ma="14 mA" data-hrs="28.6 hrs">1000</button>
+          <div class="interactive-pills compact liquid-taskbar-dock" id="bentoHzPills" data-liquid-dock role="group" aria-label="Simulate polling rate">
+            <button type="button" class="sim-pill" aria-pressed="false" data-hz="125" data-ms="8.0 ms" data-ma="3 mA" data-hrs="133.3 hrs">125</button>
+            <button type="button" class="sim-pill" aria-pressed="false" data-hz="250" data-ms="4.0 ms" data-ma="5 mA" data-hrs="80.0 hrs">250</button>
+            <button type="button" class="sim-pill" aria-pressed="false" data-hz="500" data-ms="2.0 ms" data-ma="8 mA" data-hrs="50.0 hrs">500</button>
+            <button type="button" class="sim-pill active" aria-pressed="true" data-hz="1000" data-ms="1.0 ms" data-ma="14 mA" data-hrs="28.6 hrs">1000</button>
           </div>
           <div class="calc-readout liquid-pill">
             <span>Draw: <b id="bentoMa">14 mA</b></span>
@@ -546,16 +547,16 @@
               <span class="studio-title-label">SMAILWOLF M3 PRO</span>
               <span class="studio-ver liquid-pill">v3.0.13-rust · LIVE SIMULATOR</span>
             </div>
-            <div class="studio-conn liquid-pill">
-              <span class="conn-active">2.4GHz</span>
-              <span>USB-C</span>
-              <span>BT</span>
+            <div class="studio-conn liquid-pill liquid-taskbar-dock" id="studioConnDock" data-liquid-dock role="group" aria-label="Transport connection mode">
+              <button type="button" class="conn-tab active" aria-pressed="true" data-conn="2.4GHz">2.4GHz</button>
+              <button type="button" class="conn-tab" aria-pressed="false" data-conn="USB-C">USB-C</button>
+              <button type="button" class="conn-tab" aria-pressed="false" data-conn="BT">BT</button>
             </div>
           </div>
 
           <div class="studio-body">
-            <aside class="studio-rail" role="tablist" aria-label="Driver Studio preview tabs">
-              <button type="button" role="tab" aria-selected="true" class="rail-tab active" data-stab="dashboard">Dashboard</button>
+            <aside class="studio-rail liquid-taskbar-dock" id="studioRailDock" data-liquid-dock role="tablist" focusgroup="tablist nomemory" aria-label="Driver Studio preview tabs">
+              <button type="button" role="tab" aria-selected="true" focusgroupstart class="rail-tab active" data-stab="dashboard">Dashboard</button>
               <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="keys">Key Bindings</button>
               <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="dpi">DPI &amp; Sensor</button>
               <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="macro">Macro Studio</button>
@@ -591,10 +592,10 @@
                   <span class="sp-kicker" id="spKicker">INTERACTIVE BUTTON MAP</span>
                   <h3 id="spTitle">Select Any Pin on the Mouse</h3>
                   <p id="spDesc">Every button write builds a 64-byte <code>[240, 9, 165, 34, ...]</code> HID report, computes the mod-256 checksum, and verifies persistence with a live read-back.</p>
-                  <div class="sp-quick-actions" id="spActions">
-                    <button type="button" class="sim-pill active" data-preset="gaming">Gaming 3200 DPI</button>
-                    <button type="button" class="sim-pill" data-preset="office">Office 1600 DPI</button>
-                    <button type="button" class="sim-pill" data-preset="sniper">Design 800 DPI</button>
+                  <div class="sp-quick-actions liquid-taskbar-dock" id="spActions" data-liquid-dock role="group" aria-label="Quick hardware DPI presets">
+                    <button type="button" class="sim-pill active" aria-pressed="true" data-preset="gaming">Gaming 3200 DPI</button>
+                    <button type="button" class="sim-pill" aria-pressed="false" data-preset="office">Office 1600 DPI</button>
+                    <button type="button" class="sim-pill" aria-pressed="false" data-preset="sniper">Design 800 DPI</button>
                   </div>
                 </div>
 
