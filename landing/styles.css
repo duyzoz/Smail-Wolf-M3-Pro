@@ -633,7 +633,7 @@ html.has-liquid-cursor .liquid-mouse-cursor {
   opacity: 1;
 }
 
-/* Zero `backdrop-filter` readback stall -> 0.00ms D3D11 compositor tracking at 240Hz+! */
+/* Pure Colorless Crystal Water-Droplet Sphere (1127(1).mp4 00:00 Optics — 0% Opaque Paint!) */
 .lmc-drop {
   position: absolute;
   top: -17px;
@@ -642,15 +642,16 @@ html.has-liquid-cursor .liquid-mouse-cursor {
   height: 34px;
   border-radius: 50%;
   background:
-    radial-gradient(66% 44% at 36% 18%, #ffffff 0%, rgba(255, 255, 255, 0.30) 52%, transparent 100%) padding-box,
-    radial-gradient(74% 52% at 64% 88%, rgba(56, 189, 248, 0.54) 0%, transparent 74%) padding-box,
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.24) 76%, rgba(255, 255, 255, 0.74) 100%) padding-box,
-    var(--droplet-rim) border-box;
-  border: 1.5px solid transparent;
+    radial-gradient(62% 38% at 36% 16%, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.14) 54%, transparent 100%) padding-box,
+    radial-gradient(68% 42% at 64% 88%, rgba(186, 230, 253, 0.28) 0%, transparent 72%) padding-box,
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0.52) 100%) padding-box,
+    linear-gradient(148deg, #ffffff 0%, rgba(224, 242, 254, 0.92) 28%, rgba(255, 255, 255, 0.34) 58%, rgba(186, 230, 253, 0.85) 84%, #ffffff 100%) border-box;
+  border: 1.4px solid transparent;
   box-shadow:
-    inset 0 2.5px 2px #ffffff,
-    inset 0 -2.5px 5px rgba(56, 189, 248, 0.45),
-    0 8px 18px -4px rgba(15, 23, 42, 0.26);
+    inset 0 2px 1.5px #ffffff,
+    inset 0 -2px 3.5px rgba(255, 255, 255, 0.62),
+    0 7px 16px -3px rgba(15, 23, 42, 0.20),
+    0 2px 5px rgba(15, 23, 42, 0.08);
   transform-origin: 50% 50%;
   will-change: transform;
   backface-visibility: hidden;
@@ -695,24 +696,24 @@ body.fps-ultra .lmc-sat {
   display: block;
 }
 
-/* Coalescing Water Meniscus Bridge Between Cursor & Approached Liquid Glass Rim */
+/* Coalescing Pure Water Meniscus Bridge Between Cursor & Approached Liquid Glass Rim */
 .liquid-suction-bridge {
   position: absolute;
   top: 0;
   left: 0;
-  width: 48px;
-  height: 22px;
-  margin-top: -11px;
+  width: 44px;
+  height: 18px;
+  margin-top: -9px;
   border-radius: 999px;
   transform-origin: 0% 50%;
   opacity: 0;
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.92) 0%,
-    rgba(125, 211, 252, 0.56) 48%,
-    rgba(255, 255, 255, 0.84) 100%
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(224, 242, 254, 0.38) 50%,
+    rgba(255, 255, 255, 0.78) 100%
   );
-  box-shadow: 0 0 14px rgba(125, 211, 252, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.72);
 }
 
 /* Luminous Wet Rim Bulge Along Hovered Glass Frame Edge */
@@ -720,15 +721,15 @@ body.fps-ultra .lmc-sat {
   position: absolute;
   top: 0;
   left: 0;
-  width: 76px;
-  height: 16px;
-  margin: -8px 0 0 -38px;
+  width: 68px;
+  height: 12px;
+  margin: -6px 0 0 -34px;
   border-radius: 999px;
   opacity: 0;
   background: radial-gradient(
     50% 50% at 50% 50%,
-    #ffffff 0%,
-    rgba(125, 211, 252, 0.72) 48%,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(186, 230, 253, 0.42) 48%,
     transparent 100%
   );
 }
@@ -834,10 +835,10 @@ body.fps-ultra:not(.is-light-tone) .site-header .liquid-bar {
 
 body.fps-ultra .lmc-drop {
   box-shadow:
-    inset 0 3px 2px #ffffff,
-    inset 0 -3px 6px rgba(56, 189, 248, 0.58),
-    0 10px 22px -3px rgba(14, 165, 233, 0.36),
-    0 0 16px rgba(192, 132, 252, 0.34);
+    inset 0 2.5px 2px #ffffff,
+    inset 0 -2.5px 4px rgba(186, 230, 253, 0.65),
+    0 9px 20px -3px rgba(15, 23, 42, 0.24),
+    0 0 14px rgba(186, 230, 253, 0.32);
 }
 
 /* ==========================================================================

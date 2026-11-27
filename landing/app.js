@@ -646,7 +646,7 @@
     let sat2X = rawX, sat2Y = rawY, sat2Vx = 0, sat2Vy = 0;
     let rawTarget = null;
     let ptrFrameScheduled = false;
-    let cursorLoopRunning = false;
+    let cursorRafId = 0;
     let lastCursorTick = 0;
 
     // Periodic Gravity Water Drip & Wet Lower-Frame Splash State (0% Idle CPU via Scheduled Wake!)
@@ -718,11 +718,10 @@
       liquidFallingDrop.style.transform = `translate3d(${dripState.x.toFixed(1)}px, ${dripState.y.toFixed(1)}px, 0) scale(1.08, 0.88)`;
     }
 
-    // ZERO `getBoundingClientRect()` inside 60-240Hz rAF loop -> 0 Forced Synchronous Reflow!
     function updateRimSuction() {
       if (!liquidSuctionBridge || !liquidRimAura) return 0;
       let el = currentHoveredChain[0] || nearGlassEl;
-      if (!el || !el.isConnected) {
+      if (!el || !el.isConnected || el.hidden || (el.closest && el.closest('[hidden]'))) {
         nearGlassEl = null;
         liquidSuctionBridge.style.opacity = '0';
         liquidRimAura.style.opacity = '0';
@@ -746,10 +745,12 @@
         };
       }
 
+      const rw = st.rect.width;
+      const rh = st.rect.height;
       const left = st.rect.left + st.tx;
       const top = st.rect.top + st.ty;
-      const right = left + st.rect.width;
-      const bottom = top + st.rect.height;
+      const right = left + rw;
+      const bottom = top + rh;
       const inside = rawX >= left && rawX <= right && rawY >= top && rawY <= bottom;
 
       let edgeX = clamp(rawX, left + 10, right - 10);
@@ -775,7 +776,7 @@
       }
 
       const rimDist = Math.hypot(rawX - edgeX, rawY - edgeY);
-      const maxReach = inside ? 42 : 46;
+      const maxReach = inside ? 38 : 42;
 
       if (rimDist > maxReach) {
         if (!inside) {
@@ -789,18 +790,18 @@
         }
         liquidSuctionBridge.style.opacity = '0';
         liquidRimAura.style.opacity = '0';
-        return inside ? 0.35 : 0;
+        return inside ? 0.30 : 0;
       }
 
       const k = 1 - rimDist / maxReach;
-      liquidRimAura.style.opacity = (k * 0.96).toFixed(3);
-      liquidRimAura.style.transform = `translate3d(${edgeX.toFixed(1)}px, ${edgeY.toFixed(1)}px, 0) rotate(${edgeAng}deg) scale(${(0.55 + k * 0.72).toFixed(3)}, ${(0.6 + k * 0.65).toFixed(3)})`;
+      liquidRimAura.style.opacity = (k * 0.82).toFixed(3);
+      liquidRimAura.style.transform = `translate3d(${edgeX.toFixed(1)}px, ${edgeY.toFixed(1)}px, 0) rotate(${edgeAng}deg) scale(${(0.5 + k * 0.65).toFixed(3)}, ${(0.55 + k * 0.55).toFixed(3)})`;
 
-      if (rimDist > 2.5) {
+      if (rimDist > 3 && !inside) {
         const bAng = Math.atan2(rawY - edgeY, rawX - edgeX) * (180 / Math.PI);
-        const sx = clamp(rimDist / 48, 0.16, 1.05);
-        const sy = clamp(0.36 + k * 0.68, 0.36, 1.04);
-        liquidSuctionBridge.style.opacity = (k * 0.88).toFixed(3);
+        const sx = clamp(rimDist / 46, 0.14, 0.95);
+        const sy = clamp(0.32 + k * 0.56, 0.32, 0.88);
+        liquidSuctionBridge.style.opacity = (k * 0.72).toFixed(3);
         liquidSuctionBridge.style.transform = `translate3d(${edgeX.toFixed(1)}px, ${edgeY.toFixed(1)}px, 0) rotate(${bAng.toFixed(1)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
       } else {
         liquidSuctionBridge.style.opacity = '0';
@@ -808,10 +809,10 @@
 
       // Outer magnetic water suction: gently pull approached glass rim toward cursor even before entry!
       if (!inside && !st.hovered && !el.classList.contains('liquid-taskbar-dock')) {
-        const cx = left + r.width * 0.5;
-        const cy = top + r.height * 0.5;
-        const nx = clamp((rawX - cx) / (r.width * 0.6), -1, 1);
-        const ny = clamp((rawY - cy) / (r.height * 0.6), -1, 1);
+        const cx = left + rw * 0.5;
+        const cy = top + rh * 0.5;
+        const nx = clamp((rawX - cx) / (rw * 0.6), -1, 1);
+        const ny = clamp((rawY - cy) / (rh * 0.6), -1, 1);
         st.targetTx = nx * k * 4.5;
         st.targetTy = ny * k * 4.5;
         activeLiquidEls.add(el);
@@ -822,142 +823,156 @@
     }
 
     function cursorPhysicsTick(now) {
+      cursorRafId = 0;
       if (motionPaused || fpsLowActive || !cursorPointerSeen || document.hidden) {
-        cursorLoopRunning = false;
         lastCursorTick = 0;
         return;
       }
-      cursorLoopRunning = true;
-      const rawDt = lastCursorTick && now ? (now - lastCursorTick) / 1000 : 1 / detectedHz;
-      if (lastCursorTick && now) recordLoopDelta(now - lastCursorTick);
+      const hadPrevTick = lastCursorTick > 0;
+      const rawDt = hadPrevTick && now ? (now - lastCursorTick) / 1000 : 1 / detectedHz;
+      if (hadPrevTick && now) recordLoopDelta(now - lastCursorTick);
       lastCursorTick = now || performance.now();
       const dt = clamp(rawDt, 0.0004, 0.034);
       const h = dt * 0.5;
 
-      const instVx = (rawX - prevCursorX) / dt;
-      const instVy = (rawY - prevCursorY) / dt;
-      prevCursorX = rawX;
-      prevCursorY = rawY;
+      try {
+        const instVx = (rawX - prevCursorX) / dt;
+        const instVy = (rawY - prevCursorY) / dt;
+        prevCursorX = rawX;
+        prevCursorY = rawY;
 
-      const vBlend = 1 - Math.exp(-26 * dt);
-      curVx += (instVx - curVx) * vBlend;
-      curVy += (instVy - curVy) * vBlend;
-      const speed = Math.hypot(curVx, curVy);
+        const vBlend = 1 - Math.exp(-24 * dt);
+        curVx += (instVx - curVx) * vBlend;
+        curVy += (instVy - curVy) * vBlend;
+        const speed = Math.hypot(curVx, curVy);
 
-      if (speed > 24) {
-        moveAngle = Math.atan2(curVy, curVx) * (180 / Math.PI);
-      }
+        if (speed > 20) {
+          moveAngle = Math.atan2(curVy, curVx) * (180 / Math.PI);
+        }
 
-      const accelImpulse = clamp((speed - prevSpeed) * 0.0038, -2.8, 2.8);
-      prevSpeed = speed;
-      jellyVel += accelImpulse;
-      [jellyPos, jellyVel] = stepSpringDt(jellyPos, jellyVel, 0, 340, 9.2, h);
+        const accelImpulse = clamp((speed - prevSpeed) * 0.0032, -2.2, 2.2);
+        prevSpeed = speed;
+        jellyVel += accelImpulse;
+        [jellyPos, jellyVel] = stepSpringDt(jellyPos, jellyVel, 0, 320, 13.5, h);
 
-      const suctionK = updateRimSuction();
-      const targetSc = cursorPressed ? 0.86 : (suctionK > 0.12 || currentHoveredChain.length ? 1.18 : 1.0);
-      [baseSc, velBaseSc] = stepSpringDt(baseSc, velBaseSc, targetSc, 280, 18, h);
+        const suctionK = updateRimSuction();
+        const targetSc = cursorPressed ? 0.88 : (suctionK > 0.14 || currentHoveredChain.length ? 1.15 : 1.0);
+        [baseSc, velBaseSc] = stepSpringDt(baseSc, velBaseSc, targetSc, 280, 18, h);
 
-      const speedStretch = clamp(speed / 2150, 0, 0.34);
-      const sx = clamp(baseSc * (1 + speedStretch + jellyPos * 0.22), 0.68, 1.58);
-      const sy = clamp(baseSc * (1 - speedStretch * 0.56 - jellyPos * 0.18), 0.64, 1.48);
+        const speedStretch = clamp(speed / 2850, 0, 0.22);
+        const sx = clamp(baseSc * (1 + speedStretch + jellyPos * 0.18), 0.78, 1.34);
+        const sy = clamp(baseSc * (1 - speedStretch * 0.48 - jellyPos * 0.15), 0.76, 1.30);
 
-      if (liquidCursorDrop) {
-        liquidCursorDrop.style.transform = `rotate(${moveAngle.toFixed(1)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
-      }
+        if (liquidCursorDrop) {
+          liquidCursorDrop.style.transform = `rotate(${moveAngle.toFixed(1)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+        }
 
-      // Ultra Mode Trailing Mercury Water Satellites
-      if (fpsUltraActive && lmcSat1 && lmcSat2) {
-        [sat1X, sat1Vx] = stepSpringDt(sat1X, sat1Vx, rawX, 175, 16, h);
-        [sat1Y, sat1Vy] = stepSpringDt(sat1Y, sat1Vy, rawY, 175, 16, h);
-        [sat2X, sat2Vx] = stepSpringDt(sat2X, sat2Vx, sat1X, 125, 14, h);
-        [sat2Y, sat2Vy] = stepSpringDt(sat2Y, sat2Vy, sat1Y, 125, 14, h);
+        // Ultra Mode Trailing Mercury Water Satellites
+        if (fpsUltraActive && lmcSat1 && lmcSat2) {
+          [sat1X, sat1Vx] = stepSpringDt(sat1X, sat1Vx, rawX, 175, 16, h);
+          [sat1Y, sat1Vy] = stepSpringDt(sat1Y, sat1Vy, rawY, 175, 16, h);
+          [sat2X, sat2Vx] = stepSpringDt(sat2X, sat2Vx, sat1X, 125, 14, h);
+          [sat2Y, sat2Vy] = stepSpringDt(sat2Y, sat2Vy, sat1Y, 125, 14, h);
 
-        const d1 = Math.hypot(sat1X - rawX, sat1Y - rawY);
-        const d2 = Math.hypot(sat2X - rawX, sat2Y - rawY);
-        lmcSat1.style.opacity = clamp(d1 / 18, 0, 0.92).toFixed(2);
-        lmcSat2.style.opacity = clamp((d2 - 4) / 24, 0, 0.82).toFixed(2);
-        lmcSat1.style.transform = `translate3d(${(sat1X - rawX).toFixed(1)}px, ${(sat1Y - rawY).toFixed(1)}px, 0)`;
-        lmcSat2.style.transform = `translate3d(${(sat2X - rawX).toFixed(1)}px, ${(sat2Y - rawY).toFixed(1)}px, 0)`;
-      }
+          const d1 = Math.hypot(sat1X - rawX, sat1Y - rawY);
+          const d2 = Math.hypot(sat2X - rawX, sat2Y - rawY);
+          lmcSat1.style.opacity = clamp(d1 / 18, 0, 0.92).toFixed(2);
+          lmcSat2.style.opacity = clamp((d2 - 4) / 24, 0, 0.82).toFixed(2);
+          lmcSat1.style.transform = `translate3d(${(sat1X - rawX).toFixed(1)}px, ${(sat1Y - rawY).toFixed(1)}px, 0)`;
+          lmcSat2.style.transform = `translate3d(${(sat2X - rawX).toFixed(1)}px, ${(sat2Y - rawY).toFixed(1)}px, 0)`;
+        } else if (lmcSat1 && lmcSat2) {
+          sat1X = rawX; sat1Y = rawY; sat1Vx = 0; sat1Vy = 0;
+          sat2X = rawX; sat2Y = rawY; sat2Vx = 0; sat2Vy = 0;
+          lmcSat1.style.opacity = '0';
+          lmcSat2.style.opacity = '0';
+        }
 
-      // Periodic Gravity Water Drip + Lower-Frame Wet Splash
-      const clockNow = now || performance.now();
-      if (!dripState.active && clockNow >= nextDripAt) {
-        spawnGravityWaterDrip(clockNow);
-      }
+        // Periodic Gravity Water Drip + Lower-Frame Wet Splash
+        const clockNow = now || performance.now();
+        if (!dripState.active && clockNow >= nextDripAt) {
+          spawnGravityWaterDrip(clockNow);
+        }
 
-      if (dripState.active && liquidFallingDrop) {
-        dripState.vy += 1220 * dt;
-        dripState.y += dripState.vy * dt;
-        const dropSy = clamp(0.86 + dripState.vy / 920, 0.86, 1.48);
-        const dropSx = clamp(1.10 - dripState.vy / 2300, 0.74, 1.10);
+        if (dripState.active && liquidFallingDrop) {
+          dripState.vy += 1220 * dt;
+          dripState.y += dripState.vy * dt;
+          const dropSy = clamp(0.86 + dripState.vy / 920, 0.86, 1.48);
+          const dropSx = clamp(1.10 - dripState.vy / 2300, 0.74, 1.10);
 
-        if (dripState.y >= dripState.targetY) {
-          dripState.active = false;
-          liquidFallingDrop.style.opacity = '0';
-          splashState.active = true;
-          splashState.x = dripState.x;
-          splashState.y = dripState.targetY;
-          splashState.age = 0;
+          if (dripState.y >= dripState.targetY) {
+            dripState.active = false;
+            liquidFallingDrop.style.opacity = '0';
+            splashState.active = true;
+            splashState.x = dripState.x;
+            splashState.y = dripState.targetY;
+            splashState.age = 0;
 
-          spawnHydroRipple(dripState.x, dripState.targetY);
+            spawnHydroRipple(dripState.x, dripState.targetY);
 
-          if (dripState.targetEl && dripState.targetEl.isConnected) {
-            const hitSt = getLiquidState(dripState.targetEl);
-            hitSt.vy += 82;
-            hitSt.vsy -= 0.28;
-            hitSt.vsx += 0.20;
-            activeLiquidEls.add(dripState.targetEl);
-            wakeLiquidPhysics();
+            if (dripState.targetEl && dripState.targetEl.isConnected) {
+              const hitSt = getLiquidState(dripState.targetEl);
+              hitSt.vy += 82;
+              hitSt.vsy -= 0.28;
+              hitSt.vsx += 0.20;
+              activeLiquidEls.add(dripState.targetEl);
+              wakeLiquidPhysics();
+            }
+          } else {
+            liquidFallingDrop.style.transform = `translate3d(${dripState.x.toFixed(1)}px, ${dripState.y.toFixed(1)}px, 0) scale(${dropSx.toFixed(3)}, ${dropSy.toFixed(3)})`;
           }
-        } else {
-          liquidFallingDrop.style.transform = `translate3d(${dripState.x.toFixed(1)}px, ${dripState.y.toFixed(1)}px, 0) scale(${dropSx.toFixed(3)}, ${dropSy.toFixed(3)})`;
         }
-      }
 
-      if (splashState.active && liquidWetSplash) {
-        splashState.age += dt;
-        const p = clamp(splashState.age / splashState.dur, 0, 1);
-        if (p >= 1) {
-          splashState.active = false;
-          liquidWetSplash.style.opacity = '0';
-        } else {
-          const spreadX = 0.24 + (1 - Math.pow(1 - p, 3)) * 1.78;
-          const spreadY = Math.max(0.32, 1.32 - p * 0.95);
-          const alpha = (1 - p) * (1 - p) * 0.96;
-          liquidWetSplash.style.opacity = alpha.toFixed(3);
-          liquidWetSplash.style.transform = `translate3d(${splashState.x.toFixed(1)}px, ${splashState.y.toFixed(1)}px, 0) scale(${spreadX.toFixed(3)}, ${spreadY.toFixed(3)})`;
+        if (splashState.active && liquidWetSplash) {
+          splashState.age += dt;
+          const p = clamp(splashState.age / splashState.dur, 0, 1);
+          if (p >= 1) {
+            splashState.active = false;
+            liquidWetSplash.style.opacity = '0';
+          } else {
+            const spreadX = 0.24 + (1 - Math.pow(1 - p, 3)) * 1.78;
+            const spreadY = Math.max(0.32, 1.32 - p * 0.95);
+            const alpha = (1 - p) * (1 - p) * 0.96;
+            liquidWetSplash.style.opacity = alpha.toFixed(3);
+            liquidWetSplash.style.transform = `translate3d(${splashState.x.toFixed(1)}px, ${splashState.y.toFixed(1)}px, 0) scale(${spreadX.toFixed(3)}, ${spreadY.toFixed(3)})`;
+          }
         }
-      }
 
-      const satSettled =
-        !fpsUltraActive ||
-        (Math.hypot(sat1X - rawX, sat1Y - rawY) < 0.35 && Math.hypot(sat2X - rawX, sat2Y - rawY) < 0.35);
+        const satSettled =
+          !fpsUltraActive ||
+          (Math.hypot(sat1X - rawX, sat1Y - rawY) < 0.35 && Math.hypot(sat2X - rawX, sat2Y - rawY) < 0.35);
 
-      const cursorSettled =
-        speed < 0.8 &&
-        Math.abs(jellyPos) < 0.0025 &&
-        Math.abs(jellyVel) < 0.04 &&
-        Math.abs(baseSc - targetSc) < 0.003 &&
-        satSettled &&
-        !dripState.active &&
-        !splashState.active;
+        const cursorSettled =
+          speed < 0.8 &&
+          Math.abs(jellyPos) < 0.0025 &&
+          Math.abs(jellyVel) < 0.04 &&
+          Math.abs(baseSc - targetSc) < 0.003 &&
+          satSettled &&
+          !dripState.active &&
+          !splashState.active;
 
-      if (cursorSettled) {
-        cursorLoopRunning = false;
+        if (cursorSettled) {
+          if (liquidCursorDrop) {
+            liquidCursorDrop.style.transform = `rotate(0deg) scale(${targetSc.toFixed(3)}, ${targetSc.toFixed(3)})`;
+          }
+          if (!currentHoveredChain.length && !nearGlassEl) {
+            if (liquidSuctionBridge) liquidSuctionBridge.style.opacity = '0';
+            if (liquidRimAura) liquidRimAura.style.opacity = '0';
+          }
+          lastCursorTick = 0;
+          scheduleNextIdleDrip();
+        } else {
+          cursorRafId = requestAnimationFrame(cursorPhysicsTick);
+        }
+      } catch (_) {
         lastCursorTick = 0;
-        scheduleNextIdleDrip();
-      } else {
-        requestAnimationFrame(cursorPhysicsTick);
       }
     }
 
     wakeCursorPhysics = () => {
       clearTimeout(idleDripTimer);
-      if (!cursorLoopRunning && !motionPaused && !fpsLowActive && cursorPointerSeen && !document.hidden) {
-        cursorLoopRunning = true;
+      if (!cursorRafId && !motionPaused && !fpsLowActive && cursorPointerSeen && !document.hidden) {
         lastCursorTick = 0;
-        requestAnimationFrame(cursorPhysicsTick);
+        cursorRafId = requestAnimationFrame(cursorPhysicsTick);
       }
     };
 
@@ -1109,7 +1124,8 @@
     document.addEventListener('pointerdown', (e) => {
       if (motionPaused || fpsLowActive || e.pointerType === 'touch') return;
       cursorPressed = true;
-      jellyVel -= 4.8;
+      jellyVel -= 4.2;
+      wakeCursorPhysics();
       const el = e.target && e.target.closest ? e.target.closest(LIQUID_SELECTOR) : null;
       if (el && !el.classList.contains('liquid-taskbar-dock')) {
         const st = getLiquidState(el);
@@ -1121,9 +1137,11 @@
       }
     }, { passive: true });
 
-    document.addEventListener('pointerup', () => {
+    const releaseCursorPress = () => {
+      if (!cursorPressed && !currentHoveredChain.length) return;
       cursorPressed = false;
-      jellyVel += 5.2;
+      jellyVel += 4.6;
+      wakeCursorPhysics();
       currentHoveredChain.forEach((el) => {
         const st = liquidStates.get(el);
         if (st && st.pressed) {
@@ -1134,7 +1152,16 @@
           wakeLiquidPhysics();
         }
       });
-    }, { passive: true });
+    };
+
+    document.addEventListener('pointerup', releaseCursorPress, { passive: true });
+    document.addEventListener('pointercancel', releaseCursorPress, { passive: true });
+    window.addEventListener('blur', releaseCursorPress, { passive: true });
+    document.addEventListener('dragstart', (ev) => {
+      if (ev.target && ev.target.closest && ev.target.closest('a, img, .liquid-glass, .liquid-pill, .liquid-bar')) {
+        ev.preventDefault();
+      }
+    });
 
     window.addEventListener('scroll', () => {
       for (let i = 0; i < currentHoveredChain.length; i++) {
