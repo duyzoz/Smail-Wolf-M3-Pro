@@ -4665,24 +4665,343 @@
   updateBatterySimulator();
   window.addEventListener('resize', debounce(() => { measureBatTrack(); updateBatterySimulator(); }, 150), { passive: true });
 
-  // Wave 41: Auto-Detect Visitor OS -> Highlight Matching Download Card & SHA-256 Tab
-  (function detectVisitorOsCard() {
-    const rawPlat = String(
-      (navigator.userAgentData && navigator.userAgentData.platform) ||
-      navigator.platform ||
-      navigator.userAgent ||
-      ''
-    ).toLowerCase();
-    const osKey = rawPlat.includes('mac') ? 'mac' : rawPlat.includes('linux') ? 'linux' : 'win';
-    const matchCard = document.querySelector(`[data-os-card="${osKey}"]`);
-    const matchTag = document.querySelector(`[data-os-tag="${osKey}"]`);
-    if (matchCard) matchCard.classList.add('is-your-os');
-    if (matchTag) matchTag.textContent = '(your OS)';
-    if (osKey !== 'win') {
-      const unixBtn = document.querySelector('[data-sha-os="unix"]');
-      if (unixBtn) unixBtn.click();
+  // Wave 41 + 56: 100% Real Hardware OS & CPU Architecture Detection (Zero Guessing!)
+  // Uses Chromium High-Entropy Client Hints, WebGL GPU Renderer (Safari Apple Silicon vs Intel),
+  // and explicit Firefox UA/platform tokens — opens direct-download chooser when unverified/mobile.
+  const RELEASE_BASE = 'https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust';
+  const DIRECT_DOWNLOADS = {
+    'win-x64': {
+      label: 'Windows x64 (64-bit)',
+      shortTag: 'Win x64',
+      heroLabel: 'Download for Windows x64',
+      heroExt: '.exe · 18 MB',
+      shaMode: 'win',
+      files: [
+        { label: 'Windows x64 Installer (.exe)', ext: '.exe', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe', size: '18.1 MB' },
+        { label: 'Windows x64 MSI Package (.msi)', ext: '.msi', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13_x64.msi', size: '19.3 MB' },
+        { label: 'Windows x64 Portable (.zip)', ext: '.zip', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13_x64.zip', size: '19.1 MB' }
+      ]
+    },
+    'win-x86': {
+      label: 'Windows x32 (32-bit x86)',
+      shortTag: 'Win x32',
+      heroLabel: 'Download for Windows x32',
+      heroExt: '.exe · 18 MB',
+      shaMode: 'win',
+      files: [
+        { label: 'Windows x32 Installer (.exe)', ext: '.exe', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13_x86-setup.exe', size: '17.7 MB' },
+        { label: 'Windows x32 MSI Package (.msi)', ext: '.msi', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13_x86.msi', size: '18.7 MB' },
+        { label: 'Windows x32 Portable (.zip)', ext: '.zip', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13_x86.zip', size: '18.4 MB' }
+      ]
+    },
+    'mac-arm64': {
+      label: 'macOS Apple Silicon (M1–M4)',
+      shortTag: 'macOS M',
+      heroLabel: 'Download for macOS M-Chip',
+      heroExt: '.dmg · 24 MB',
+      shaMode: 'mac',
+      files: [
+        { label: 'macOS Apple Silicon Disk Image (.dmg)', ext: '.dmg', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-macos-arm64.dmg', size: '23.6 MB' },
+        { label: 'macOS Apple Silicon Bundle (.app.zip)', ext: '.app.zip', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-macos-arm64.app.zip', size: '21.2 MB' },
+        { label: 'macOS Apple Silicon Archive (.app.tar.gz)', ext: '.tar.gz', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-macos-arm64.app.tar.gz', size: '21.2 MB' }
+      ]
+    },
+    'mac-x64': {
+      label: 'macOS Intel (x64)',
+      shortTag: 'macOS x64',
+      heroLabel: 'Download for macOS Intel',
+      heroExt: '.dmg · 24 MB',
+      shaMode: 'mac',
+      files: [
+        { label: 'macOS Intel Disk Image (.dmg)', ext: '.dmg', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-macos-x64.dmg', size: '23.8 MB' },
+        { label: 'macOS Intel Bundle (.app.zip)', ext: '.app.zip', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-macos-x64.app.zip', size: '21.4 MB' },
+        { label: 'macOS Intel Archive (.app.tar.gz)', ext: '.tar.gz', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-macos-x64.app.tar.gz', size: '21.4 MB' }
+      ]
+    },
+    'linux-x64': {
+      label: 'Linux x64 (x86_64)',
+      shortTag: 'Linux x64',
+      heroLabel: 'Download for Linux x64',
+      heroExt: '.AppImage',
+      shaMode: 'linux',
+      files: [
+        { label: 'Linux x64 Universal (.AppImage)', ext: '.AppImage', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.AppImage', size: '95.1 MB' },
+        { label: 'Linux x64 Debian / Ubuntu (.deb)', ext: '.deb', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.deb', size: '20.5 MB' },
+        { label: 'Linux x64 Fedora / RHEL (.rpm)', ext: '.rpm', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.rpm', size: '20.5 MB' },
+        { label: 'Linux x64 Portable (.tar.gz)', ext: '.tar.gz', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.tar.gz', size: '20.3 MB' }
+      ]
+    },
+    'linux-arm64': {
+      label: 'Linux ARM64 (aarch64)',
+      shortTag: 'Linux ARM',
+      heroLabel: 'Download for Linux ARM64',
+      heroExt: '.AppImage',
+      shaMode: 'linux',
+      files: [
+        { label: 'Linux ARM64 Universal (.AppImage)', ext: '.AppImage', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.AppImage', size: '93.2 MB' },
+        { label: 'Linux ARM64 Debian / Ubuntu (.deb)', ext: '.deb', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.deb', size: '20.3 MB' },
+        { label: 'Linux ARM64 Fedora / RHEL (.rpm)', ext: '.rpm', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.rpm', size: '20.3 MB' },
+        { label: 'Linux ARM64 Portable (.tar.gz)', ext: '.tar.gz', file: 'SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.tar.gz', size: '20.0 MB' }
+      ]
     }
-  })();
+  };
+
+  function probeWebGlGpuRenderer() {
+    try {
+      const c = document.createElement('canvas');
+      const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if (!gl) return '';
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      const r = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+      return String(r || '');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function detectExactDesktopTarget() {
+    const ua = String(navigator.userAgent || '');
+    const plat = String(navigator.platform || '');
+    const uad = navigator.userAgentData;
+    const isIpadOs = plat === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1;
+    const isMobile = Boolean((uad && uad.mobile) || isIpadOs || /android|iphone|ipad|ipod|windows phone|mobile/i.test(ua));
+    if (isMobile) {
+      return { key: null, reason: 'mobile', family: 'mobile' };
+    }
+
+    // 1. Authoritative OS Kernel Values via Chromium High-Entropy User-Agent Client Hints
+    if (uad && typeof uad.getHighEntropyValues === 'function') {
+      try {
+        const hi = await uad.getHighEntropyValues(['platform', 'architecture', 'bitness', 'wow64']);
+        const p = String(hi.platform || uad.platform || '').toLowerCase();
+        const arch = String(hi.architecture || '').toLowerCase();
+        const bits = String(hi.bitness || '');
+        const wow64 = Boolean(hi.wow64);
+
+        if (p.includes('win')) {
+          if (bits === '64' || wow64) return { key: 'win-x64', reason: 'client-hints', family: 'win' };
+          if (bits === '32') return { key: 'win-x86', reason: 'client-hints', family: 'win' };
+        } else if (p.includes('mac')) {
+          if (arch === 'arm') return { key: 'mac-arm64', reason: 'client-hints', family: 'mac' };
+          if (arch === 'x86') return { key: 'mac-x64', reason: 'client-hints', family: 'mac' };
+        } else if (p.includes('linux')) {
+          if (arch === 'arm') return { key: 'linux-arm64', reason: 'client-hints', family: 'linux' };
+          if (arch === 'x86' && bits === '64') return { key: 'linux-x64', reason: 'client-hints', family: 'linux' };
+        }
+      } catch (_) {}
+    }
+
+    // 2. Deterministic Non-Chromium Hardware / UA Signals (Zero Guessing!)
+    const lowUa = ua.toLowerCase();
+    const lowPlat = plat.toLowerCase();
+
+    if (lowPlat.includes('win') || lowUa.includes('windows nt')) {
+      if (/win64|x64|wow64|x86_64|amd64/i.test(ua)) {
+        return { key: 'win-x64', reason: 'ua-exact', family: 'win' };
+      }
+      if (/windows nt/i.test(ua)) {
+        return { key: 'win-x86', reason: 'ua-exact', family: 'win' };
+      }
+      return { key: null, reason: 'unverified', family: 'win' };
+    }
+
+    if (lowPlat.includes('mac') || lowUa.includes('mac os x')) {
+      const gpu = probeWebGlGpuRenderer();
+      if (/apple\s*(m\d|gpu)/i.test(gpu)) {
+        return { key: 'mac-arm64', reason: 'webgl-gpu', family: 'mac' };
+      }
+      if (/intel|amd|radeon|nvidia/i.test(gpu)) {
+        return { key: 'mac-x64', reason: 'webgl-gpu', family: 'mac' };
+      }
+      // Privacy/masked Safari where Apple Silicon vs Intel cannot be verified -> NEVER guess!
+      return { key: null, reason: 'unverified-mac', family: 'mac' };
+    }
+
+    if (lowPlat.includes('linux') || lowUa.includes('linux')) {
+      const combined = `${plat} ${ua}`;
+      if (/aarch64|arm64/i.test(combined)) {
+        return { key: 'linux-arm64', reason: 'platform-exact', family: 'linux' };
+      }
+      if (/x86_64|amd64|x64/i.test(combined)) {
+        return { key: 'linux-x64', reason: 'platform-exact', family: 'linux' };
+      }
+      return { key: null, reason: 'unverified-linux', family: 'linux' };
+    }
+
+    return { key: null, reason: 'unknown', family: 'unknown' };
+  }
+
+  const headerDownloadWrap = document.getElementById('headerDownloadWrap');
+  const headerDownloadBtn = document.getElementById('headerDownloadBtn');
+  const headerDlLabel = document.getElementById('headerDlLabel');
+  const headerDlTag = document.getElementById('headerDlTag');
+  const headerDlToggle = document.getElementById('headerDlToggle');
+  const dlMenuPanel = document.getElementById('dlMenuPanel');
+  const dlDetectedStatus = document.getElementById('dlDetectedStatus');
+  const dlMenuRecommended = document.getElementById('dlMenuRecommended');
+  const dlMenuAllPlatforms = document.getElementById('dlMenuAllPlatforms');
+  const heroDownloadBtn = document.getElementById('heroDownloadBtn');
+  const heroDownloadLabel = document.getElementById('heroDownloadLabel');
+  const heroDownloadTag = document.getElementById('heroDownloadTag');
+
+  let dlMenuOpen = false;
+  let resolvedOsKey = null;
+
+  function setDlMenuOpen(open) {
+    dlMenuOpen = Boolean(open);
+    if (dlMenuPanel) dlMenuPanel.hidden = !dlMenuOpen;
+    if (headerDlToggle) headerDlToggle.setAttribute('aria-expanded', String(dlMenuOpen));
+  }
+
+  if (headerDlToggle && dlMenuPanel) {
+    headerDlToggle.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      setDlMenuOpen(!dlMenuOpen);
+      playWaterDrop('plop');
+    });
+    document.addEventListener('click', (ev) => {
+      if (!dlMenuOpen || !headerDownloadWrap) return;
+      if (!headerDownloadWrap.contains(ev.target)) setDlMenuOpen(false);
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (dlMenuOpen && ev.key === 'Escape') setDlMenuOpen(false);
+    });
+  }
+
+  function renderDirectDownloadMenus(result) {
+    resolvedOsKey = result && result.key && DIRECT_DOWNLOADS[result.key] ? result.key : null;
+    const spec = resolvedOsKey ? DIRECT_DOWNLOADS[resolvedOsKey] : null;
+
+    // 1. Highlight exact matching OS card inside #download
+    document.querySelectorAll('[data-os-card]').forEach((c) => c.classList.remove('is-your-os'));
+    document.querySelectorAll('[data-os-tag]').forEach((t) => { t.textContent = ''; });
+    if (resolvedOsKey) {
+      const matchCard = document.querySelector(`[data-os-card="${resolvedOsKey}"]`);
+      const matchTag = document.querySelector(`[data-os-tag="${resolvedOsKey}"]`);
+      if (matchCard) matchCard.classList.add('is-your-os');
+      if (matchTag) matchTag.textContent = '(your OS)';
+    }
+
+    // 2. Wire Header Download, Hero Primary Download, Modal Download & SHA-256 Command
+    if (spec) {
+      const primaryFile = spec.files[0];
+      const directUrl = `${RELEASE_BASE}/${primaryFile.file}`;
+
+      if (headerDownloadBtn) {
+        headerDownloadBtn.setAttribute('href', directUrl);
+        headerDownloadBtn.setAttribute('download', primaryFile.file);
+        headerDownloadBtn.setAttribute('aria-label', `Download ${primaryFile.label} directly`);
+      }
+      if (headerDlLabel) headerDlLabel.textContent = 'Download';
+      if (headerDlTag) headerDlTag.textContent = spec.shortTag;
+
+      if (heroDownloadBtn) {
+        heroDownloadBtn.setAttribute('href', directUrl);
+        heroDownloadBtn.setAttribute('download', primaryFile.file);
+      }
+      if (heroDownloadLabel) heroDownloadLabel.textContent = spec.heroLabel;
+      if (heroDownloadTag) heroDownloadTag.textContent = spec.heroExt;
+
+      if (modalDownloadLink) {
+        modalDownloadLink.setAttribute('href', directUrl);
+        modalDownloadLink.setAttribute('download', primaryFile.file);
+        modalDownloadLink.textContent = `Download ${spec.shortTag} (${primaryFile.ext})`;
+      }
+
+      if (shaVerifyCmd) {
+        if (spec.shaMode === 'win') {
+          shaVerifyCmd.textContent = `CertUtil -hashfile ${primaryFile.file} SHA256`;
+        } else if (spec.shaMode === 'mac') {
+          shaVerifyCmd.textContent = `shasum -a 256 ${primaryFile.file}`;
+        } else {
+          shaVerifyCmd.textContent = `sha256sum ${primaryFile.file}`;
+        }
+      }
+      if (spec.shaMode !== 'win') {
+        const unixBtn = document.querySelector('[data-sha-os="unix"]');
+        if (unixBtn) {
+          shaOsBtns.forEach((b) => {
+            const act = b === unixBtn;
+            b.classList.toggle('active', act);
+            b.setAttribute('aria-pressed', String(act));
+          });
+        }
+      }
+
+      if (dlDetectedStatus) dlDetectedStatus.textContent = `VERIFIED: ${spec.label.toUpperCase()}`;
+      if (dlMenuRecommended) {
+        dlMenuRecommended.innerHTML = spec.files.map((f, idx) => (
+          `<a class="dl-dd-item${idx === 0 ? ' is-rec' : ''}" href="${RELEASE_BASE}/${f.file}" download>` +
+          `<span>${f.label}</span><small>${idx === 0 ? 'DIRECT · ' : ''}${f.size}</small></a>`
+        )).join('');
+      }
+    } else {
+      // Mobile or masked browser -> NEVER guess! Open direct chooser cleanly.
+      const reasonTxt = result && result.reason === 'mobile'
+        ? 'MOBILE DETECTED · CHOOSE DESKTOP OS'
+        : result && result.reason === 'unverified-mac'
+          ? 'MACOS DETECTED · CHOOSE CHIP (M-SERIES / INTEL)'
+          : 'CHOOSE YOUR DESKTOP OS & FORMAT';
+
+      if (headerDownloadBtn) {
+        headerDownloadBtn.setAttribute('href', '#download');
+        headerDownloadBtn.removeAttribute('download');
+      }
+      if (headerDlLabel) headerDlLabel.textContent = 'Download';
+      if (headerDlTag) headerDlTag.textContent = result && result.reason === 'unverified-mac' ? 'macOS' : 'Choose OS';
+
+      if (heroDownloadBtn) {
+        heroDownloadBtn.setAttribute('href', '#download');
+        heroDownloadBtn.removeAttribute('download');
+      }
+      if (heroDownloadLabel) heroDownloadLabel.textContent = 'Choose Desktop Installer';
+      if (heroDownloadTag) heroDownloadTag.textContent = '6 Platforms';
+
+      if (dlDetectedStatus) dlDetectedStatus.textContent = reasonTxt;
+      if (dlMenuRecommended) {
+        const subset = result && result.family === 'mac'
+          ? ['mac-arm64', 'mac-x64']
+          : result && result.family === 'linux'
+            ? ['linux-x64', 'linux-arm64']
+            : ['win-x64', 'mac-arm64', 'linux-x64'];
+        dlMenuRecommended.innerHTML = subset.map((k) => {
+          const s = DIRECT_DOWNLOADS[k];
+          const f = s.files[0];
+          return `<a class="dl-dd-item is-rec" href="${RELEASE_BASE}/${f.file}" download>` +
+            `<span>${s.label}</span><small>${f.ext} · ${f.size}</small></a>`;
+        }).join('');
+      }
+    }
+
+    // 3. Populate ALL 6 platforms direct format links inside header dropdown
+    if (dlMenuAllPlatforms) {
+      const order = ['win-x64', 'win-x86', 'mac-arm64', 'mac-x64', 'linux-x64', 'linux-arm64'];
+      dlMenuAllPlatforms.innerHTML = order.map((k) => {
+        const s = DIRECT_DOWNLOADS[k];
+        const extHtml = s.files.map((f) => (
+          `<a class="dl-dd-ext" href="${RELEASE_BASE}/${f.file}" download>${f.ext}</a>`
+        )).join('');
+        return `<div class="dl-dd-row-compact"><b>${s.shortTag}</b><span class="dl-dd-ext-pills">${extHtml}</span></div>`;
+      }).join('') +
+      `<a class="dl-dd-item" href="${RELEASE_BASE}/SHA256SUMS.txt" download><span>Master SHA-256 Checksums</span><small>SHA256SUMS.txt</small></a>`;
+    }
+  }
+
+  if (headerDownloadBtn) {
+    headerDownloadBtn.addEventListener('click', (ev) => {
+      if (!resolvedOsKey) {
+        ev.preventDefault();
+        setDlMenuOpen(!dlMenuOpen);
+        playWaterDrop('plop');
+      } else {
+        setDlMenuOpen(false);
+        playWaterDrop('switch');
+        showLiquidToast(`Downloading ${DIRECT_DOWNLOADS[resolvedOsKey].files[0].file}`);
+      }
+    });
+  }
+
+  detectExactDesktopTarget().then(renderDirectDownloadMenus);
 
   // Wave 42: Single Pooled Zero-Allocation Liquid Tap Ripple on Primary Buttons & Cards
   const waterTapPool = document.getElementById('waterTapPool');

@@ -5940,6 +5940,194 @@ body:not(.is-light-tone) .click-health-pill.is-warn {
   gap: 0.45rem;
 }
 
+/* ==========================================================================
+   DIRECT MULTI-OS HEADER DOWNLOAD SPLIT-PILL & 6-PLATFORM DOWNLOAD GRID
+   ========================================================================== */
+
+.dl-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.header-dl-caret {
+  min-height: 36px;
+  width: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-strong);
+  cursor: pointer;
+  transition: transform 0.24s var(--ease-spring);
+}
+
+.header-dl-caret[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.header-dl-caret svg {
+  transition: transform 0.22s var(--ease-spring);
+}
+
+.dl-dropdown-card {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(332px, calc(100vw - 1.2rem));
+  padding: 0.72rem;
+  border-radius: 22px;
+  z-index: 120;
+  background: var(--glass-bg-elevated) padding-box, var(--glass-rim) border-box;
+  border: 1.2px solid transparent;
+  box-shadow: var(--glass-shadow-active);
+  transform-origin: top right;
+}
+
+.dl-dropdown-card:not([hidden]) {
+  animation: modeLiquidUnfurl 0.3s var(--ease-spring) both;
+}
+
+.dl-dd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.12rem 0.35rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.dl-dd-kicker {
+  color: #0284c7;
+}
+
+body:not(.is-light-tone) .dl-dd-kicker {
+  color: #7dd3fc;
+}
+
+.dl-dd-ver {
+  color: var(--ink-soft);
+}
+
+.dl-dd-primary,
+.dl-dd-all {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.dl-dd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.48rem 0.68rem;
+  border-radius: 13px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--ink-strong);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.18s var(--ease-spring), border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.dl-dd-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--glass-border-strong);
+  background: var(--glass-bg-elevated);
+}
+
+.dl-dd-item.is-rec {
+  border-color: rgba(14, 165, 233, 0.58);
+  background: var(--glass-bg-elevated);
+}
+
+.dl-dd-item small {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.dl-dd-item.is-rec small {
+  color: #0284c7;
+}
+
+body:not(.is-light-tone) .dl-dd-item.is-rec small {
+  color: #7dd3fc;
+}
+
+.dl-dd-row-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.34rem 0.45rem;
+  border-radius: 11px;
+  font-size: 0.68rem;
+}
+
+.dl-dd-row-compact b {
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-size: 0.71rem;
+  white-space: nowrap;
+}
+
+.dl-dd-ext-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.24rem;
+}
+
+.dl-dd-ext {
+  padding: 0.16rem 0.44rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--code-bg);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+  text-decoration: none;
+}
+
+.dl-dd-ext:hover {
+  border-color: var(--glass-border-strong);
+  background: var(--glass-bg-elevated);
+}
+
+.os-cards-grid.os-cards-6 {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+
+.os-sub-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+}
+
+.os-btn.os-mini {
+  flex: 1 1 auto;
+  min-height: 33px;
+  padding: 0.32rem 0.58rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+}
+
+.sha-dl-link {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
 /* Smartphones & Small Screens (< 640px — Tested down to 360x640!) */
 @media (max-width: 640px) {
   html { scroll-padding-top: 6.9rem; }
@@ -6006,6 +6194,16 @@ body:not(.is-light-tone) .click-health-pill.is-warn {
     min-height: 32px;
     padding: 0.24rem 0.62rem;
     font-size: 0.7rem;
+  }
+
+  .header-dl-caret {
+    min-height: 32px;
+    width: 28px;
+  }
+
+  .dl-dropdown-card {
+    right: -4px;
+    width: min(310px, calc(100vw - 1.2rem));
   }
 
   .water-ribbon {

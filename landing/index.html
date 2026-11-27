@@ -215,10 +215,24 @@
           </label>
         </div>
       </div>
-      <a href="#download" class="header-cta liquid-pill">
-        <span>Download</span>
-        <span class="cta-tag">v3.0.13</span>
-      </a>
+      <div class="dl-menu-wrap" id="headerDownloadWrap">
+        <a href="#download" class="header-cta header-dl-main liquid-pill" id="headerDownloadBtn">
+          <span id="headerDlLabel">Download</span>
+          <span class="cta-tag" id="headerDlTag">v3.0.13</span>
+        </a>
+        <button type="button" class="header-dl-caret liquid-pill" id="headerDlToggle" aria-haspopup="true" aria-expanded="false" aria-controls="dlMenuPanel" aria-label="Choose direct installer format and platform">
+          <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dl-dropdown-card liquid-glass" id="dlMenuPanel" hidden>
+          <div class="dl-dd-head">
+            <span class="dl-dd-kicker" id="dlDetectedStatus">DETECTING YOUR OS…</span>
+            <span class="dl-dd-ver">v3.0.13-rust · DIRECT</span>
+          </div>
+          <div class="dl-dd-primary" id="dlMenuRecommended"></div>
+          <hr class="mode-divider">
+          <div class="dl-dd-all" id="dlMenuAllPlatforms"></div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -246,9 +260,9 @@
           </p>
 
           <div class="cta-group">
-            <a href="#download" class="primary-btn liquid-glass">
-              <span>Download Installer</span>
-              <span class="btn-pill-tag">v3.0.13</span>
+            <a href="#download" class="primary-btn liquid-glass" id="heroDownloadBtn">
+              <span id="heroDownloadLabel">Download Installer</span>
+              <span class="btn-pill-tag" id="heroDownloadTag">v3.0.13</span>
             </a>
             <a href="#anatomy" class="secondary-btn liquid-pill">
               <span>Explore 3D Anatomy</span>
@@ -1043,64 +1057,121 @@
             Latest stable release <b>v3.0.13-rust</b> · Clean-room Tauri 2 + Rust architecture · Zero telemetry, zero accounts, zero bloat.
           </p>
 
-          <div class="os-cards-grid">
-            <div class="os-card liquid-glass" data-os-card="win">
+          <div class="os-cards-grid os-cards-6">
+            <div class="os-card liquid-glass" data-os-card="win-x64">
               <div class="os-head">
-                <span class="os-badge">WINDOWS 10 / 11 <em class="os-your-tag" data-os-tag="win"></em></span>
-                <span class="os-size">X64 · 18 MB</span>
+                <span class="os-badge">WINDOWS x64 <em class="os-your-tag" data-os-tag="win-x64"></em></span>
+                <span class="os-size">64-BIT · 18 MB</span>
               </div>
-              <p>Native WebView2 installer + silent in-app self-updater and system tray battery bar.</p>
+              <p>Windows 10 / 11 64-bit with native WebView2, silent self-updater, and tray battery bar.</p>
               <div class="os-links">
-                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe">
-                  Download .setup.exe
+                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe" download>
+                  Download .exe (NSIS)
                 </a>
-                <a class="os-btn ghost" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64.zip">
-                  Portable .zip
-                </a>
+                <div class="os-sub-links">
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64.msi" download>.msi</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x64.zip" download>Portable .zip</a>
+                </div>
               </div>
             </div>
 
-            <div class="os-card liquid-glass" data-os-card="mac">
+            <div class="os-card liquid-glass" data-os-card="win-x86">
               <div class="os-head">
-                <span class="os-badge">MACOS <em class="os-your-tag" data-os-tag="mac"></em></span>
-                <span class="os-size">DMG + APP</span>
+                <span class="os-badge">WINDOWS x32 <em class="os-your-tag" data-os-tag="win-x86"></em></span>
+                <span class="os-size">32-BIT · 18 MB</span>
               </div>
-              <p>Retina ICNS bundle and portable zipped <code>.app</code> built automatically via GitHub Actions.</p>
+              <p>Native 32-bit x86 builds for older Windows 10 machines and 32-bit environments.</p>
               <div class="os-links">
-                <a class="os-btn primary" href="https://github.com/huyzoz/Smail-Wolf-M3-Pro/actions" target="_blank" rel="noopener">
-                  Download .dmg / .app
+                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x86-setup.exe" download>
+                  Download .exe (x86)
                 </a>
-                <a class="os-btn ghost" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases" target="_blank" rel="noopener">
-                  All Releases
-                </a>
+                <div class="os-sub-links">
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x86.msi" download>.msi</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13_x86.zip" download>Portable .zip</a>
+                </div>
               </div>
             </div>
 
-            <div class="os-card liquid-glass" data-os-card="linux">
+            <div class="os-card liquid-glass" data-os-card="mac-arm64">
               <div class="os-head">
-                <span class="os-badge">LINUX <em class="os-your-tag" data-os-tag="linux"></em></span>
-                <span class="os-size">APPIMAGE + DEB</span>
+                <span class="os-badge">MACOS APPLE SILICON <em class="os-your-tag" data-os-tag="mac-arm64"></em></span>
+                <span class="os-size">ARM64 · 23 MB</span>
               </div>
-              <p>Portable single-file AppImage and Debian package with SHA-256 verification.</p>
+              <p>Native Apple M1 / M2 / M3 / M4 Retina ICNS bundle with direct DMG and portable archives.</p>
               <div class="os-links">
-                <a class="os-btn primary" href="https://github.com/huyzoz/Smail-Wolf-M3-Pro/actions" target="_blank" rel="noopener">
+                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-macos-arm64.dmg" download>
+                  Download .dmg (M1–M4)
+                </a>
+                <div class="os-sub-links">
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-macos-arm64.app.zip" download>.app.zip</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-macos-arm64.app.tar.gz" download>.app.tar.gz</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="os-card liquid-glass" data-os-card="mac-x64">
+              <div class="os-head">
+                <span class="os-badge">MACOS INTEL <em class="os-your-tag" data-os-tag="mac-x64"></em></span>
+                <span class="os-size">X64 · 24 MB</span>
+              </div>
+              <p>Native x86_64 macOS build for Intel Macs with direct DMG installer and .app bundles.</p>
+              <div class="os-links">
+                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-macos-x64.dmg" download>
+                  Download .dmg (Intel)
+                </a>
+                <div class="os-sub-links">
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-macos-x64.app.zip" download>.app.zip</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-macos-x64.app.tar.gz" download>.app.tar.gz</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="os-card liquid-glass" data-os-card="linux-x64">
+              <div class="os-head">
+                <span class="os-badge">LINUX x64 <em class="os-your-tag" data-os-tag="linux-x64"></em></span>
+                <span class="os-size">X86_64 · 20 MB</span>
+              </div>
+              <p>Universal AppImage, Debian/Ubuntu .deb, Fedora/RHEL .rpm, and portable .tar.gz.</p>
+              <div class="os-links">
+                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.AppImage" download>
                   Download .AppImage
                 </a>
-                <a class="os-btn ghost" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">
-                  Source Repository
+                <div class="os-sub-links">
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.deb" download>.deb</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.rpm" download>.rpm</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-x64.tar.gz" download>.tar.gz</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="os-card liquid-glass" data-os-card="linux-arm64">
+              <div class="os-head">
+                <span class="os-badge">LINUX ARM64 <em class="os-your-tag" data-os-tag="linux-arm64"></em></span>
+                <span class="os-size">AARCH64 · 20 MB</span>
+              </div>
+              <p>Native ARM64 packages for ARM Linux workstations and SBCs across all 4 formats.</p>
+              <div class="os-links">
+                <a class="os-btn primary" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.AppImage" download>
+                  Download .AppImage
                 </a>
+                <div class="os-sub-links">
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.deb" download>.deb</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.rpm" download>.rpm</a>
+                  <a class="os-btn ghost os-mini" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SMAILWOLF-M3-Pro-Driver_3.0.13-linux-arm64.tar.gz" download>.tar.gz</a>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="download-meta-row">
             <p class="smartscreen-note">
-              <b>Security &amp; Checksums:</b> Binaries are open-source and unsigned — if Windows SmartScreen prompts on first launch, verify <code>SHA256SUMS.txt</code> on GitHub and choose <em>More info, then Run anyway</em>. Mouse stock firmware v2.1.3 is never flashed or modified.
+              <b>Security &amp; Checksums:</b> Binaries are open-source and unsigned — verify <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SHA256SUMS.txt" download><code>SHA256SUMS.txt</code></a> before launching. On Windows SmartScreen choose <em>More info, then Run anyway</em>. Mouse stock firmware v2.1.3 is never flashed or modified.
             </p>
             <div class="sha-verify-bar liquid-glass">
               <div class="sha-os-tabs">
                 <button type="button" class="sha-os-btn active" data-sha-os="win" aria-pressed="true">PowerShell / CMD</button>
                 <button type="button" class="sha-os-btn" data-sha-os="unix" aria-pressed="false">macOS / Linux</button>
+                <a class="sha-os-btn sha-dl-link" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SHA256SUMS.txt" download>Download SHA256SUMS.txt</a>
               </div>
               <div class="sha-cmd-row">
                 <code id="shaVerifyCmd">CertUtil -hashfile SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe SHA256</code>
@@ -1225,9 +1296,9 @@
       </div>
       <div class="footer-col">
         <h4>OPEN SOURCE</h4>
-        <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">GitHub Repository (duyzoz)</a>
-        <a href="https://github.com/huyzoz/Smail-Wolf-M3-Pro/actions" target="_blank" rel="noopener">Multi-OS CI Builds (huyzoz)</a>
-        <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases" target="_blank" rel="noopener">Release Changelog &amp; SHA-256</a>
+        <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">GitHub Source Code (duyzoz)</a>
+        <a href="https://github.com/duyzoz/Smail-Wolf-M3-Pro/releases/download/v3.0.13-rust/SHA256SUMS.txt" download>Master SHA256SUMS.txt</a>
+        <a href="#download">Direct Multi-OS Installers</a>
         <a href="https://discord.gg/H6WkXburX" target="_blank" rel="noopener">Discord Support &amp; Skin Requests</a>
       </div>
     </div>
