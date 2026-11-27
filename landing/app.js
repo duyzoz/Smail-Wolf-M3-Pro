@@ -33,17 +33,16 @@
   }
 
   /* ------------------------------------------------------------------------
-     0. SMART 3-TIER HARDWARE GRAPHICS ENGINE (`low` | `auto` | `ultra`)
-     - Discrete GPU (RTX/GTX/Radeon RX/Apple M-series) -> Immediately `Ultra`!
-     - Mid-Range / iGPU / No dGPU -> Immediately `Automatic` (100% effects ON, uncapped FPS)!
-     - Ultra-Weak / Potato Hardware (<=2 cores / <=2GB RAM / Basic Render) -> `Low`!
-     - Zero hardcoded refresh-rate caps; unleashes native unlimited monitor Hz!
+     0. FLAGSHIP ULTRA-BY-DEFAULT ENGINE + 1127 LIQUID GLASS "Mode" DROPDOWN
+     - Enters `Ultra` by default on load (100% effects active, uncapped Hz)!
+     - NEVER auto-downgrades on tone switch or runtime spikes (100% user-controlled)!
+     - Hardware probe sets lowercase `(recommended)` beside matching mode in iPhone font.
      ------------------------------------------------------------------------ */
   const hwCores = navigator.hardwareConcurrency || 4;
   const hwMem = navigator.deviceMemory || 4;
   const isLowPowerGPU = hwCores <= 4 || hwMem <= 4;
 
-  function detectInitialGraphicsTier() {
+  function detectRecommendedMode() {
     if (hwCores <= 2 || hwMem <= 2) return 'low';
     try {
       const c = document.createElement('canvas');
@@ -59,10 +58,8 @@
       if (/microsoft basic render|gdi generic|llvmpipe|hd graphics (2000|2500|3000)/i.test(renderer)) {
         return 'low';
       }
-      if (/intel|uhd|iris|hd graphics|swiftshader|mali-g5|adreno \(tm\) 61/i.test(renderer)) {
-        return 'auto';
-      }
-      if (/nvidia|geforce|rtx|gtx|quadro|radeon rx|radeon pro|arc a[357]|apple m[1-9]/i.test(renderer)) {
+      if (/nvidia|geforce|rtx|gtx|quadro|radeon rx|radeon pro|arc a[357]|apple m[1-9]/i.test(renderer) &&
+          !/intel|uhd|iris|hd graphics|swiftshader/i.test(renderer)) {
         return 'ultra';
       }
       return 'auto';
@@ -71,22 +68,34 @@
     }
   }
 
-  const initialHardwareTier = detectInitialGraphicsTier();
-  const isHighCapabilityHW = initialHardwareTier === 'ultra';
+  const recommendedMode = detectRecommendedMode();
 
-  const fpsToggle = document.getElementById('fpsToggle');
-  const fpsToggleLabel = document.getElementById('fpsToggleLabel');
+  const modeMenuWrap = document.getElementById('modeMenuWrap');
+  const modeTrigger = document.getElementById('modeTrigger');
+  const modeMenuPanel = document.getElementById('modeMenuPanel');
+  const modeOptBtns = Array.from(document.querySelectorAll('[data-mode-select]'));
+  const modeRecTags = Array.from(document.querySelectorAll('[data-rec-for]'));
   const glidingFramesStage = document.getElementById('glidingFramesStage');
 
-  let fpsMode = initialHardwareTier; // 'low' | 'auto' | 'ultra'
-  let fpsLowActive = fpsMode === 'low';
-  let fpsUltraActive = fpsMode === 'ultra';
-  motionPaused = fpsLowActive;
+  // Populate lowercase `(recommended)` tag beside the hardware-matched mode
+  modeRecTags.forEach((tagEl) => {
+    tagEl.textContent = tagEl.dataset.recFor === recommendedMode ? '(recommended)' : '';
+  });
+
+  // Always launch in `Ultra` by default! User chooses manually via `Mode` menu.
+  let fpsMode = 'ultra'; // 'ultra' | 'auto' | 'low'
+  let fpsLowActive = false;
+  let fpsUltraActive = true;
+  motionPaused = false;
 
   let detectedHz = 120;
-  let fpsEmaMs = 16.6;
-  let slowFrameStreak = 0;
   let cursorPointerSeen = false;
+
+  const MODE_LABELS = {
+    ultra: 'Ultra',
+    auto: 'Automatic',
+    low: 'Low'
+  };
 
   function syncLiquidCursorClass() {
     const enableCursor = finePointer && cursorPointerSeen && !fpsLowActive && !motionPaused;
@@ -98,24 +107,20 @@
     document.body.classList.toggle('fps-ultra', fpsUltraActive && !fpsLowActive);
     syncLiquidCursorClass();
 
-    if (!fpsToggle || !fpsToggleLabel) return;
-    fpsToggle.setAttribute('data-fps-mode', fpsMode);
-    if (fpsMode === 'ultra') {
-      fpsToggleLabel.textContent = 'Ultra';
-      fpsToggle.setAttribute('aria-label', 'Graphics quality mode: Ultra — click to switch Low or Automatic');
-    } else if (fpsMode === 'low') {
-      fpsToggleLabel.textContent = 'Low';
-      fpsToggle.setAttribute('aria-label', 'Graphics quality mode: Low — click to switch Automatic or Ultra');
-    } else {
-      fpsToggleLabel.textContent = 'Automatic';
-      fpsToggle.setAttribute('aria-label', 'Graphics quality mode: Automatic — click to switch Ultra or Low');
+    if (modeTrigger) {
+      modeTrigger.setAttribute('data-fps-mode', fpsMode);
+      modeTrigger.setAttribute('aria-label', `Graphics mode selector — currently ${MODE_LABELS[fpsMode] || 'Ultra'}`);
     }
+    modeOptBtns.forEach((btn) => {
+      const active = btn.dataset.modeSelect === fpsMode;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-checked', String(active));
+    });
   }
 
   function setFpsMode(nextMode) {
+    if (!MODE_LABELS[nextMode]) return;
     fpsMode = nextMode;
-    slowFrameStreak = 0;
-    fpsEmaMs = 16.6;
 
     if (fpsMode === 'ultra') {
       fpsLowActive = false;
@@ -132,6 +137,12 @@
     }
 
     syncFpsBadge();
+
+    const modeDockCtrl = typeof dockControllers !== 'undefined' ? dockControllers.get('modeOptionsDock') : null;
+    const activeModeBtn = modeOptBtns.find((b) => b.dataset.modeSelect === fpsMode);
+    if (modeDockCtrl && activeModeBtn && modeMenuPanel && !modeMenuPanel.hidden) {
+      modeDockCtrl.setActive(activeModeBtn, { animate: !fpsLowActive, scrollDock: false, bounceIcon: true });
+    }
 
     if (fpsLowActive) {
       activeLiquidEls.forEach((el) => {
@@ -152,23 +163,10 @@
     }
   }
 
-  // Protects ultra-weak machines in `Automatic` ONLY if sustained severe lag (<21 FPS) occurs
-  function recordLoopDelta(deltaMs) {
-    if (fpsMode !== 'auto' || fpsLowActive || document.hidden) return;
-    if (deltaMs >= 1 && deltaMs <= 80) {
-      fpsEmaMs = fpsEmaMs * 0.90 + deltaMs * 0.10;
-      if (fpsEmaMs > 47) {
-        slowFrameStreak++;
-        if (slowFrameStreak >= 48) {
-          setFpsMode('low');
-        }
-      } else if (slowFrameStreak > 0) {
-        slowFrameStreak--;
-      }
-    }
-  }
+  // Strictly manual mode lock — never auto-downgrade when switching tones or scrolling!
+  function recordLoopDelta() {}
 
-  // Passive refresh-rate estimator for internal physics default `dt` (no FPS cap, no UI number!)
+  // Passive refresh-rate estimator for internal physics default `dt`
   function calibrateDisplayHz() {
     if (document.hidden || fpsLowActive) return;
     let prev = 0;
@@ -190,14 +188,127 @@
     requestAnimationFrame(sample);
   }
 
+  // 1127(1).mp4 + 1127.mp4 Unfurl & Collapse-Blur `Mode` Dropdown Controller
+  let modeMenuOpen = false;
+  let modeAnimTimer = 0;
+  let modeSelectCloseTimer = 0;
+
+  function openModeMenu(focusFirst = false) {
+    if (!modeMenuPanel || !modeTrigger) return;
+    clearTimeout(modeAnimTimer);
+    clearTimeout(modeSelectCloseTimer);
+    modeMenuOpen = true;
+    modeMenuPanel.hidden = false;
+    modeMenuPanel.classList.remove('is-closing');
+    modeTrigger.setAttribute('aria-expanded', 'true');
+
+    const modeDockCtrl = typeof dockControllers !== 'undefined' ? dockControllers.get('modeOptionsDock') : null;
+    const activeModeBtn = modeOptBtns.find((b) => b.dataset.modeSelect === fpsMode) || modeOptBtns[0];
+    if (modeDockCtrl && activeModeBtn) {
+      modeDockCtrl.setActive(activeModeBtn, { animate: false, scrollDock: false, bounceIcon: false });
+      modeDockCtrl.measure(true);
+    }
+
+    if (!fpsLowActive) {
+      modeMenuPanel.classList.remove('is-opening');
+      void modeMenuPanel.offsetWidth;
+      modeMenuPanel.classList.add('is-opening');
+      modeAnimTimer = setTimeout(() => {
+        modeMenuPanel.classList.remove('is-opening');
+      }, 360);
+    }
+
+    if (focusFirst && activeModeBtn) {
+      activeModeBtn.focus({ preventScroll: true });
+    }
+  }
+
+  function closeModeMenu(restoreFocus = false) {
+    if (!modeMenuPanel || !modeTrigger || !modeMenuOpen) return;
+    clearTimeout(modeAnimTimer);
+    clearTimeout(modeSelectCloseTimer);
+    modeMenuOpen = false;
+    modeTrigger.setAttribute('aria-expanded', 'false');
+    modeMenuPanel.classList.remove('is-opening');
+
+    if (restoreFocus) {
+      modeTrigger.focus({ preventScroll: true });
+    }
+
+    if (fpsLowActive) {
+      modeMenuPanel.classList.remove('is-closing');
+      modeMenuPanel.hidden = true;
+      return;
+    }
+
+    modeMenuPanel.classList.add('is-closing');
+    modeAnimTimer = setTimeout(() => {
+      modeMenuPanel.classList.remove('is-closing');
+      if (!modeMenuOpen) modeMenuPanel.hidden = true;
+    }, 260);
+  }
+
   syncFpsBadge();
-  if (fpsToggle) {
-    fpsToggle.addEventListener('click', () => {
-      const order = ['auto', 'ultra', 'low'];
-      const next = order[(order.indexOf(fpsMode) + 1) % order.length];
-      setFpsMode(next);
+
+  if (modeTrigger && modeMenuPanel) {
+    modeTrigger.addEventListener('click', () => {
+      if (modeMenuOpen) closeModeMenu(false);
+      else openModeMenu(false);
+    });
+
+    modeTrigger.addEventListener('keydown', (ev) => {
+      if (ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        openModeMenu(true);
+      } else if (ev.key === 'Escape' && modeMenuOpen) {
+        ev.preventDefault();
+        closeModeMenu(true);
+      }
+    });
+
+    modeOptBtns.forEach((btn, idx) => {
+      const chooseMode = () => {
+        const chosen = btn.dataset.modeSelect || 'ultra';
+        setFpsMode(chosen);
+        clearTimeout(modeSelectCloseTimer);
+        modeSelectCloseTimer = setTimeout(() => closeModeMenu(false), fpsLowActive ? 0 : 190);
+      };
+      btn.addEventListener('click', chooseMode);
+      btn.addEventListener('dockselect', chooseMode);
+
+      btn.addEventListener('keydown', (ev) => {
+        let nextIdx = -1;
+        if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight') nextIdx = (idx + 1) % modeOptBtns.length;
+        else if (ev.key === 'ArrowUp' || ev.key === 'ArrowLeft') nextIdx = (idx - 1 + modeOptBtns.length) % modeOptBtns.length;
+        else if (ev.key === 'Home') nextIdx = 0;
+        else if (ev.key === 'End') nextIdx = modeOptBtns.length - 1;
+        else if (ev.key === 'Escape') {
+          ev.preventDefault();
+          closeModeMenu(true);
+          return;
+        }
+        if (nextIdx >= 0) {
+          ev.preventDefault();
+          modeOptBtns[nextIdx].focus({ preventScroll: true });
+        }
+      });
+    });
+
+    document.addEventListener('pointerdown', (ev) => {
+      if (!modeMenuOpen || !modeMenuWrap) return;
+      if (!modeMenuWrap.contains(ev.target)) {
+        closeModeMenu(false);
+      }
+    }, { passive: true });
+
+    document.addEventListener('focusin', (ev) => {
+      if (!modeMenuOpen || !modeMenuWrap) return;
+      if (!modeMenuWrap.contains(ev.target)) {
+        closeModeMenu(false);
+      }
     });
   }
+
   window.addEventListener('load', () => setTimeout(calibrateDisplayHz, 180), { once: true });
 
   /* ------------------------------------------------------------------------
@@ -335,7 +446,8 @@
     '.liquid-taskbar-dock',
     '.brand-pill',
     '.spotlight-trigger',
-    '.fps-toggle',
+    '.mode-trigger',
+    '.mode-dropdown-card',
     '.header-cta',
     '.eyebrow-pill',
     '.primary-btn',
@@ -537,12 +649,23 @@
     let cursorLoopRunning = false;
     let lastCursorTick = 0;
 
-    // Periodic Gravity Water Drip & Wet Lower-Frame Splash State
+    // Periodic Gravity Water Drip & Wet Lower-Frame Splash State (0% Idle CPU via Scheduled Wake!)
     let nextDripAt = performance.now() + 2400;
+    let idleDripTimer = 0;
     const dripState = { active: false, x: 0, y: 0, vy: 0, targetY: 0, targetEl: null };
     const splashState = { active: false, x: 0, y: 0, age: 0, dur: 1.35 };
 
+    function scheduleNextIdleDrip() {
+      clearTimeout(idleDripTimer);
+      if (motionPaused || fpsLowActive || !cursorPointerSeen || document.hidden) return;
+      const waitMs = Math.max(220, nextDripAt - performance.now() + 20);
+      idleDripTimer = setTimeout(() => {
+        wakeCursorPhysics();
+      }, waitMs);
+    }
+
     resetLiquidCursorVisuals = () => {
+      clearTimeout(idleDripTimer);
       dripState.active = false;
       splashState.active = false;
       if (liquidSuctionBridge) liquidSuctionBridge.style.opacity = '0';
@@ -553,14 +676,20 @@
       glintVisible = false;
     };
 
+    // Pre-cache drip target candidates once at load (0 querySelectorAll per drip!)
+    const dripCandidates = Array.from(
+      document.querySelectorAll('.liquid-bar, .liquid-glass, .liquid-pill, .os-btn')
+    ).map((el) => ({ el, sec: el.closest('.offscreen-opt') }));
+
     function spawnGravityWaterDrip(now) {
       if (!liquidFallingDrop || rawY > window.innerHeight - 80 || rawY < 8) return;
-      const candidates = document.querySelectorAll('.liquid-bar, .liquid-glass, .liquid-pill, .os-btn');
       let bestTop = window.innerHeight - 4;
       let bestEl = null;
 
-      for (let i = 0; i < candidates.length; i++) {
-        const el = candidates[i];
+      for (let i = 0; i < dripCandidates.length; i++) {
+        const item = dripCandidates[i];
+        if (item.sec && typeof skippedSections !== 'undefined' && skippedSections.has(item.sec)) continue;
+        const el = item.el;
         const r = el.getBoundingClientRect();
         if (
           r.width > 28 &&
@@ -581,7 +710,7 @@
       dripState.vy = 55;
       dripState.targetY = bestTop;
       dripState.targetEl = bestEl;
-      nextDripAt = now + 3900 + Math.random() * 1400;
+      nextDripAt = now + 4200 + Math.random() * 1500;
 
       // Subtle neck-pinch jiggle on cursor droplet as teardrop detaches!
       jellyVel += 3.4;
@@ -589,6 +718,7 @@
       liquidFallingDrop.style.transform = `translate3d(${dripState.x.toFixed(1)}px, ${dripState.y.toFixed(1)}px, 0) scale(1.08, 0.88)`;
     }
 
+    // ZERO `getBoundingClientRect()` inside 60-240Hz rAF loop -> 0 Forced Synchronous Reflow!
     function updateRimSuction() {
       if (!liquidSuctionBridge || !liquidRimAura) return 0;
       let el = currentHoveredChain[0] || nearGlassEl;
@@ -600,17 +730,26 @@
       }
 
       const st = getLiquidState(el);
-      const r = el.getBoundingClientRect();
-      if (r.width < 16 || r.height < 16) {
-        liquidSuctionBridge.style.opacity = '0';
-        liquidRimAura.style.opacity = '0';
-        return 0;
+      if (!st.rect) {
+        const rr = el.getBoundingClientRect();
+        if (rr.width < 16 || rr.height < 16) {
+          nearGlassEl = null;
+          liquidSuctionBridge.style.opacity = '0';
+          liquidRimAura.style.opacity = '0';
+          return 0;
+        }
+        st.rect = {
+          left: rr.left - st.tx,
+          top: rr.top - st.ty,
+          width: rr.width,
+          height: rr.height
+        };
       }
 
-      const left = r.left;
-      const top = r.top;
-      const right = r.right;
-      const bottom = r.bottom;
+      const left = st.rect.left + st.tx;
+      const top = st.rect.top + st.ty;
+      const right = left + st.rect.width;
+      const bottom = top + st.rect.height;
       const inside = rawX >= left && rawX <= right && rawY >= top && rawY <= bottom;
 
       let edgeX = clamp(rawX, left + 10, right - 10);
@@ -791,11 +930,30 @@
         }
       }
 
-      // Keep cursor loop alive so periodic water drips continue every ~4.5s even while resting!
-      requestAnimationFrame(cursorPhysicsTick);
+      const satSettled =
+        !fpsUltraActive ||
+        (Math.hypot(sat1X - rawX, sat1Y - rawY) < 0.35 && Math.hypot(sat2X - rawX, sat2Y - rawY) < 0.35);
+
+      const cursorSettled =
+        speed < 0.8 &&
+        Math.abs(jellyPos) < 0.0025 &&
+        Math.abs(jellyVel) < 0.04 &&
+        Math.abs(baseSc - targetSc) < 0.003 &&
+        satSettled &&
+        !dripState.active &&
+        !splashState.active;
+
+      if (cursorSettled) {
+        cursorLoopRunning = false;
+        lastCursorTick = 0;
+        scheduleNextIdleDrip();
+      } else {
+        requestAnimationFrame(cursorPhysicsTick);
+      }
     }
 
     wakeCursorPhysics = () => {
+      clearTimeout(idleDripTimer);
       if (!cursorLoopRunning && !motionPaused && !fpsLowActive && cursorPointerSeen && !document.hidden) {
         cursorLoopRunning = true;
         lastCursorTick = 0;
@@ -833,24 +991,6 @@
 
       if (matched.length > 0) {
         nearGlassEl = matched[0];
-      } else {
-        const tNow = performance.now();
-        if (tNow - lastProbeAt > 75) {
-          lastProbeAt = tNow;
-          const offsets = [[0, -26], [0, 26], [-26, 0], [26, 0]];
-          for (let k = 0; k < offsets.length; k++) {
-            const px = rawX + offsets[k][0];
-            const py = rawY + offsets[k][1];
-            if (px > 0 && py > 0 && px < window.innerWidth && py < window.innerHeight) {
-              const probe = document.elementFromPoint(px, py);
-              const hit = probe && probe.closest ? probe.closest(LIQUID_SELECTOR) : null;
-              if (hit) {
-                nearGlassEl = hit;
-                break;
-              }
-            }
-          }
-        }
       }
 
       // Move ONE single GPU-composited glint via translate3d -> ZERO card gradient repaints!
@@ -873,7 +1013,7 @@
           const st = getLiquidState(prev);
           st.hovered = false;
           st.pressed = false;
-          st.rect = null;
+          // Keep cached `st.rect` while cursor pulls away so rim-suction bridge detaches with 0 layout reads!
           st.targetTx = 0;
           st.targetTy = 0;
           st.targetSx = 1;
@@ -927,9 +1067,9 @@
         st.targetSy = 1 + ay * stretchAmp - ax * (stretchAmp * 0.3) + pressBoost;
         st.targetSk = nx * ny * skewAmp;
 
-        const canTilt = el.hasAttribute && el.hasAttribute('data-tilt3d');
-        st.targetRx = canTilt ? -ny * 5.6 : 0;
-        st.targetRy = canTilt ? nx * 6.2 : 0;
+        const canTilt = fpsUltraActive && el.hasAttribute && el.hasAttribute('data-tilt3d');
+        st.targetRx = canTilt ? -ny * 5.2 : 0;
+        st.targetRy = canTilt ? nx * 5.8 : 0;
 
         activeLiquidEls.add(el);
       }
@@ -1000,6 +1140,10 @@
       for (let i = 0; i < currentHoveredChain.length; i++) {
         const st = liquidStates.get(currentHoveredChain[i]);
         if (st) st.rect = null;
+      }
+      if (nearGlassEl) {
+        const nst = liquidStates.get(nearGlassEl);
+        if (nst) nst.rect = null;
       }
     }, { passive: true });
   }
@@ -1074,6 +1218,7 @@
       const sx = span / BASE_DROPLET_W;
       st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scale(${sx.toFixed(4)}, 1)`;
     }
+    st.droplet.style.filter = '';
     if (st.trail) st.trail.style.opacity = '0';
   }
 
@@ -1206,6 +1351,8 @@
       if (isTablist || t.getAttribute('role') === 'tab') {
         t.setAttribute('aria-selected', String(isActive));
         t.toggleAttribute('focusgroupstart', isActive);
+      } else if (t.getAttribute('role') === 'radio') {
+        t.setAttribute('aria-checked', String(isActive));
       } else if (t.tagName === 'A') {
         if (isActive) t.setAttribute('aria-current', 'true');
         else t.removeAttribute('aria-current');
@@ -1735,6 +1882,18 @@
       toneLayers.forEach((layer) => layer.classList.remove('fading'));
     }, 760);
   }
+
+  // Pre-decode all 4 tone hero cutouts at idle -> 0ms WebP decode hitch during Ultra spin-swap!
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      ['assets/mouse-hero-480.webp', 'assets/skins/mid/A03.webp', 'assets/skins/mid/F02.webp', 'assets/skins/mid/C07.webp'].forEach((src) => {
+        const im = new Image();
+        im.decoding = 'async';
+        im.src = src;
+        if (typeof im.decode === 'function') im.decode().catch(() => {});
+      });
+    }, 380);
+  }, { once: true });
 
   function applyThemeAndMouse(ed, finalSrc, finalTag) {
     document.body.setAttribute('data-edition', ed.key);
@@ -2292,8 +2451,63 @@
   window.addEventListener('resize', debounce(sizeDissectCanvas, 150), { passive: true });
 
   const anatomyPhaseDock = dockControllers.get('anatomyPhaseDock');
+  const anatomySliderWrap = document.getElementById('anatomySliderWrap');
+  const anatomyLiquidThumb = document.getElementById('anatomyLiquidThumb');
+  const anatomyScrub = document.getElementById('anatomyScrub');
+  let anatomyTrackWidth = 260;
+  let anatomyScrubbing = false;
+  let lastAnatomyRatio = 0;
   let phaseClickLockUntil = 0;
   let lastAnatomyPhase = 0;
+
+  function measureAnatomySlider() {
+    if (anatomySliderWrap) anatomyTrackWidth = anatomySliderWrap.clientWidth || 260;
+  }
+  measureAnatomySlider();
+  window.addEventListener('resize', debounce(measureAnatomySlider, 150), { passive: true });
+
+  function syncAnatomySliderVisual(ratio) {
+    const r = clamp(ratio, 0, 1);
+    const vel = Math.abs(r - lastAnatomyRatio);
+    lastAnatomyRatio = r;
+    if (anatomyBarFill) anatomyBarFill.style.transform = `scaleX(${r.toFixed(4)})`;
+    if (anatomyLiquidThumb) {
+      const thumbW = 62;
+      const maxLeft = Math.max(0, anatomyTrackWidth - thumbW);
+      const x = r * maxLeft;
+      const sx = anatomyScrubbing ? clamp(1.20 + vel * 3.0, 1.20, 1.36) : clamp(1 + vel * 1.8, 1, 1.14);
+      const sy = anatomyScrubbing ? 1.25 : 1;
+      anatomyLiquidThumb.style.transform = `translate3d(${x.toFixed(2)}px, -50%, 0) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+    }
+    if (anatomyScrub && document.activeElement !== anatomyScrub && !anatomyScrubbing) {
+      anatomyScrub.value = String(Math.round(r * 120));
+    }
+  }
+
+  if (anatomyScrub) {
+    const endAnatomyScrub = () => {
+      if (!anatomyScrubbing) return;
+      anatomyScrubbing = false;
+      if (anatomySliderWrap) anatomySliderWrap.classList.remove('is-scrubbing');
+      syncAnatomySliderVisual(lastAnatomyRatio);
+    };
+    anatomyScrub.addEventListener('pointerdown', () => {
+      anatomyScrubbing = true;
+      measureAnatomySlider();
+      streamRemainingDissectFrames();
+      if (anatomySliderWrap) anatomySliderWrap.classList.add('is-scrubbing');
+      syncAnatomySliderVisual(lastAnatomyRatio);
+    });
+    window.addEventListener('pointerup', endAnatomyScrub, { passive: true });
+    window.addEventListener('pointercancel', endAnatomyScrub, { passive: true });
+    anatomyScrub.addEventListener('input', () => {
+      if (!anatomySection) return;
+      const r = clamp(Number(anatomyScrub.value) / 120, 0, 1);
+      syncAnatomySliderVisual(r);
+      const travel = Math.max(1, anatomySection.offsetHeight - window.innerHeight);
+      window.scrollTo({ top: anatomySection.offsetTop + travel * r, behavior: 'auto' });
+    });
+  }
 
   phaseBtns.forEach((btn, idx) => {
     const activatePhase = () => {
@@ -2356,11 +2570,11 @@
       skinsSliderFill.style.transform = `scaleX(${r.toFixed(4)})`;
     }
     if (skinsLiquidThumb) {
-      const thumbW = 56;
+      const thumbW = 62;
       const maxLeft = Math.max(0, sliderTrackWidth - thumbW);
       const x = r * maxLeft;
-      const sx = sliderScrubbing ? clamp(1.18 + vel * 2.8, 1.18, 1.34) : 1;
-      const sy = sliderScrubbing ? 1.22 : 1;
+      const sx = sliderScrubbing ? clamp(1.22 + vel * 3.2, 1.22, 1.38) : clamp(1 + vel * 1.8, 1, 1.15);
+      const sy = sliderScrubbing ? 1.26 : 1;
       skinsLiquidThumb.style.transform = `translate3d(${x.toFixed(2)}px, -50%, 0) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
     }
   }
@@ -2806,18 +3020,76 @@
   const bentoDpiNum = document.getElementById('bentoDpiNum');
   const bentoDpiStageTag = document.getElementById('bentoDpiStageTag');
   const bentoDpiBar = document.getElementById('bentoDpiBar');
+  const bentoDpiSliderWrap = document.getElementById('bentoDpiSliderWrap');
+  const bentoDpiThumb = document.getElementById('bentoDpiThumb');
+  const bentoDpiScrub = document.getElementById('bentoDpiScrub');
   const dpiPills = Array.from(document.querySelectorAll('#bentoDpiPills .sim-pill'));
+  const bentoDpiDock = dockControllers.get('bentoDpiPills');
+  let bentoDpiScrubbing = false;
+
+  function syncBentoDpiSlider(dpi) {
+    const ratio = clamp(dpi / 12000, 0.05, 1);
+    if (bentoDpiBar) bentoDpiBar.style.transform = `scaleX(${ratio.toFixed(3)})`;
+    if (bentoDpiThumb && bentoDpiSliderWrap) {
+      const trackW = bentoDpiSliderWrap.clientWidth || 320;
+      const maxLeft = Math.max(0, trackW - 62);
+      const x = ((dpi - 400) / (12000 - 400)) * maxLeft;
+      const sx = bentoDpiScrubbing ? 1.22 : 1;
+      const sy = bentoDpiScrubbing ? 1.26 : 1;
+      bentoDpiThumb.style.transform = `translate3d(${clamp(x, 0, maxLeft).toFixed(2)}px, -50%, 0) scale(${sx}, ${sy})`;
+    }
+    if (bentoDpiScrub && document.activeElement !== bentoDpiScrub && !bentoDpiScrubbing) {
+      bentoDpiScrub.value = String(dpi);
+    }
+  }
+
+  window.addEventListener('load', () => syncBentoDpiSlider(12000), { once: true });
+  window.addEventListener('resize', debounce(() => {
+    const cur = bentoDpiScrub ? Number(bentoDpiScrub.value) || 12000 : 12000;
+    syncBentoDpiSlider(cur);
+  }, 150), { passive: true });
 
   dpiPills.forEach((pill) => {
     const applyDpi = () => {
       const dpi = Number(pill.dataset.dpi) || 1600;
       if (bentoDpiNum) bentoDpiNum.textContent = dpi.toLocaleString('en-US');
       if (bentoDpiStageTag) bentoDpiStageTag.textContent = `STAGE ${pill.dataset.stage || '1'} / 6`;
-      if (bentoDpiBar) bentoDpiBar.style.transform = `scaleX(${Math.max(0.12, dpi / 12000).toFixed(3)})`;
+      syncBentoDpiSlider(dpi);
     };
     pill.addEventListener('click', applyDpi);
     pill.addEventListener('dockselect', applyDpi);
   });
+
+  if (bentoDpiScrub) {
+    const endBentoScrub = () => {
+      if (!bentoDpiScrubbing) return;
+      bentoDpiScrubbing = false;
+      if (bentoDpiSliderWrap) bentoDpiSliderWrap.classList.remove('is-scrubbing');
+      syncBentoDpiSlider(Number(bentoDpiScrub.value) || 12000);
+    };
+    bentoDpiScrub.addEventListener('pointerdown', () => {
+      bentoDpiScrubbing = true;
+      if (bentoDpiSliderWrap) bentoDpiSliderWrap.classList.add('is-scrubbing');
+      syncBentoDpiSlider(Number(bentoDpiScrub.value) || 12000);
+    });
+    window.addEventListener('pointerup', endBentoScrub, { passive: true });
+    window.addEventListener('pointercancel', endBentoScrub, { passive: true });
+    bentoDpiScrub.addEventListener('input', () => {
+      const dpi = Number(bentoDpiScrub.value) || 1600;
+      if (bentoDpiNum) bentoDpiNum.textContent = dpi.toLocaleString('en-US');
+      if (bentoDpiStageTag) bentoDpiStageTag.textContent = 'CUSTOM STEP';
+      syncBentoDpiSlider(dpi);
+      let nearest = dpiPills[0];
+      let bestDiff = Infinity;
+      dpiPills.forEach((p) => {
+        const d = Math.abs((Number(p.dataset.dpi) || 0) - dpi);
+        if (d < bestDiff) { bestDiff = d; nearest = p; }
+      });
+      if (nearest && bentoDpiDock && bestDiff <= 250) {
+        bentoDpiDock.setActive(nearest, { animate: true, scrollDock: false, bounceIcon: false });
+      }
+    });
+  }
 
   const bentoHzNum = document.getElementById('bentoHzNum');
   const bentoLatencyTag = document.getElementById('bentoLatencyTag');
@@ -3582,9 +3854,8 @@
       return;
     }
 
-    const sy = 1 + Math.abs(whooshY) * 0.0018;
-    const sk = whooshY * 0.035;
-    glidingFramesStage.style.transform = `translate3d(0, ${whooshY.toFixed(1)}px, 0) scaleY(${sy.toFixed(4)}) skewY(${sk.toFixed(2)}deg)`;
+    // Pure `translate3d` whoosh (0 `scaleY/skewY` -> 0 10MB offscreen RenderSurface FBO per scroll frame!)
+    glidingFramesStage.style.transform = `translate3d(0, ${whooshY.toFixed(1)}px, 0)`;
     requestAnimationFrame(whooshTick);
   }
 
@@ -3657,7 +3928,7 @@
         currentDissectFrame = idx;
         drawDissectFrame(idx);
       }
-      if (anatomyBarFill) anatomyBarFill.style.transform = `scaleX(${p.toFixed(3)})`;
+      syncAnatomySliderVisual(p);
       if (anatomyPct) anatomyPct.textContent = `${Math.round(p * 100)}% EXPLODED`;
 
       const activePhase = p < 0.25 ? 0 : p < 0.52 ? 1 : p < 0.78 ? 2 : 3;

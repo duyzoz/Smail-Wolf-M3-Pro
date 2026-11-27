@@ -20,7 +20,7 @@
 
   <link rel="stylesheet" href="styles.css">
 </head>
-<body data-edition="pearl" class="is-light-tone">
+<body data-edition="pearl" class="is-light-tone fps-ultra">
   <!-- Zero-Lag 3D Liquid Glass Water-Droplet Cursor, Rim Suction & Periodic Gravity Drip System -->
   <div class="liquid-cursor-system" id="liquidCursorSystem" aria-hidden="true">
     <div class="liquid-suction-bridge" id="liquidSuctionBridge"></div>
@@ -151,10 +151,59 @@
         <span class="sp-btn-text">Find</span>
         <kbd class="sp-kbd">⌘K</kbd>
       </button>
-      <button type="button" class="fps-toggle liquid-pill" id="fpsToggle" data-fps-mode="auto" aria-label="Graphics quality mode: Automatic — click to switch Ultra, Low, or Automatic">
-        <span class="fps-dot" aria-hidden="true"></span>
-        <span id="fpsToggleLabel">Automatic</span>
-      </button>
+      <div class="mode-menu-wrap" id="modeMenuWrap">
+        <button type="button" class="mode-trigger liquid-pill" id="modeTrigger" data-fps-mode="ultra" aria-expanded="false" aria-controls="modeMenuPanel" aria-label="Graphics mode selector — currently Ultra">
+          <svg class="mode-trigger-glyph" viewBox="0 0 20 20" aria-hidden="true">
+            <circle class="mt-ring-a" cx="8.1" cy="10" r="4.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+            <circle class="mt-ring-b" cx="12.1" cy="10" r="4.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+            <circle class="mt-core" cx="10.1" cy="10" r="1.6" fill="currentColor"/>
+          </svg>
+          <span class="mode-trigger-text">Mode</span>
+          <span class="fps-dot" aria-hidden="true"></span>
+        </button>
+
+        <div class="mode-dropdown-card liquid-glass" id="modeMenuPanel" hidden>
+          <div class="mode-options-dock liquid-taskbar-dock is-vertical" id="modeOptionsDock" data-liquid-dock role="radiogroup" aria-label="Choose graphics mode">
+            <span class="liquid-dock-ghost" aria-hidden="true"></span>
+            <span class="liquid-dock-trail" aria-hidden="true"></span>
+            <span class="liquid-dock-droplet" aria-hidden="true"></span>
+
+            <button type="button" class="mode-opt-btn active" role="radio" aria-checked="true" data-mode-select="ultra">
+              <svg class="mode-opt-glyph glyph-ultra" viewBox="0 0 22 22" aria-hidden="true">
+                <path class="ic-main" d="M11 2.4 17.8 9.2a2.2 2.2 0 0 1 0 3.1L11 19.1l-6.8-6.8a2.2 2.2 0 0 1 0-3.1L11 2.4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <circle class="ic-sub-a" cx="11" cy="10.75" r="2.2" fill="currentColor"/>
+                <circle class="ic-sub-b" cx="17.2" cy="4.6" r="1.45" fill="currentColor"/>
+              </svg>
+              <span class="mode-opt-copy">
+                <span class="mode-opt-name">Ultra</span>
+                <span class="mode-rec-tag" data-rec-for="ultra"></span>
+              </span>
+            </button>
+
+            <button type="button" class="mode-opt-btn" role="radio" aria-checked="false" data-mode-select="auto">
+              <svg class="mode-opt-glyph glyph-auto" viewBox="0 0 22 22" aria-hidden="true">
+                <circle class="ic-main" cx="11" cy="11" r="7.4" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                <path class="ic-wave" d="M5.6 11.4c1.6-2 3.4-2 5.4 0s3.8 2 5.4 0" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>
+              </svg>
+              <span class="mode-opt-copy">
+                <span class="mode-opt-name">Automatic</span>
+                <span class="mode-rec-tag" data-rec-for="auto"></span>
+              </span>
+            </button>
+
+            <button type="button" class="mode-opt-btn" role="radio" aria-checked="false" data-mode-select="low">
+              <svg class="mode-opt-glyph glyph-low" viewBox="0 0 22 22" aria-hidden="true">
+                <path class="ic-main" d="M11 3.3c3.4 3.9 5.5 6.8 5.5 9.6a5.5 5.5 0 1 1-11 0c0-2.8 2.1-5.7 5.5-9.6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <circle class="ic-sub-a" cx="11" cy="13.2" r="1.8" fill="currentColor"/>
+              </svg>
+              <span class="mode-opt-copy">
+                <span class="mode-opt-name">Low</span>
+                <span class="mode-rec-tag" data-rec-for="low"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
       <a href="#download" class="header-cta liquid-pill">
         <span>Download</span>
         <span class="cta-tag">v3.0.13</span>
@@ -370,7 +419,13 @@
             <button type="button" class="phase-btn" aria-pressed="false" data-jump="0.66">03 FR2012A</button>
             <button type="button" class="phase-btn" aria-pressed="false" data-jump="0.95">04 500 mAh</button>
           </div>
-          <div class="anatomy-bar" aria-hidden="true"><i id="anatomyBarFill"></i></div>
+          <div class="liquid-slider-wrap anatomy-slider-wrap" id="anatomySliderWrap">
+            <div class="liquid-slider-track" aria-hidden="true">
+              <div class="liquid-slider-fill" id="anatomyBarFill"></div>
+            </div>
+            <div class="liquid-slider-thumb" id="anatomyLiquidThumb" aria-hidden="true"></div>
+            <input type="range" id="anatomyScrub" class="liquid-range-native" min="0" max="120" value="0" aria-label="Scrub hardware dissection progress">
+          </div>
           <span class="anatomy-pct" id="anatomyPct">0% EXPLODED</span>
         </div>
       </div>
@@ -576,7 +631,13 @@
             <button type="button" class="sim-pill" aria-pressed="false" data-dpi="6400" data-stage="5">6,400</button>
             <button type="button" class="sim-pill active" aria-pressed="true" data-dpi="12000" data-stage="6">12,000</button>
           </div>
-          <div class="glass-meter" aria-hidden="true"><i id="bentoDpiBar" style="transform: scaleX(1)"></i></div>
+          <div class="liquid-slider-wrap bento-slider-wrap" id="bentoDpiSliderWrap">
+            <div class="liquid-slider-track" aria-hidden="true">
+              <div class="liquid-slider-fill" id="bentoDpiBar" style="transform: scaleX(1)"></div>
+            </div>
+            <div class="liquid-slider-thumb" id="bentoDpiThumb" aria-hidden="true"></div>
+            <input type="range" id="bentoDpiScrub" class="liquid-range-native" min="400" max="12000" step="100" value="12000" aria-label="Scrub PAW3311 optical DPI sensitivity">
+          </div>
         </article>
 
         <article class="bento-card liquid-glass" data-tilt3d>
