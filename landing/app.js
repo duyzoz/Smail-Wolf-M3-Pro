@@ -2293,6 +2293,7 @@
     if (pickIdx === lastShuffleIdx && SKINS.length > 1) pickIdx = (pickIdx + 1) % SKINS.length;
     lastShuffleIdx = pickIdx;
     const skin = SKINS[pickIdx];
+    recordRecentSkin(skin.id);
     const themeMap = {
       oni: 'crimson',
       cyber: 'cyber',
@@ -3212,6 +3213,7 @@
 
   function equipSkinOnHero(skin) {
     if (!skin) return;
+    recordRecentSkin(skin.id);
     if (navDock && navItems[0]) {
       markNavClickLock();
       navDock.setActive(navItems[0], { animate: true, scrollDock: true, bounceIcon: true });
@@ -3939,8 +3941,16 @@
       }
     }
 
+    // Wave 52: Cached Hz pad rect (invalidated on scroll/resize) -> 0 layout reads per 1,000 Hz event!
+    let hzPadRect = null;
+    const invalidateHzRect = () => { hzPadRect = null; };
+    window.addEventListener('scroll', invalidateHzRect, { passive: true });
+    window.addEventListener('resize', invalidateHzRect, { passive: true });
+    hzTestPad.addEventListener('pointerenter', () => { hzPadRect = hzTestPad.getBoundingClientRect(); }, { passive: true });
+
     hzTestPad.addEventListener('pointermove', (ev) => {
-      const rect = hzTestPad.getBoundingClientRect();
+      if (!hzPadRect) hzPadRect = hzTestPad.getBoundingClientRect();
+      const rect = hzPadRect;
       const events = typeof ev.getCoalescedEvents === 'function' ? ev.getCoalescedEvents() : [ev];
       const list = events.length ? events : [ev];
 
@@ -4093,6 +4103,24 @@
     }}
   ];
 
+  // Wave 53: Recently Equipped Skins (persisted, surfaced first in Spotlight)
+  function readRecentSkinIds() {
+    try {
+      const arr = JSON.parse((window.localStorage && window.localStorage.getItem('m3pro_recent_skins')) || '[]');
+      return Array.isArray(arr) ? arr.slice(0, 5).map(String) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function recordRecentSkin(id) {
+    if (!id) return;
+    const next = [String(id)].concat(readRecentSkinIds().filter((x) => x !== String(id))).slice(0, 5);
+    try {
+      if (window.localStorage) window.localStorage.setItem('m3pro_recent_skins', JSON.stringify(next));
+    } catch (_) {}
+  }
+
   let spScope = 'all';
   let spFocusIdx = 0;
   let currentSpItems = [];
@@ -4111,7 +4139,21 @@
     }
 
     if (spScope === 'all' || spScope === 'skins') {
+      const recentIds = !q ? readRecentSkinIds() : [];
+      recentIds.forEach((rid) => {
+        const ridx = SKINS.findIndex((s) => s.id === rid);
+        if (ridx < 0) return;
+        const rskin = SKINS[ridx];
+        matchedItems.push({
+          type: 'skin',
+          skin: rskin,
+          idx: ridx,
+          title: rskin.name,
+          sub: `RECENTLY EQUIPPED · ${rskin.id.toUpperCase()} · #${String(ridx + 1).padStart(2, '0')}`
+        });
+      });
       SKINS.forEach((skin, idx) => {
+        if (recentIds.includes(skin.id)) return;
         if (!q || skin.name.toLowerCase().includes(q) || skin.id.toLowerCase().includes(q) || skin.cat.toLowerCase().includes(q)) {
           matchedItems.push({
             type: 'skin',
@@ -4650,12 +4692,21 @@
       if (fpsLowActive || motionPaused || ev.button > 0) return;
       const hit = ev.target && ev.target.closest ? ev.target.closest('.primary-btn, .os-btn, .edition-card, .nav-shuffle') : null;
       if (!hit) return;
-      clearTimeout(rippleEndTimer);
-      waterTapPool.classList.remove('is-pulsing');
-      waterTapPool.style.transform = `translate3d(${ev.clientX.toFixed(1)}px, ${ev.clientY.toFixed(1)}px, 0)`;
-      void waterTapPool.offsetWidth;
-      waterTapPool.classList.add('is-pulsing');
-      rippleEndTimer = setTimeout(() => waterTapPool.classList.remove('is-pulsing'), 460);
+      // Wave 51: Web Animations API restart -> zero forced `offsetWidth` reflow per tap!
+      const pos = `translate3d(${ev.clientX.toFixed(1)}px, ${ev.clientY.toFixed(1)}px, 0)`;
+      if (typeof waterTapPool.animate === 'function') {
+        if (waterTapPool._anim && typeof waterTapPool._anim.cancel === 'function') waterTapPool._anim.cancel();
+        waterTapPool._anim = waterTapPool.animate([
+          { opacity: 0.88, transform: `${pos} scale(0.22)` },
+          { opacity: 0, transform: `${pos} scale(2.1)` }
+        ], { duration: 440, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+      } else {
+        clearTimeout(rippleEndTimer);
+        waterTapPool.classList.remove('is-pulsing');
+        waterTapPool.style.transform = pos;
+        requestAnimationFrame(() => waterTapPool.classList.add('is-pulsing'));
+        rippleEndTimer = setTimeout(() => waterTapPool.classList.remove('is-pulsing'), 460);
+      }
     }, { passive: true });
   }
 
@@ -4802,6 +4853,13 @@
     syncConfiguredLoadout();
     showLiquidToast(`Loaded Shared Loadout · ${sharedDpi.toLocaleString('en-US')} DPI · ${sharedHz} Hz`);
   })();
+
+  // Wave 54: Tab-Away Title Nudge (zero cost while visible)
+  const baseDocTitle = document.title;
+  document.addEventListener('visibilitychange', () => {
+    if (!baseDocTitle) return;
+    document.title = document.hidden ? 'Come back · Your M3 Pro is waiting' : baseDocTitle;
+  });
 
   window.addEventListener('scroll', requestScrollFrame, { passive: true });
   sizeDissectCanvas();
