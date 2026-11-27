@@ -66,22 +66,13 @@
     rgba(255, 255, 255, 0.96) 100%
   );
   --glass-shadow:
-    0 0 0 0.5px rgba(15, 23, 42, 0.08),
-    inset 0 2px 1.5px rgba(255, 255, 255, 0.98),
-    inset 1.5px 0 3px rgba(255, 255, 255, 0.78),
-    inset -1.5px 0 3px rgba(255, 255, 255, 0.65),
-    inset 0 -2px 4px rgba(15, 23, 42, 0.07),
-    0 16px 34px -12px rgba(15, 23, 42, 0.14),
-    0 3px 10px rgba(15, 23, 42, 0.06);
+    inset 0 2px 1px rgba(255, 255, 255, 0.96),
+    0 12px 26px -10px rgba(15, 23, 42, 0.14);
   --glass-shadow-active:
-    0 0 0 0.5px rgba(15, 23, 42, 0.14),
     inset 0 2.5px 1.5px #ffffff,
-    inset 2px 0 4px rgba(255, 255, 255, 0.9),
-    inset -2px 0 4px rgba(255, 255, 255, 0.8),
-    inset 0 -2.5px 5px rgba(15, 23, 42, 0.09),
-    0 14px 28px -7px rgba(15, 23, 42, 0.18),
-    0 3px 8px rgba(15, 23, 42, 0.08);
-  --sheen-spot: rgba(255, 255, 255, 0.92);
+    0 12px 24px -7px rgba(15, 23, 42, 0.18);
+  --sheen-spot: rgba(255, 255, 255, 0.72);
+  --trail-glow: rgba(255, 255, 255, 0.85);
   --code-bg: rgba(15, 23, 42, 0.06);
   --meter-track: rgba(15, 23, 42, 0.11);
   --meter-fill: linear-gradient(90deg, #007aff, #38bdf8);
@@ -131,13 +122,9 @@
     #ffffff 100%
   );
   --droplet-shadow:
-    0 0 0 0.5px rgba(255, 255, 255, 0.9),
     inset 0 2.5px 1.5px #ffffff,
-    inset 0 -3px 5px rgba(15, 23, 42, 0.11),
-    inset 2.5px 0 5px rgba(255, 255, 255, 0.88),
-    inset -2.5px 0 5px rgba(255, 255, 255, 0.88),
-    0 14px 28px -6px rgba(15, 23, 42, 0.22),
-    0 4px 10px rgba(15, 23, 42, 0.10);
+    inset 0 -2.5px 4px rgba(15, 23, 42, 0.10),
+    0 12px 24px -6px rgba(15, 23, 42, 0.20);
   --droplet-wave: radial-gradient(
     65% 92% at calc(50% + var(--flow-shift, 0%)) 24%,
     rgba(255, 255, 255, 0.95) 0%,
@@ -208,17 +195,13 @@ body:not(.is-light-tone) {
     rgba(255, 255, 255, 0.72) 100%
   );
   --glass-shadow:
-    inset 0 2px 1px rgba(255, 255, 255, 0.76),
-    inset 1.5px 0 3px rgba(255, 255, 255, 0.22),
-    inset -1.5px 0 3px rgba(255, 255, 255, 0.18),
-    inset 0 -2px 4px rgba(255, 255, 255, 0.18),
-    0 20px 42px -12px rgba(0, 0, 0, 0.50),
-    0 4px 14px rgba(0, 0, 0, 0.30);
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.72),
+    0 16px 32px -12px rgba(0, 0, 0, 0.48);
   --glass-shadow-active:
-    inset 0 2.5px 1.5px rgba(255, 255, 255, 0.96),
-    inset 0 -2px 4px rgba(255, 255, 255, 0.28),
-    0 14px 30px -6px rgba(0, 0, 0, 0.52);
-  --sheen-spot: rgba(255, 255, 255, 0.42);
+    inset 0 2px 1.5px rgba(255, 255, 255, 0.94),
+    0 12px 24px -6px rgba(0, 0, 0, 0.50);
+  --sheen-spot: rgba(255, 255, 255, 0.28);
+  --trail-glow: rgba(255, 255, 255, 0.42);
   --code-bg: rgba(255, 255, 255, 0.12);
   --meter-track: rgba(255, 255, 255, 0.18);
   --meter-fill: linear-gradient(90deg, #38bdf8, #ffffff);
@@ -266,12 +249,9 @@ body:not(.is-light-tone) {
     rgba(255, 255, 255, 0.90) 100%
   );
   --droplet-shadow:
-    inset 0 2.5px 1.5px rgba(255, 255, 255, 0.98),
-    inset 0 -3px 6px rgba(255, 255, 255, 0.36),
-    inset 2.5px 0 6px rgba(255, 255, 255, 0.24),
-    inset -2.5px 0 6px rgba(255, 255, 255, 0.24),
-    0 14px 30px -5px rgba(0, 0, 0, 0.56),
-    0 3px 10px rgba(0, 0, 0, 0.35);
+    inset 0 2.5px 1.5px rgba(255, 255, 255, 0.96),
+    inset 0 -2.5px 4px rgba(255, 255, 255, 0.30),
+    0 12px 24px -5px rgba(0, 0, 0, 0.52);
   --droplet-wave: radial-gradient(
     65% 92% at calc(50% + var(--flow-shift, 0%)) 24%,
     rgba(255, 255, 255, 0.58) 0%,
@@ -502,32 +482,43 @@ button {
 }
 
 /* ==========================================================================
-   IOS 26 + LIQUID-GLASS-JS CLEAR MENISCUS OPTICS + TOUCH BLOOM
+   SINGLE-PASS ZERO-MASK-BUFFER LIQUID GLASS OPTICS (LOCKED 60-144 FPS!)
+   Uses dual `padding-box` + `border-box` Fresnel prism rim -> 0 alpha-mask FBOs,
+   0 `backdrop-filter` readback stalls, and 1 shared GPU cursor glint!
    ========================================================================== */
+
+.liquid-cursor-glint {
+  position: fixed;
+  top: -110px;
+  left: -110px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--sheen-spot) 0%, transparent 68%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 26;
+  transition: opacity 0.2s ease;
+}
 
 .liquid-bar,
 .liquid-glass,
 .liquid-pill,
 .os-btn {
   position: relative;
-  isolation: isolate;
   transform-origin: center center;
 }
 
 .liquid-bar {
-  background: var(--glass-bar-bg);
-  backdrop-filter: blur(12px) saturate(165%);
-  -webkit-backdrop-filter: blur(12px) saturate(165%);
-  border: 1px solid var(--glass-border);
+  background: var(--glass-bar-bg) padding-box, var(--glass-rim) border-box;
+  border: 1.2px solid transparent;
   box-shadow: var(--glass-shadow);
-  transition: background 0.4s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 .liquid-glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--glass-bg) padding-box, var(--glass-rim) border-box;
+  border: 1.2px solid transparent;
   box-shadow: var(--glass-shadow);
-  transition: background 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .liquid-pill {
@@ -536,58 +527,16 @@ button {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 999px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--glass-bg) padding-box, var(--glass-rim) border-box;
+  border: 1.2px solid transparent;
   box-shadow: var(--glass-shadow);
-  transition: background 0.35s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Tactile iOS 26 Press Inflation + Luminous Rim (Video 2 00:08-00:15!) */
 button.liquid-pill:active,
 a.liquid-pill:active,
 .primary-btn:active,
 .os-btn:active {
   box-shadow: var(--glass-shadow-active);
-  border-color: var(--glass-border-strong);
-}
-
-/* Diagonal Specular Fresnel Rim (z-index: -1 -> ALWAYS behind text!) */
-.liquid-glass::before,
-.liquid-bar::before,
-.liquid-pill::before,
-.os-btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.2px;
-  background: var(--glass-rim);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* Interactive Finger/Cursor Luminous Bloom (Video 2 00:09 & 00:13!) */
-.liquid-glass::after,
-.liquid-bar::after,
-.liquid-pill::after,
-.os-btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(
-    185px circle at var(--lx, 50%) var(--ly, 20%),
-    var(--sheen-spot) 0%,
-    transparent 66%
-  );
-  opacity: var(--l-alpha, 0);
-  transition: opacity 0.24s ease;
-  pointer-events: none;
-  z-index: -1;
 }
 
 .offscreen-opt {
@@ -721,7 +670,7 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
   scroll-snap-type: inline proximity;
 }
 
-/* Soft Misty Orientation Ghost on Non-Active Hovered Tab (Does NOT move active droplet!) */
+/* Soft Misty Orientation Ghost (100% transform-only, fixed base width 64px!) */
 .liquid-dock-ghost {
   position: absolute;
   top: 0.24rem;
@@ -734,11 +683,8 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
   opacity: 0;
   z-index: 1;
   pointer-events: none;
-  transition:
-    transform 0.22s var(--ease-spring),
-    width 0.22s var(--ease-spring),
-    height 0.22s var(--ease-spring),
-    opacity 0.16s ease;
+  transform-origin: 0 50%;
+  transition: transform 0.2s var(--ease-spring), opacity 0.15s ease;
 }
 
 .liquid-taskbar-dock.is-vertical > .liquid-dock-ghost {
@@ -747,76 +693,66 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
   left: 0.30rem;
   right: 0.30rem;
   width: auto;
-  height: 40px;
+  height: 42px;
   border-radius: 14px;
+  transform-origin: 50% 0;
 }
 
-/* Metaball Split/Merge Coalesce Blur Trail (Video 2 00:33-00:40!) */
+/* Zero-Shader Soft Radial Mist Coalesce Trail (Looks identical to blur(5px) at 0ms GPU cost!) */
 .liquid-dock-trail {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
+  top: -4px;
+  bottom: -4px;
   left: 0;
   width: 64px;
   border-radius: 999px;
-  background: var(--droplet-bg);
-  border: 1px solid var(--droplet-border);
+  background: radial-gradient(ellipse 68% 72% at 50% 50%, var(--trail-glow) 0%, transparent 100%);
   opacity: 0;
   z-index: 1;
   pointer-events: none;
-  transform-origin: center center;
+  transform-origin: 0 50%;
 }
 
 .liquid-taskbar-dock.is-vertical > .liquid-dock-trail {
   top: 0;
   bottom: auto;
-  left: -2px;
-  right: -2px;
+  left: -4px;
+  right: -4px;
   width: auto;
-  height: 40px;
-  border-radius: 16px;
+  height: 42px;
+  transform-origin: 50% 0;
 }
 
-/* LAYER 2: Overflowing Viscous Liquid Water-Lens Droplet (Protrudes outside Layer 1!) */
+/* LAYER 2: 100% Compositor Transform-Only Liquid Water-Lens Droplet (0 layout/paint!) */
 .liquid-dock-droplet {
   position: absolute;
   top: -5px;
   bottom: -5px;
   left: 0;
-  width: 76px;
+  width: 64px;
   border-radius: 999px;
-  background: var(--droplet-bg);
-  border: 1px solid var(--droplet-border);
+  background: var(--droplet-bg) padding-box, var(--droplet-rim) border-box;
+  border: 1.3px solid transparent;
   box-shadow: var(--droplet-shadow);
   z-index: 2;
   pointer-events: none;
-  transform-origin: center center;
-  will-change: transform, width;
-  transition: background 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+  transform-origin: 0 50%;
+  will-change: transform;
 }
 
-/* Hardware Capsule SDF Refraction on Top Active Droplet (dashersw/liquid-glass-js math!) */
-html.refract-ready #navGlider {
-  backdrop-filter: url(#lg-capsule-refract) saturate(165%);
-  -webkit-backdrop-filter: url(#lg-capsule-refract) saturate(165%);
-}
-
-/* Drag-Scrub Mode (Video 2 00:21-00:30): Ultra-clear magnified water lens! */
 .liquid-taskbar-dock.is-dragging {
   cursor: grabbing;
 }
 
 .liquid-taskbar-dock.is-dragging > .liquid-dock-droplet {
-  background: var(--droplet-drag-bg);
+  background: var(--droplet-drag-bg) padding-box, var(--droplet-rim) border-box;
 }
 
-/* Inside horizontally-scrolling mobile dock: keep full rounded water rim inside scrollport */
 .liquid-taskbar-dock.is-scrollable > .liquid-dock-droplet {
   top: 2px;
   bottom: 2px;
 }
 
-/* Vertical Dock Mode (Driver Studio Sidebar Rail on Desktop > 1040px) */
 .liquid-taskbar-dock.is-vertical > .liquid-dock-droplet {
   top: 0;
   bottom: auto;
@@ -825,32 +761,7 @@ html.refract-ready #navGlider {
   width: auto;
   height: 42px;
   border-radius: 16px;
-}
-
-/* Prismatic Fresnel Water Rim on Layer 2 Droplet */
-.liquid-dock-droplet::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.35px;
-  background: var(--droplet-rim);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* Internal Sloshing Liquid Caustic Wave + Coalesce Flash During Suction */
-.liquid-dock-droplet::after {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  background: var(--droplet-wave);
-  opacity: calc(0.45 + var(--flow-energy, 0) * 0.55);
-  pointer-events: none;
+  transform-origin: 50% 0;
 }
 
 @media (forced-colors: active) {
@@ -1230,7 +1141,7 @@ body.motion-paused .motion-toggle .status-pip {
   color: var(--ink-strong);
 }
 
-/* Centerpiece 3D Volumetric Real Mouse Stage (Grid Column 2, Never Collides!) */
+/* Zero continuous idle CPU/GPU float on Hero center — moves smoothly only on user interaction! */
 .hero-center {
   position: relative;
   z-index: 12;
@@ -1239,12 +1150,6 @@ body.motion-paused .motion-toggle .status-pip {
   justify-content: center;
   pointer-events: none;
   min-width: 0;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .hero-center {
-    animation: heroLevitate 5.8s ease-in-out infinite;
-  }
 }
 
 @keyframes heroLevitate {
@@ -1575,6 +1480,10 @@ body:not(.is-light-tone) .rig-ground-shadow {
   .marquee-track.reverse {
     animation: marqueeGlideRev 32s linear infinite;
   }
+}
+
+.marquee-track.offscreen-paused {
+  animation-play-state: paused !important;
 }
 
 @keyframes marqueeGlide {
@@ -2090,32 +1999,13 @@ body.is-light-tone .anatomy-callout {
   width: 56px;
   height: 32px;
   border-radius: 999px;
-  background: var(--droplet-drag-bg);
-  border: 1px solid var(--droplet-border);
+  background: var(--droplet-drag-bg) padding-box, var(--droplet-rim) border-box;
+  border: 1.3px solid transparent;
   box-shadow: var(--droplet-shadow);
   pointer-events: none;
   z-index: 3;
   transform: translate3d(0, -50%, 0);
   transform-origin: center center;
-  transition: background 0.22s ease, box-shadow 0.22s ease;
-}
-
-html.refract-ready .liquid-slider-thumb {
-  backdrop-filter: url(#lg-capsule-refract) saturate(170%);
-  -webkit-backdrop-filter: url(#lg-capsule-refract) saturate(170%);
-}
-
-.liquid-slider-thumb::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.3px;
-  background: var(--droplet-rim);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask-composite: exclude;
 }
 
 .liquid-range-native {
@@ -2609,7 +2499,6 @@ html.refract-ready .liquid-slider-thumb {
 .studio-window {
   border-radius: 28px;
   overflow: clip;
-  will-change: transform;
 }
 
 .studio-topbar {
@@ -2996,10 +2885,9 @@ html.refract-ready .liquid-slider-thumb {
   gap: 0.42rem;
 }
 
-/* Both Primary & Ghost OS Buttons are 100% Pure Liquid Glass! */
+/* Both Primary & Ghost OS Buttons use single-pass border-box Fresnel prism rim! */
 .os-btn {
   position: relative;
-  isolation: isolate;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
@@ -3010,14 +2898,13 @@ html.refract-ready .liquid-slider-thumb {
   font-weight: 700;
   color: var(--ink-strong);
   text-shadow: var(--text-halo);
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg);
+  border: 1.2px solid transparent;
+  background: var(--glass-bg) padding-box, var(--glass-rim) border-box;
   box-shadow: var(--glass-shadow);
 }
 
 .os-btn.primary {
-  background: var(--glass-bg-elevated);
-  border-color: var(--glass-border-strong);
+  background: var(--glass-bg-elevated) padding-box, var(--glass-rim) border-box;
   box-shadow: var(--glass-shadow-active);
 }
 

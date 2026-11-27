@@ -35,77 +35,11 @@
   }
 
   /* ------------------------------------------------------------------------
-     0. CAPSULE SDF REFRACTION MAP (EXACT dashersw/liquid-glass-js MATH!)
-     Precomputes pillDistance + shapeNormal + edge/rim/cornerBoost ONCE (1ms)
-     into an SVG <feDisplacementMap> dataURL for 0%-CPU hardware refraction!
+     0. HARDWARE TIER DETECTION (Auto-scales heavy asset memory on 4-8GB PCs!)
      ------------------------------------------------------------------------ */
-  (function initCapsuleRefractionMap() {
-    try {
-      const feImg = document.getElementById('lgRefractImg');
-      if (!feImg) return;
-      const w = 160;
-      const h = 72;
-      const r = h * 0.5;
-      const cvs = document.createElement('canvas');
-      cvs.width = w;
-      cvs.height = h;
-      const ctx = cvs.getContext('2d');
-      if (!ctx) return;
-
-      const imgData = ctx.createImageData(w, h);
-      const data = imgData.data;
-      const cy = h * 0.5;
-      const capStartX = r;
-      const capEndX = w - r;
-      const capLenSq = (capEndX - capStartX) * (capEndX - capStartX);
-      const minDim = Math.min(w, h);
-
-      for (let py = 0; py < h; py++) {
-        for (let px = 0; px < w; px++) {
-          const x = px + 0.5;
-          const y = py + 0.5;
-
-          // Capsule axis projection (pillDistance & shapeNormal from liquid-glass-js)
-          const t = capLenSq > 0 ? clamp(((x - capStartX) * (capEndX - capStartX)) / capLenSq, 0, 1) : 0;
-          const axisX = capStartX + t * (capEndX - capStartX);
-          const dx = x - axisX;
-          const dy = y - cy;
-          const len = Math.sqrt(dx * dx + dy * dy) || 1;
-          const distFromEdge = Math.max(0, r - len);
-
-          const nx = dx / len;
-          const ny = dy / len;
-
-          const edgeTerm = Math.exp(-distFromEdge * 0.20) * 0.56;
-          const rimTerm = Math.exp(-distFromEdge * 0.55) * 0.44;
-          const cornerX = Math.min(x / w, 1 - x / w);
-          const cornerY = Math.min(y / h, 1 - y / h);
-          const cornerBoost = Math.exp(-Math.max(cornerX, cornerY) * minDim * 0.28) * 0.16;
-
-          // Displace inward near curved meniscus rim (convex water lens magnification)
-          const strength = clamp(edgeTerm + rimTerm + cornerBoost, 0, 1);
-          const idx = (py * w + px) * 4;
-          data[idx] = clamp(Math.round(128 - nx * strength * 124), 0, 255);
-          data[idx + 1] = clamp(Math.round(128 - ny * strength * 124), 0, 255);
-          data[idx + 2] = 128;
-          data[idx + 3] = 255;
-        }
-      }
-
-      ctx.putImageData(imgData, 0, 0);
-      const url = cvs.toDataURL('image/png');
-      feImg.setAttribute('href', url);
-      feImg.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', url);
-
-      // Enable SVG url(#...) backdrop-filter on Chromium engines where hardware-supported
-      const isChromium = 'chrome' in window && CSS.supports && CSS.supports('backdrop-filter', 'blur(1px)');
-      if (isChromium) {
-        document.documentElement.classList.add('refract-ready');
-      }
-    } catch (_) {
-      // Graceful fallback to multi-zone CSS optical meniscus
-    }
-  })();
+  const hwCores = navigator.hardwareConcurrency || 4;
+  const hwMem = navigator.deviceMemory || 4;
+  const isLowPowerGPU = hwCores <= 4 || hwMem <= 4;
 
   /* ------------------------------------------------------------------------
      1. 4 AUTHENTIC SKIN TONES & ALL 67 REAL MOUSE SKINS
@@ -354,6 +288,9 @@
   let heroVisible = true;
   let heroRunning = false;
 
+  const cursorGlint = document.getElementById('liquidCursorGlint');
+  let glintVisible = false;
+
   if (finePointer) {
     let currentHoveredChain = [];
     let rawX = window.innerWidth * 0.5;
@@ -375,11 +312,25 @@
 
       const matched = [];
       let node = rawTarget;
-      while (node && node !== document.body && matched.length < 2) {
+      while (node && node !== document.body && matched.length < 1) {
         if (node.matches && node.matches(LIQUID_SELECTOR)) {
           matched.push(node);
         }
         node = node.parentElement;
+      }
+
+      // Move ONE single GPU-composited glint via translate3d -> ZERO card gradient repaints!
+      if (cursorGlint) {
+        if (matched.length > 0) {
+          cursorGlint.style.transform = `translate3d(${rawX.toFixed(0)}px, ${rawY.toFixed(0)}px, 0)`;
+          if (!glintVisible) {
+            glintVisible = true;
+            cursorGlint.style.opacity = '1';
+          }
+        } else if (glintVisible) {
+          glintVisible = false;
+          cursorGlint.style.opacity = '0';
+        }
       }
 
       for (let i = 0; i < currentHoveredChain.length; i++) {
@@ -394,7 +345,6 @@
           st.targetSx = 1;
           st.targetSy = 1;
           st.targetSk = 0;
-          prev.style.setProperty('--l-alpha', '0');
           activeLiquidEls.add(prev);
         }
       }
@@ -413,27 +363,23 @@
             height: Math.max(32, r.height)
           };
           st.hovered = true;
-          el.style.setProperty('--l-alpha', '1');
         }
 
         const r = st.rect;
         const lx = rawX - r.left;
         const ly = rawY - r.top;
-        el.style.setProperty('--lx', `${lx.toFixed(0)}px`);
-        el.style.setProperty('--ly', `${ly.toFixed(0)}px`);
 
-        const nx = clamp((lx / r.width - 0.5) * 2, -1.1, 1.1);
-        const ny = clamp((ly / r.height - 0.5) * 2, -1.1, 1.1);
+        const nx = clamp((lx / r.width - 0.5) * 2, -1.05, 1.05);
+        const ny = clamp((ly / r.height - 0.5) * 2, -1.05, 1.05);
 
         const diag = Math.sqrt(r.width * r.width + r.height * r.height);
-        const isLarge = diag > 500;
+        const isLarge = diag > 480;
         const isTaskbarDock = el.classList && el.classList.contains('liquid-taskbar-dock');
-        const isParent = i === 1;
 
-        const pullAmp = isTaskbarDock ? 3.2 : (isParent ? 3.8 : (isLarge ? 5.8 : 9.5));
-        const stretchAmp = isTaskbarDock ? 0.010 : (isParent ? 0.011 : (isLarge ? 0.018 : 0.046));
-        const skewAmp = isTaskbarDock ? 0.25 : (isParent ? 0.4 : (isLarge ? 0.65 : 1.7));
-        const pressBoost = st.pressed ? 0.032 : 0.010;
+        const pullAmp = isTaskbarDock ? 2.8 : (isLarge ? 5.0 : 8.5);
+        const stretchAmp = isTaskbarDock ? 0.008 : (isLarge ? 0.015 : 0.042);
+        const skewAmp = isTaskbarDock ? 0 : (isLarge ? 0.45 : 1.35);
+        const pressBoost = st.pressed ? 0.032 : 0.008;
 
         st.targetTx = nx * pullAmp;
         st.targetTy = ny * pullAmp;
@@ -579,25 +525,20 @@
   let dockLoopRunning = false;
   let lastDockTickTime = 0;
 
+  const BASE_DROPLET_W = 64;
+  const BASE_DROPLET_H = 42;
+
   function renderDockDropletImmediate(st) {
     const left = Math.min(st.posA, st.posB);
     const span = Math.max(24, Math.abs(st.posB - st.posA));
     if (st.isVertical) {
-      st.droplet.style.width = '';
-      st.droplet.style.height = `${span.toFixed(2)}px`;
-      st.droplet.style.transform = `translate3d(0, ${left.toFixed(2)}px, 0) scaleX(1)`;
+      const sy = span / BASE_DROPLET_H;
+      st.droplet.style.transform = `translate3d(0, ${left.toFixed(2)}px, 0) scale(1, ${sy.toFixed(4)})`;
     } else {
-      st.droplet.style.height = '';
-      st.droplet.style.width = `${span.toFixed(2)}px`;
-      st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scaleY(1)`;
+      const sx = span / BASE_DROPLET_W;
+      st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scale(${sx.toFixed(4)}, 1)`;
     }
-    st.droplet.style.filter = '';
-    st.droplet.style.setProperty('--flow-shift', '0%');
-    st.droplet.style.setProperty('--flow-energy', '0');
-    if (st.trail) {
-      st.trail.style.opacity = '0';
-      st.trail.style.filter = '';
-    }
+    if (st.trail) st.trail.style.opacity = '0';
   }
 
   function dockPhysicsTick(now) {
@@ -620,19 +561,18 @@
     const h = dt * 0.5;
 
     activeDocks.forEach((st) => {
-      // Responsive direct-hand tracking while dragging; viscous liquid bridge on click/release!
       const isDrag = st.dragging;
-      const stiffLead = isDrag ? 380 : 192;
-      const dampLead = isDrag ? 34 : 23.5;
-      const stiffTrail = isDrag ? 185 : 44.5;
-      const dampTrail = isDrag ? 24 : 9.5;
+      const stiffLead = isDrag ? 420 : 200;
+      const dampLead = isDrag ? 35 : 24;
+      const stiffTrail = isDrag ? 210 : 48;
+      const dampTrail = isDrag ? 25 : 9.8;
 
       const stiffA = st.dir >= 0 ? stiffTrail : stiffLead;
       const dampA = st.dir >= 0 ? dampTrail : dampLead;
       const stiffB = st.dir >= 0 ? stiffLead : stiffTrail;
       const dampB = st.dir >= 0 ? dampLead : dampTrail;
 
-      const targetSwell = isDrag ? 0.19 : 0;
+      const targetSwell = isDrag ? 0.18 : 0;
 
       for (let s = 0; s < 2; s++) {
         const accA = (st.targetA - st.posA) * stiffA - st.velA * dampA;
@@ -648,24 +588,23 @@
         st.swell += st.velSwell * h;
       }
 
-      // Decay Video-2 Metaball Split/Coalesce Trail Blur (00:33-00:38!)
+      // 100% Compositor Mist Trail (0 filter:blur() shader, pure transform + opacity!)
       if (st.trailAlpha > 0.01) {
-        st.trailAlpha = Math.max(0, st.trailAlpha - dt * 3.6);
+        st.trailAlpha = Math.max(0, st.trailAlpha - dt * 3.8);
         if (st.trail) {
-          const shrink = 0.72 + st.trailAlpha * 0.28;
-          const blurPx = ((1 - st.trailAlpha) * 4.5 + 0.8).toFixed(2);
-          st.trail.style.opacity = (st.trailAlpha * 0.78).toFixed(3);
-          st.trail.style.filter = `blur(${blurPx}px)`;
+          const shrink = 0.65 + st.trailAlpha * 0.45;
+          st.trail.style.opacity = (st.trailAlpha * 0.85).toFixed(3);
           if (st.isVertical) {
-            st.trail.style.transform = `translate3d(0, ${st.trailPos.toFixed(1)}px, 0) scale(${shrink.toFixed(3)})`;
+            const sy = (st.trailSpan / BASE_DROPLET_H) * shrink;
+            st.trail.style.transform = `translate3d(0, ${st.trailPos.toFixed(1)}px, 0) scale(${shrink.toFixed(3)}, ${sy.toFixed(3)})`;
           } else {
-            st.trail.style.transform = `translate3d(${st.trailPos.toFixed(1)}px, 0, 0) scale(${shrink.toFixed(3)})`;
+            const sx = (st.trailSpan / BASE_DROPLET_W) * shrink;
+            st.trail.style.transform = `translate3d(${st.trailPos.toFixed(1)}px, 0, 0) scale(${sx.toFixed(3)}, ${shrink.toFixed(3)})`;
           }
         }
       } else if (st.trail && st.trailAlpha !== 0) {
         st.trailAlpha = 0;
         st.trail.style.opacity = '0';
-        st.trail.style.filter = '';
       }
 
       const naturalSpan = Math.max(26, st.targetB - st.targetA);
@@ -675,24 +614,17 @@
 
       const trailSpeed = Math.abs(st.dir >= 0 ? st.velA : st.velB);
       const nearTarget = Math.abs(st.dir >= 0 ? st.targetA - st.posA : st.targetB - st.posB) < naturalSpan * 0.55;
-      const arrivalPlump = (!isDrag && nearTarget) ? Math.min(0.09, (trailSpeed / 920) * 0.095) : 0;
-      const neckPinch = isDrag ? 0 : Math.min(0.11, stretch * 0.055);
-      const crossScale = clamp(1 + st.swell + arrivalPlump - neckPinch, 0.89, 1.25);
-
-      const avgVel = (st.velA + st.velB) * 0.5;
-      const flowShift = clamp(avgVel * 0.042, -34, 34);
-      const flowEnergy = clamp(Math.abs(avgVel) / 250 + stretch * 0.65 + Math.abs(st.swell) * 2.2, 0, 1);
-
-      // Subtle optical coalesce blur ONLY mid-suction (snaps to 0px crystal sharpness on settle!)
-      const coalesceBlur = !isDrag && stretch > 0.16 ? Math.min(2.1, (stretch - 0.16) * 1.65) : 0;
+      const arrivalPlump = (!isDrag && nearTarget) ? Math.min(0.085, (trailSpeed / 920) * 0.09) : 0;
+      const neckPinch = isDrag ? 0 : Math.min(0.10, stretch * 0.05);
+      const crossScale = clamp(1 + st.swell + arrivalPlump - neckPinch, 0.90, 1.24);
 
       const settled =
         !isDrag &&
         st.trailAlpha <= 0.01 &&
-        Math.abs(st.targetA - st.posA) < 0.14 &&
-        Math.abs(st.targetB - st.posB) < 0.14 &&
-        Math.abs(st.velA) < 1.2 &&
-        Math.abs(st.velB) < 1.2 &&
+        Math.abs(st.targetA - st.posA) < 0.15 &&
+        Math.abs(st.targetB - st.posB) < 0.15 &&
+        Math.abs(st.velA) < 1.3 &&
+        Math.abs(st.velB) < 1.3 &&
         Math.abs(st.swell) < 0.002 &&
         Math.abs(st.velSwell) < 0.02;
 
@@ -705,19 +637,12 @@
         st.velSwell = 0;
         renderDockDropletImmediate(st);
         activeDocks.delete(st);
+      } else if (st.isVertical) {
+        const sy = curSpan / BASE_DROPLET_H;
+        st.droplet.style.transform = `translate3d(0, ${left.toFixed(2)}px, 0) scale(${crossScale.toFixed(4)}, ${sy.toFixed(4)})`;
       } else {
-        if (st.isVertical) {
-          st.droplet.style.width = '';
-          st.droplet.style.height = `${curSpan.toFixed(2)}px`;
-          st.droplet.style.transform = `translate3d(0, ${left.toFixed(2)}px, 0) scaleX(${crossScale.toFixed(4)})`;
-        } else {
-          st.droplet.style.height = '';
-          st.droplet.style.width = `${curSpan.toFixed(2)}px`;
-          st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scaleY(${crossScale.toFixed(4)})`;
-        }
-        st.droplet.style.filter = coalesceBlur > 0.08 ? `blur(${coalesceBlur.toFixed(2)}px)` : '';
-        st.droplet.style.setProperty('--flow-shift', `${flowShift.toFixed(1)}%`);
-        st.droplet.style.setProperty('--flow-energy', flowEnergy.toFixed(3));
+        const sx = curSpan / BASE_DROPLET_W;
+        st.droplet.style.transform = `translate3d(${left.toFixed(2)}px, 0, 0) scale(${sx.toFixed(4)}, ${crossScale.toFixed(4)})`;
       }
     });
 
@@ -756,8 +681,7 @@
   function triggerIconBounce(tab) {
     if (!tab || motionPaused) return;
     tab.classList.remove('icon-pop');
-    void tab.offsetWidth;
-    tab.classList.add('icon-pop');
+    requestAnimationFrame(() => tab.classList.add('icon-pop'));
   }
 
   function createLiquidDock(dockEl) {
@@ -815,7 +739,8 @@
       swell: 0,
       velSwell: 0,
       trailAlpha: 0,
-      trailPos: 0
+      trailPos: 0,
+      trailSpan: 64
     };
 
     function getBoundsForTab(tab) {
@@ -830,15 +755,14 @@
       if (!fromTab || motionPaused || !trail || !fromTab.offsetWidth) return;
       const [a, b] = getBoundsForTab(fromTab);
       st.trailPos = a;
+      st.trailSpan = Math.max(24, b - a);
       st.trailAlpha = 1;
       if (st.isVertical) {
-        trail.style.width = '';
-        trail.style.height = `${(b - a).toFixed(1)}px`;
-        trail.style.transform = `translate3d(0, ${a.toFixed(1)}px, 0) scale(1)`;
+        const sy = st.trailSpan / BASE_DROPLET_H;
+        trail.style.transform = `translate3d(0, ${a.toFixed(1)}px, 0) scale(1, ${sy.toFixed(3)})`;
       } else {
-        trail.style.height = '';
-        trail.style.width = `${(b - a).toFixed(1)}px`;
-        trail.style.transform = `translate3d(${a.toFixed(1)}px, 0, 0) scale(1)`;
+        const sx = st.trailSpan / BASE_DROPLET_W;
+        trail.style.transform = `translate3d(${a.toFixed(1)}px, 0, 0) scale(${sx.toFixed(3)}, 1)`;
       }
     }
 
@@ -849,13 +773,11 @@
         return;
       }
       if (st.isVertical) {
-        ghost.style.width = '';
-        ghost.style.height = `${tab.offsetHeight}px`;
-        ghost.style.transform = `translate3d(0, ${tab.offsetTop}px, 0)`;
+        const sy = tab.offsetHeight / BASE_DROPLET_H;
+        ghost.style.transform = `translate3d(0, ${tab.offsetTop}px, 0) scale(1, ${sy.toFixed(4)})`;
       } else {
-        ghost.style.height = '';
-        ghost.style.width = `${tab.offsetWidth}px`;
-        ghost.style.transform = `translate3d(${tab.offsetLeft}px, 0, 0)`;
+        const sx = tab.offsetWidth / BASE_DROPLET_W;
+        ghost.style.transform = `translate3d(${tab.offsetLeft}px, 0, 0) scale(${sx.toFixed(4)}, 1)`;
       }
       ghost.style.opacity = '1';
     }
@@ -1253,8 +1175,7 @@
 
     if (!toneSweepWave || motionPaused) return;
     toneSweepWave.classList.remove('sweeping');
-    void toneSweepWave.offsetWidth;
-    toneSweepWave.classList.add('sweeping');
+    requestAnimationFrame(() => toneSweepWave.classList.add('sweeping'));
   }
 
   function runSpinSwap({ editionKey, customSrc, customName }) {
@@ -1463,8 +1384,9 @@
     if (!dissectCtx || !dissectCanvas) return;
     let img = frameImgs[idx];
     if (!img || !img.complete || !img.naturalWidth) {
-      // Fallback to nearest already-decoded frame while streaming
-      img = frameImgs[TOTAL_FRAMES - 1];
+      // Check adjacent even frame on stride-2 low-RAM mode before falling back to frame 121
+      const adj = idx + 1 < TOTAL_FRAMES && frameImgs[idx + 1] ? frameImgs[idx + 1] : frameImgs[idx - 1];
+      img = (adj && adj.complete && adj.naturalWidth) ? adj : frameImgs[TOTAL_FRAMES - 1];
       if (!img || !img.complete || !img.naturalWidth) return;
     }
     const cw = dissectCanvas.width;
@@ -1478,14 +1400,18 @@
 
   function sizeDissectCanvas() {
     if (!dissectCanvas) return;
-    const w = Math.min(1024, Math.max(320, Math.round(dissectCanvas.clientWidth)));
-    const h = Math.min(576, Math.max(180, Math.round(dissectCanvas.clientHeight)));
+    const maxW = isLowPowerGPU ? 800 : 1024;
+    const maxH = isLowPowerGPU ? 450 : 576;
+    const w = Math.min(maxW, Math.max(320, Math.round(dissectCanvas.clientWidth)));
+    const h = Math.min(maxH, Math.max(180, Math.round(dissectCanvas.clientHeight)));
     if (dissectCanvas.width !== w || dissectCanvas.height !== h) {
       dissectCanvas.width = w;
       dissectCanvas.height = h;
       drawDissectFrame(currentDissectFrame);
     }
   }
+
+  const targetDissectTotal = isLowPowerGPU ? 61 : TOTAL_FRAMES;
 
   function loadSingleFrame(idx) {
     return new Promise((resolve) => {
@@ -1498,9 +1424,9 @@
       frameImgs[idx] = im;
       const done = () => {
         loadedFrames++;
-        if (dissectCount) dissectCount.textContent = `${loadedFrames}/${TOTAL_FRAMES}`;
-        if (idx === currentDissectFrame) drawDissectFrame(currentDissectFrame);
-        if (loadedFrames >= TOTAL_FRAMES && dissectLoader) dissectLoader.classList.add('done');
+        if (dissectCount) dissectCount.textContent = `${Math.min(loadedFrames, targetDissectTotal)}/${targetDissectTotal}`;
+        if (Math.abs(idx - currentDissectFrame) <= 1) drawDissectFrame(currentDissectFrame);
+        if (loadedFrames >= targetDissectTotal && dissectLoader) dissectLoader.classList.add('done');
         resolve();
       };
       im.onload = done;
@@ -1509,7 +1435,7 @@
     });
   }
 
-  // Load ONLY initial assembled frame #121 immediately
+  // Load ONLY initial assembled frame #121 at page open (0 background decode storm while on Hero!)
   loadSingleFrame(TOTAL_FRAMES - 1).then(() => {
     sizeDissectCanvas();
     drawDissectFrame(TOTAL_FRAMES - 1);
@@ -1518,11 +1444,15 @@
   async function streamRemainingDissectFrames() {
     if (dissectStreamStarted) return;
     dissectStreamStarted = true;
-    const BATCH = 4;
-    for (let i = TOTAL_FRAMES - 2; i >= 0; i -= BATCH) {
+    const step = isLowPowerGPU ? 2 : 1;
+    const BATCH = 3;
+    const indices = [];
+    for (let i = TOTAL_FRAMES - 1 - step; i >= 0; i -= step) indices.push(i);
+
+    for (let k = 0; k < indices.length; k += BATCH) {
       const batch = [];
-      for (let b = 0; b < BATCH && i - b >= 0; b++) {
-        batch.push(loadSingleFrame(i - b));
+      for (let b = 0; b < BATCH && k + b < indices.length; b++) {
+        batch.push(loadSingleFrame(indices[k + b]));
       }
       await Promise.all(batch);
       await yieldToMain();
@@ -1535,9 +1465,21 @@
         streamRemainingDissectFrames();
         obs.disconnect();
       }
-    }, { rootMargin: '900px 0px' }).observe(anatomySection);
+    }, { rootMargin: '420px 0px' }).observe(anatomySection);
   }
-  setTimeout(streamRemainingDissectFrames, 2400);
+
+  // Pause marquee GPU animations whenever offscreen!
+  const marqueeEls = Array.from(document.querySelectorAll('.glass-marquee'));
+  if (marqueeEls.length) {
+    const mqIO = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        en.target.querySelectorAll('.marquee-track').forEach((tr) => {
+          tr.classList.toggle('offscreen-paused', !en.isIntersecting);
+        });
+      });
+    }, { rootMargin: '80px 0px' });
+    marqueeEls.forEach((m) => mqIO.observe(m));
+  }
 
   window.addEventListener('resize', debounce(sizeDissectCanvas, 150), { passive: true });
 

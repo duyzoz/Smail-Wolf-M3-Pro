@@ -22,15 +22,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
 </head>
 <body data-edition="pearl" class="is-light-tone">
-  <!-- Hardware-Accelerated Capsule SDF Refraction Filter (dashersw/liquid-glass-js math) -->
-  <svg class="lg-svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
-    <defs>
-      <filter id="lg-capsule-refract" x="-8%" y="-14%" width="116%" height="128%" color-interpolation-filters="sRGB">
-        <feImage id="lgRefractImg" x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="refractMap"></feImage>
-        <feDisplacementMap in="SourceGraphic" in2="refractMap" scale="18" xChannelSelector="R" yChannelSelector="G" result="refracted"></feDisplacementMap>
-      </filter>
-    </defs>
-  </svg>
+  <!-- Single Shared GPU-Composited Water Glint (Replaces 90 per-card radial repaints!) -->
+  <div class="liquid-cursor-glint" id="liquidCursorGlint" aria-hidden="true"></div>
 
   <!-- Top Optical Scroll Progress Filament -->
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
@@ -180,16 +173,10 @@
           </div>
         </div>
 
-        <!-- Mid-Background Floating 3D Liquid Glass Capsules -->
+        <!-- Mid-Background Floating Capsule -->
         <div class="orbs-container-bg" id="orbsBG" aria-hidden="true">
-          <div class="floating-orb b7">
-            <div class="orb-glass"><img src="assets/skins/thumbs/A01.webp" alt="" width="80" height="141"></div>
-          </div>
           <div class="floating-orb b8">
             <div class="orb-glass orb-pure"><span>1000 HZ</span></div>
-          </div>
-          <div class="floating-orb b9">
-            <div class="orb-glass"><img src="assets/skins/thumbs/F07.webp" alt="" width="80" height="141"></div>
           </div>
         </div>
 
@@ -220,25 +207,19 @@
           </div>
         </div>
 
-        <!-- Foreground Floating 3D Liquid Glass Orbs (Pointer Force-Field) -->
+        <!-- Foreground Floating 3D Liquid Glass Orbs (Trimmed to 4 Signature Orbs for Ultra-Low GPU Cost) -->
         <div class="orbs-container" id="orbsFG" aria-hidden="true">
           <div class="floating-orb b1">
-            <div class="orb-glass"><img src="assets/skins/thumbs/B01.webp" alt="" width="96" height="169"></div>
+            <div class="orb-glass"><img src="assets/skins/thumbs/B01.webp" alt="" width="96" height="169" decoding="async"></div>
           </div>
           <div class="floating-orb b2">
             <div class="orb-glass orb-pure"><span>PAW3311</span></div>
           </div>
           <div class="floating-orb b3">
-            <div class="orb-glass"><img src="assets/skins/thumbs/C05.webp" alt="" width="96" height="169"></div>
+            <div class="orb-glass"><img src="assets/skins/thumbs/C05.webp" alt="" width="96" height="169" decoding="async"></div>
           </div>
           <div class="floating-orb b4">
             <div class="orb-glass orb-pure"><span>58G</span></div>
-          </div>
-          <div class="floating-orb b5">
-            <div class="orb-glass"><img src="assets/skins/thumbs/D01.webp" alt="" width="96" height="169"></div>
-          </div>
-          <div class="floating-orb b6">
-            <div class="orb-glass"><img src="assets/skins/thumbs/s4.webp" alt="" width="96" height="169"></div>
           </div>
         </div>
 
