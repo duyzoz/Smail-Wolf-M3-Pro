@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="216" height="42" viewBox="0 0 216 42" role="img" aria-label="Liquid Glass Showcase">
+  <rect x="0.75" y="0.75" width="214.5" height="40.5" rx="20.25" fill="#0F172A" stroke="#38BDF8" stroke-width="1.4"/>
+  <text x="108" y="18" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#E0F2FE">Liquid Glass Showcase</text>
+  <text x="108" y="32" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" font-weight="600" fill="#E0F2FE" opacity="0.76">INTERACTIVE 3D WEB</text>
+</svg>

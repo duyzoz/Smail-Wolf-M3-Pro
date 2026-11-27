@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1172" height="228" viewBox="0 0 1172 228" role="img" aria-label="64-Byte WebHID Frame Architecture">
+  <rect x="0.5" y="0.5" width="1171" height="227" rx="18" fill="#0B0E17" stroke="#26314F" stroke-width="1.2"/>
+  <text x="28" y="34" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="700" letter-spacing="1.6" fill="#F97316">64-BYTE SERIALIZED WEBHID REPORT FRAME · USAGE PAGE 0xFF01 · USAGE 0x0010</text>
+  <text x="1144" y="34" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="700" fill="#64748B">READ TIMEOUT 500 MS · SEND GUARD 3,000 MS</text>
+
+  <!-- Byte Boxes -->
+  <g transform="translate(28, 52)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace">
+    <!-- B[0] -->
+    <rect x="0" y="0" width="138" height="86" rx="12" fill="#2A160B" stroke="#F97316" stroke-width="1.4"/>
+    <text x="14" y="22" font-size="10" font-weight="700" fill="#F97316">BYTE [0]</text>
+    <text x="14" y="50" font-size="22" font-weight="800" fill="#F8FAFC">0xF0</text>
+    <text x="14" y="72" font-size="10" fill="#94A3B8">Report ID (240)</text>
+
+    <!-- B[1] -->
+    <rect x="150" y="0" width="224" height="86" rx="12" fill="#0C2438" stroke="#38BDF8" stroke-width="1.4"/>
+    <text x="164" y="22" font-size="10" font-weight="700" fill="#38BDF8">BYTE [1] · OPCODE</text>
+    <text x="164" y="50" font-size="20" font-weight="800" fill="#F8FAFC">0x0E / 0x0F / 0x09</text>
+    <text x="164" y="72" font-size="10" fill="#94A3B8">Config · Keys · Macro · Status</text>
+
+    <!-- B[2] -->
+    <rect x="386" y="0" width="246" height="86" rx="12" fill="#0B2922" stroke="#34D399" stroke-width="1.4"/>
+    <text x="400" y="22" font-size="10" font-weight="700" fill="#34D399">BYTE [2] · INTEGRITY GUARD</text>
+    <text x="400" y="50" font-size="18" font-weight="800" fill="#F8FAFC">SUM(B[3..63]) &amp; 0xFF</text>
+    <text x="400" y="72" font-size="10" fill="#94A3B8">Mod-256 verified on every reply</text>
+
+    <!-- B[3..63] -->
+    <rect x="644" y="0" width="472" height="86" rx="12" fill="#14192B" stroke="#3A4B75" stroke-width="1.4"/>
+    <text x="658" y="22" font-size="10" font-weight="700" fill="#A78BFA">BYTES [3..63] · 61-BYTE REGISTER PAYLOAD</text>
+    <text x="658" y="50" font-size="17" font-weight="800" fill="#F8FAFC">AE 0A 2F [STAGE] [DPI_LE16] [HZ] ... 00</text>
+    <text x="658" y="72" font-size="10" fill="#94A3B8">Zero flash modification · Stock FR2012A firmware v2.1.3 preserved 100%</text>
+  </g>
+
+  <!-- Bottom Pipeline Arrows -->
+  <g transform="translate(28, 160)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="700">
+    <rect x="0" y="0" width="220" height="40" rx="10" fill="#14192B" stroke="#26314F"/>
+    <text x="110" y="24" text-anchor="middle" fill="#F8FAFC">1. React UI + WebHID Queue</text>
+
+    <path d="M 226 20 L 258 20 M 252 14 L 258 20 L 252 26" fill="none" stroke="#F97316" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="264" y="0" width="246" height="40" rx="10" fill="#14192B" stroke="#26314F"/>
+    <text x="387" y="24" text-anchor="middle" fill="#F8FAFC">2. Unsolicited Report Filter</text>
+
+    <path d="M 516 20 L 548 20 M 542 14 L 548 20 L 542 26" fill="none" stroke="#38BDF8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="554" y="0" width="260" height="40" rx="10" fill="#14192B" stroke="#26314F"/>
+    <text x="684" y="24" text-anchor="middle" fill="#F8FAFC">3. FR2012A MCU (48 MHz)</text>
+
+    <path d="M 820 20 L 852 20 M 846 14 L 852 20 L 846 26" fill="none" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="858" y="0" width="258" height="40" rx="10" fill="#0B2922" stroke="#34D399"/>
+    <text x="987" y="24" text-anchor="middle" fill="#34D399">4. Round-Trip Read-Back OK</text>
+  </g>
+</svg>

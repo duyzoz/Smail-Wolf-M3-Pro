@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="206" height="42" viewBox="0 0 206 42" role="img" aria-label="WebHID 0xFF01 Spec">
+  <rect x="0.75" y="0.75" width="204.5" height="40.5" rx="20.25" fill="#111827" stroke="#34D399" stroke-width="1.4"/>
+  <text x="103" y="18" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#D1FAE5">WebHID 0xFF01 Spec</text>
+  <text x="103" y="32" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" font-weight="600" fill="#D1FAE5" opacity="0.76">64B WIRE · MOD-256</text>
+</svg>

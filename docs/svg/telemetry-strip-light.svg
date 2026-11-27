@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1172" height="116" viewBox="0 0 1172 116" role="img" aria-label="SMAILWOLF M3 Pro Core Telemetry Specs">
+  <g transform="translate(0, 0)">
+    <rect x="0.5" y="0.5" width="284" height="114" rx="16" fill="#FFFFFF" stroke="#D5D0C5" stroke-width="1.1"/>
+    <rect x="16" y="16" width="8" height="24" rx="4" fill="#EA580C"/>
+    <text x="34" y="25" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" font-weight="700" letter-spacing="1.2" fill="#64748B">NATIVE FOOTPRINT</text>
+    <text x="34" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.8" fill="#121521">18 MB</text>
+    <rect x="16" y="80" width="252" height="22" rx="6" fill="#FFF1E6"/>
+    <text x="24" y="95" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" font-weight="600" fill="#EA580C">20x lighter than vendor suites · ~14 MB idle RAM</text>
+  </g>
+  <g transform="translate(296, 0)">
+    <rect x="0.5" y="0.5" width="284" height="114" rx="16" fill="#FFFFFF" stroke="#D5D0C5" stroke-width="1.1"/>
+    <rect x="16" y="16" width="8" height="24" rx="4" fill="#0284C7"/>
+    <text x="34" y="25" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" font-weight="700" letter-spacing="1.2" fill="#64748B">WIRE PROTOCOL</text>
+    <text x="34" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.8" fill="#121521">64 BYTE</text>
+    <rect x="16" y="80" width="252" height="22" rx="6" fill="#E0F2FE"/>
+    <text x="24" y="95" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" font-weight="600" fill="#0284C7">WebHID 0xFF01 · Mod-256 checksum on every frame</text>
+  </g>
+  <g transform="translate(592, 0)">
+    <rect x="0.5" y="0.5" width="284" height="114" rx="16" fill="#FFFFFF" stroke="#D5D0C5" stroke-width="1.1"/>
+    <rect x="16" y="16" width="8" height="24" rx="4" fill="#059669"/>
+    <text x="34" y="25" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" font-weight="700" letter-spacing="1.2" fill="#64748B">VERIFICATION SUITE</text>
+    <text x="34" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.8" fill="#121521">154 + 800</text>
+    <rect x="16" y="80" width="252" height="22" rx="6" fill="#D1FAE5"/>
+    <text x="24" y="95" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" font-weight="600" fill="#059669">75 HID · 53 Battery · 21 Updater · 800 Fuzz cases</text>
+  </g>
+  <g transform="translate(888, 0)">
+    <rect x="0.5" y="0.5" width="284" height="114" rx="16" fill="#FFFFFF" stroke="#D5D0C5" stroke-width="1.1"/>
+    <rect x="16" y="16" width="8" height="24" rx="4" fill="#7C3AED"/>
+    <text x="34" y="25" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="10" font-weight="700" letter-spacing="1.2" fill="#64748B">VISUAL IDENTITY</text>
+    <text x="34" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.8" fill="#121521">67 SKINS</text>
+    <rect x="16" y="80" width="252" height="22" rx="6" fill="#EDE9FE"/>
+    <text x="24" y="95" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="9.5" font-weight="600" fill="#7C3AED">Normalized 944x1667 transparent cutouts + 3D stage</text>
+  </g>
+</svg>
