@@ -5824,6 +5824,122 @@ body.fps-low .water-tap-ripple {
   display: none !important;
 }
 
+/* ==========================================================================
+   WAVES 44-50: OFFSCREEN GPU HIBERNATION, CONTAINMENT, DECODER & CLICK BENCH
+   ========================================================================== */
+
+/* Wave 44: Pause Off-Screen Continuous Animations (`efficient-background-processing`) */
+.is-offscreen-idle .rig-caustic-aura,
+.is-offscreen-idle .scroll-capsule-track i,
+.is-offscreen-idle .wave-bars i {
+  animation-play-state: paused !important;
+}
+
+/* Wave 45: INP Containment Isolation for Heavy Mutation Regions (`interactions-in-complex-layouts`) */
+.compare-matrix-section,
+.faq-shell {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 480px;
+}
+
+@supports not (content-visibility: auto) {
+  .compare-matrix-section,
+  .faq-shell {
+    contain: layout style paint;
+  }
+}
+
+.faq-item,
+.os-card {
+  contain: layout style;
+}
+
+/* Wave 47: Live Interactive 64-Byte WebHID Frame Byte-Level Decoder */
+.hex-decoder-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.55rem 1.25rem 0.78rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.dec-tok {
+  min-height: 28px;
+  padding: 0.2rem 0.62rem;
+  gap: 0.36rem;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  color: var(--ink-strong);
+  cursor: pointer;
+}
+
+.dec-tok small {
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+}
+
+.dec-tok b {
+  font-weight: 700;
+  color: #0284c7;
+}
+
+body:not(.is-light-tone) .dec-tok b {
+  color: #7dd3fc;
+}
+
+/* Wave 48: Huano 80M Microswitch Click Latency & Double-Click Bounce Bench */
+.click-bench-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-top: 0.25rem;
+}
+
+.click-bench-btn {
+  min-height: 32px;
+  padding: 0.28rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease, border-color 0.16s ease;
+}
+
+.click-bench-btn:active {
+  transform: scale(0.95);
+}
+
+.click-health-pill {
+  font-weight: 700;
+  color: #059669;
+}
+
+body:not(.is-light-tone) .click-health-pill {
+  color: #6ee7b7;
+}
+
+.click-health-pill.is-warn {
+  border-color: rgba(244, 63, 94, 0.72);
+  color: #e11d48;
+}
+
+body:not(.is-light-tone) .click-health-pill.is-warn {
+  color: #fda4af;
+}
+
+.loadout-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
 /* Smartphones & Small Screens (< 640px — Tested down to 360x640!) */
 @media (max-width: 640px) {
   html { scroll-padding-top: 6.9rem; }

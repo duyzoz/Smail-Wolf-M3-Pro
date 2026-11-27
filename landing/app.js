@@ -2518,6 +2518,7 @@
   if (heroSection) {
     new IntersectionObserver((entries) => {
       heroVisible = entries[0].isIntersecting;
+      heroSection.classList.toggle('is-offscreen-idle', !heroVisible);
       if (heroVisible) cacheOrbCenters();
     }, { threshold: 0 }).observe(heroSection);
   }
@@ -3160,6 +3161,11 @@
     if (skinCompareSlider) skinCompareSlider.value = '50';
     setSkinCompareMode(false);
     syncFavoriteBadge();
+    const cmpImg = document.querySelector('#skinCompareOverlay img');
+    if (cmpImg && !cmpImg._predecoded && typeof cmpImg.decode === 'function') {
+      cmpImg._predecoded = true;
+      cmpImg.decode().catch(() => {});
+    }
     if (skinModal && typeof skinModal.showModal === 'function') {
       skinModal.showModal();
     }
@@ -3283,12 +3289,34 @@
      8. CONTENT-VISIBILITY BACKGROUND PAUSING + BENTO & DRIVER STUDIO
      ------------------------------------------------------------------------ */
   const skippedSections = new WeakSet();
-  document.querySelectorAll('.offscreen-opt').forEach((sec) => {
-    sec.addEventListener('contentvisibilityautostatechange', (ev) => {
-      if (ev.skipped) skippedSections.add(sec);
-      else skippedSections.delete(sec);
+  const hasContentVisibility = Boolean(document.documentElement && 'contentVisibility' in document.documentElement.style);
+  const offscreenSecs = Array.from(document.querySelectorAll('.offscreen-opt'));
+  if (hasContentVisibility) {
+    offscreenSecs.forEach((sec) => {
+      sec.addEventListener('contentvisibilityautostatechange', (ev) => {
+        if (ev.skipped) {
+          skippedSections.add(sec);
+          sec.classList.add('is-offscreen-idle');
+        } else {
+          skippedSections.delete(sec);
+          sec.classList.remove('is-offscreen-idle');
+        }
+      });
     });
-  });
+  } else if (offscreenSecs.length) {
+    const offIO = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (en.isIntersecting) {
+          skippedSections.delete(en.target);
+          en.target.classList.remove('is-offscreen-idle');
+        } else {
+          skippedSections.add(en.target);
+          en.target.classList.add('is-offscreen-idle');
+        }
+      });
+    }, { rootMargin: '200px' });
+    offscreenSecs.forEach((sec) => offIO.observe(sec));
+  }
 
   const LAYER_DATA = [
     {
@@ -3344,13 +3372,19 @@
   const dpiPills = Array.from(document.querySelectorAll('#bentoDpiPills .sim-pill'));
   const bentoDpiDock = dockControllers.get('bentoDpiPills');
   let bentoDpiScrubbing = false;
+  let bentoDpiTrackW = bentoDpiSliderWrap ? (bentoDpiSliderWrap.clientWidth || 320) : 320;
+  const measureBentoDpiTrack = () => {
+    if (bentoDpiSliderWrap) bentoDpiTrackW = bentoDpiSliderWrap.clientWidth || 320;
+  };
+  if (bentoDpiSliderWrap && typeof ResizeObserver === 'function') {
+    new ResizeObserver(measureBentoDpiTrack).observe(bentoDpiSliderWrap);
+  }
 
   function syncBentoDpiSlider(dpi) {
     const ratio = clamp(dpi / 12000, 0.05, 1);
     if (bentoDpiBar) bentoDpiBar.style.transform = `scaleX(${ratio.toFixed(3)})`;
     if (bentoDpiThumb && bentoDpiSliderWrap) {
-      const trackW = bentoDpiSliderWrap.clientWidth || 320;
-      const maxLeft = Math.max(0, trackW - 62);
+      const maxLeft = Math.max(0, bentoDpiTrackW - 62);
       const x = ((dpi - 400) / (12000 - 400)) * maxLeft;
       const sx = bentoDpiScrubbing ? 1.22 : 1;
       const sy = bentoDpiScrubbing ? 1.26 : 1;
@@ -3361,8 +3395,9 @@
     }
   }
 
-  window.addEventListener('load', () => syncBentoDpiSlider(12000), { once: true });
+  window.addEventListener('load', () => { measureBentoDpiTrack(); syncBentoDpiSlider(12000); }, { once: true });
   window.addEventListener('resize', debounce(() => {
+    measureBentoDpiTrack();
     const cur = bentoDpiScrub ? Number(bentoDpiScrub.value) || 12000 : 12000;
     syncBentoDpiSlider(cur);
   }, 150), { passive: true });
@@ -3460,13 +3495,23 @@
   const spTitle = document.getElementById('spTitle');
   const spDesc = document.getElementById('spDesc');
 
+  const decReport = document.getElementById('decReport');
+  const decCmd = document.getElementById('decCmd');
+  const decChk = document.getElementById('decChk');
+  const decPayload = document.getElementById('decPayload');
+
   function emitStudioHex(prefixBytes, note) {
-    const bytes = prefixBytes.split(' ').map((h) => parseInt(h, 16) || 0);
+    const tokens = prefixBytes.trim().split(/\s+/);
+    const bytes = tokens.map((h) => parseInt(h, 16) || 0);
     const sum = bytes.slice(3).reduce((a, b) => (a + b) & 0xff, 0);
     const chk = sum.toString(16).toUpperCase().padStart(2, '0');
     if (studioHexOut) {
       studioHexOut.textContent = `TX [64B] : ${prefixBytes} 00 00 00 ... · CHK 0x${chk} (${note})`;
     }
+    if (decReport) decReport.textContent = `0x${(tokens[0] || 'F0').toUpperCase()}`;
+    if (decCmd) decCmd.textContent = `0x${(tokens[1] || '0F').toUpperCase()}`;
+    if (decChk) decChk.textContent = `0x${chk}`;
+    if (decPayload) decPayload.textContent = tokens.slice(3, 8).join(' ').toUpperCase() || '00 00 00 00 00';
   }
 
   const STUDIO_TABS = {
@@ -4030,6 +4075,16 @@
       const sec = document.getElementById('driverCompare');
       if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
     }},
+    { type: 'action', badge: 'SW', title: 'Test Huano 80M Click Latency & Bounce', sub: 'Measure real CPS & detect microswitch double-click bounce', run: () => {
+      const sec = document.getElementById('driver');
+      if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+      const btn = document.getElementById('clickBenchBtn');
+      if (btn) btn.focus();
+    }},
+    { type: 'action', badge: 'URL', title: 'Copy Shareable Loadout Deep-Link', sub: 'Share your equipped skin, DPI & polling rate via URL hash', run: () => {
+      const btn = document.getElementById('shareLoadoutBtn');
+      if (btn) btn.click();
+    }},
     { type: 'action', badge: 'SPEC', title: 'Copy Configured M3 Pro Loadout', sub: 'Copy equipped skin, DPI, polling rate & register switches', run: () => {
       const btn = document.getElementById('copyLoadoutBtn');
       const target = document.getElementById('loadoutSpecText');
@@ -4511,6 +4566,13 @@
   let activeSimMa = 14;
   let activeSimHz = 1000;
   let batScrubbing = false;
+  let batTrackW = batSliderWrap ? (batSliderWrap.clientWidth || 320) : 320;
+  const measureBatTrack = () => {
+    if (batSliderWrap) batTrackW = batSliderWrap.clientWidth || 320;
+  };
+  if (batSliderWrap && typeof ResizeObserver === 'function') {
+    new ResizeObserver(measureBatTrack).observe(batSliderWrap);
+  }
 
   function updateBatterySimulator() {
     const hrsPerDay = batHoursScrub ? clamp(Number(batHoursScrub.value) || 4, 1, 12) : 4;
@@ -4524,8 +4586,7 @@
     if (batActiveHrs) batActiveHrs.textContent = `${activeHrs.toFixed(1)} hrs`;
     if (batBarFill) batBarFill.style.transform = `scaleX(${clamp(0.06 + ratio * 0.94, 0.06, 1).toFixed(3)})`;
     if (batLiquidThumb && batSliderWrap) {
-      const trackW = batSliderWrap.clientWidth || 320;
-      const maxLeft = Math.max(0, trackW - 62);
+      const maxLeft = Math.max(0, batTrackW - 62);
       const sx = batScrubbing ? 1.22 : 1;
       const sy = batScrubbing ? 1.26 : 1;
       batLiquidThumb.style.transform = `translate3d(${(ratio * maxLeft).toFixed(2)}px, -50%, 0) scale(${sx}, ${sy})`;
@@ -4560,7 +4621,7 @@
     batHoursScrub.addEventListener('input', updateBatterySimulator);
   }
   updateBatterySimulator();
-  window.addEventListener('resize', debounce(updateBatterySimulator, 150), { passive: true });
+  window.addEventListener('resize', debounce(() => { measureBatTrack(); updateBatterySimulator(); }, 150), { passive: true });
 
   // Wave 41: Auto-Detect Visitor OS -> Highlight Matching Download Card & SHA-256 Tab
   (function detectVisitorOsCard() {
@@ -4597,6 +4658,150 @@
       rippleEndTimer = setTimeout(() => waterTapPool.classList.remove('is-pulsing'), 460);
     }, { passive: true });
   }
+
+  /* ------------------------------------------------------------------------
+     13. WAVES 47-49: WEBHID BYTE DECODER, HUANO 80M CLICK BENCH & HASH SHARE
+     ------------------------------------------------------------------------ */
+
+  // Wave 47: Interactive 64-Byte WebHID Frame Field Explanations
+  const DECODER_NOTES = {
+    report: {
+      kicker: 'BYTE [0] · REPORT ID',
+      title: '0xF0 (240) Vendor Control Frame',
+      desc: 'Every configuration command on Usage Page 0xFF01 / Usage 0x0010 begins with Report ID 0xF0 so the FR2012A controller routes it straight to onboard register memory.'
+    },
+    cmd: {
+      kicker: 'BYTE [1] · OPCODE',
+      title: 'Command Register Selector',
+      desc: '0x0E reads active flash config, 0x0F writes PAW3311 DPI & polling registers, 0x09 remaps the 6 hardware buttons, 0x0D/0x10 commit delta macros, and 0x30 queries battery telemetry.'
+    },
+    chk: {
+      kicker: 'BYTE [2] · INTEGRITY CHECKSUM',
+      title: 'Mod-256 Frame Guard (Sum(B[3..63]) & 0xFF)',
+      desc: 'The mouse rejects any corrupted USB frame whose modulo-256 checksum byte does not match payload bytes 3 through 63 — guaranteeing zero flash corruption.'
+    },
+    payload: {
+      kicker: 'BYTES [3..63] · REGISTER PAYLOAD',
+      title: 'Little-Endian Hardware Parameters',
+      desc: 'Carries active DPI stage index, 16-bit PAW3311 step resolution, keycode / modifier masks, or millisecond-accurate macro timestamps padded cleanly to 64 bytes.'
+    }
+  };
+
+  document.querySelectorAll('#hexDecoderBar [data-dec-field]').forEach((tok) => {
+    tok.addEventListener('click', () => {
+      const info = DECODER_NOTES[tok.dataset.decField] || DECODER_NOTES.report;
+      if (spKicker) spKicker.textContent = info.kicker;
+      if (spTitle) spTitle.textContent = info.title;
+      if (spDesc) spDesc.textContent = info.desc;
+      playWaterDrop('plop');
+    });
+  });
+
+  // Wave 48: Huano 80M Microswitch Click Latency & Double-Click Bounce Tester
+  const clickBenchBtn = document.getElementById('clickBenchBtn');
+  const clickCpsVal = document.getElementById('clickCpsVal');
+  const clickMinMsVal = document.getElementById('clickMinMsVal');
+  const clickHealthTag = document.getElementById('clickHealthTag');
+  const clickStamps = [];
+  let minClickDeltaMs = Infinity;
+  let bounceCount = 0;
+
+  function resetClickBench() {
+    clickStamps.length = 0;
+    minClickDeltaMs = Infinity;
+    bounceCount = 0;
+    if (clickCpsVal) clickCpsVal.textContent = '0.0';
+    if (clickMinMsVal) clickMinMsVal.textContent = '-- ms';
+    if (clickHealthTag) {
+      clickHealthTag.textContent = 'HUANO 80M READY';
+      clickHealthTag.classList.remove('is-warn');
+    }
+  }
+
+  if (clickBenchBtn) {
+    clickBenchBtn.addEventListener('pointerdown', (ev) => {
+      if (ev.button > 0) return;
+      const now = ev.timeStamp || performance.now();
+      if (clickStamps.length) {
+        const delta = now - clickStamps[clickStamps.length - 1];
+        if (delta > 0 && delta < minClickDeltaMs) minClickDeltaMs = delta;
+        if (delta > 0 && delta < 35) bounceCount++;
+      }
+      clickStamps.push(now);
+      while (clickStamps.length && now - clickStamps[0] > 1000) clickStamps.shift();
+
+      const cps = clickStamps.length.toFixed(1);
+      if (clickCpsVal) clickCpsVal.textContent = cps;
+      if (clickMinMsVal && Number.isFinite(minClickDeltaMs)) {
+        clickMinMsVal.textContent = `${Math.round(minClickDeltaMs)} ms`;
+      }
+      if (clickHealthTag) {
+        if (bounceCount > 0) {
+          clickHealthTag.textContent = `BOUNCE DETECTED (${bounceCount})`;
+          clickHealthTag.classList.add('is-warn');
+        } else {
+          clickHealthTag.textContent = 'HUANO 80M CLEAN';
+          clickHealthTag.classList.remove('is-warn');
+        }
+      }
+      playWaterDrop('plop');
+    });
+    if (hzResetBtn) hzResetBtn.addEventListener('click', resetClickBench);
+  }
+
+  // Wave 49: Shareable Hash Loadout Deep-Link (`#loadout=SKIN,DPI,HZ`) + Startup Auto-Restore
+  const shareLoadoutBtn = document.getElementById('shareLoadoutBtn');
+  function buildShareLoadoutUrl() {
+    const tagTxt = (document.getElementById('heroEditionTag')?.textContent || 'default').toUpperCase();
+    const matchedSkin = SKINS.find((s) => tagTxt.includes(s.id.toUpperCase()) || tagTxt.includes(s.name.toUpperCase())) || SKINS[0];
+    const dpiVal = bentoDpiScrub ? Number(bentoDpiScrub.value) || 12000 : 12000;
+    const base = window.location.href ? window.location.href.split('#')[0] : '';
+    return `${base}#loadout=${encodeURIComponent(matchedSkin.id)},${dpiVal},${activeSimHz}`;
+  }
+
+  if (shareLoadoutBtn) {
+    shareLoadoutBtn.addEventListener('click', async () => {
+      const shareUrl = buildShareLoadoutUrl();
+      let copied = false;
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(shareUrl);
+          copied = true;
+        }
+      } catch (_) {}
+      if (!copied) copied = legacyCopy(shareUrl);
+      playWaterDrop('switch');
+      showLiquidToast(copied ? 'Shareable Loadout link copied to clipboard!' : shareUrl);
+    });
+  }
+
+  (function restoreSharedLoadoutFromHash() {
+    const h = String((window.location && window.location.hash) || '');
+    if (!h.startsWith('#loadout=')) return;
+    const parts = decodeURIComponent(h.slice(9)).split(',');
+    const skinId = (parts[0] || '').trim().toLowerCase();
+    const sharedDpi = clamp(parseInt(parts[1], 10) || 12000, 400, 12000);
+    const sharedHz = parseInt(parts[2], 10) || 1000;
+
+    const foundSkin = SKINS.find((s) => s.id.toLowerCase() === skinId);
+    if (foundSkin) {
+      const themeMap = { oni: 'crimson', cyber: 'cyber', anime: 'hologram', special: foundSkin.id === 'default' ? 'pearl' : 'hologram', topo: 'pearl' };
+      const edKey = themeMap[foundSkin.cat] || 'pearl';
+      activeEditionIndex = EDITION_ORDER.indexOf(edKey);
+      editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === edKey));
+      if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 0${EDITION_ORDER.length}`;
+      applyThemeAndMouse(EDITIONS[edKey] || EDITIONS.pearl, foundSkin.src, `${foundSkin.name} · ${foundSkin.id.toUpperCase()}`);
+    }
+    if (bentoDpiNum) bentoDpiNum.textContent = sharedDpi.toLocaleString('en-US');
+    if (bentoDpiScrub) bentoDpiScrub.value = String(sharedDpi);
+    syncBentoDpiSlider(sharedDpi);
+    syncHeroDpiLed(sharedDpi);
+
+    const hzMatch = hzPills.find((p) => Number(p.dataset.hz) === sharedHz);
+    if (hzMatch) hzMatch.click();
+    syncConfiguredLoadout();
+    showLiquidToast(`Loaded Shared Loadout · ${sharedDpi.toLocaleString('en-US')} DPI · ${sharedHz} Hz`);
+  })();
 
   window.addEventListener('scroll', requestScrollFrame, { passive: true });
   sizeDissectCanvas();
