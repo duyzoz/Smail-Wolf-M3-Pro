@@ -287,10 +287,11 @@
 
               <!-- Floating 3D Z-Space Liquid Glass Telemetry Chips -->
               <div class="rig-hud hud-dpi liquid-pill" aria-hidden="true">
-                <span><b>12,000</b> DPI</span>
+                <i class="dpi-led-dot" id="heroDpiDot"></i>
+                <span><b id="heroDpiNum">12,000</b> DPI</span>
               </div>
               <div class="rig-hud hud-hz liquid-pill" aria-hidden="true">
-                <span><b>1,000 Hz</b> · 1ms</span>
+                <span><b id="heroHzNum">1,000 Hz</b> · 1ms</span>
               </div>
               <div class="rig-hud hud-skin liquid-pill" aria-hidden="true">
                 <span id="heroEditionTag">PURE WHITE</span>
@@ -354,6 +355,7 @@
               <button type="button" class="nav-step liquid-pill" id="edPrev" aria-label="Previous skin tone">Prev</button>
               <span class="ed-counter" id="edCounter">01 / 04</span>
               <button type="button" class="nav-step liquid-pill" id="edNext" aria-label="Next skin tone">Next</button>
+              <button type="button" class="nav-step nav-shuffle liquid-pill" id="edShuffle" aria-label="Equip a random skin from all 67 cutouts">Shuffle</button>
             </div>
           </div>
 
@@ -503,6 +505,12 @@
               </svg>
               <span>Special Series</span>
             </button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="favorites" id="favFilterChip">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <path class="ic-main" d="M10 16.8c-.4 0-.8-.15-1.1-.43C5.3 13.1 2.8 10.7 2.8 7.6A4.1 4.1 0 0 1 6.9 3.5c1.3 0 2.45.64 3.1 1.64a3.77 3.77 0 0 1 3.1-1.64 4.1 4.1 0 0 1 4.1 4.1c0 3.1-2.5 5.5-6.1 8.77-.3.28-.7.43-1.1.43Z"/>
+              </svg>
+              <span>Favorites (<b id="favFilterCount">0</b>)</span>
+            </button>
           </div>
         </div>
 
@@ -554,6 +562,7 @@
                 <span>Equip on Hero Stage</span>
                 <span class="btn-pill-tag">3D</span>
               </button>
+              <button type="button" class="secondary-btn liquid-pill" id="skinFavBtn" aria-pressed="false">Save Favorite</button>
               <button type="button" class="secondary-btn liquid-pill" id="skinCompareToggle" aria-pressed="false">Compare vs White</button>
               <a href="#download" class="secondary-btn liquid-pill" id="modalDownloadLink">Download v3.0.13</a>
             </div>
@@ -713,6 +722,91 @@
           <h3>Win · macOS · Linux</h3>
           <p class="bento-desc">20x lighter than bloated vendor suites. Includes silent in-app self-update, system tray battery bar, and Lite Mode for older PCs.</p>
         </article>
+
+        <!-- Wave 38: Live Sleep-Aware Days-Per-Charge Battery Simulator -->
+        <article class="bento-card span-3 liquid-glass bat-sim-card" id="batSimCard" data-tilt3d>
+          <div class="bento-top">
+            <div>
+              <span class="bento-kicker">SLEEP-AWARE LITHIUM ENDURANCE · 400 MAH USABLE</span>
+              <p class="bento-big"><span id="batDaysVal">7.0</span> <small>Days / Charge</small></p>
+            </div>
+            <span class="bento-chip liquid-pill" id="batSimTag">4 HRS / DAY · 1,000 HZ</span>
+          </div>
+          <p class="bento-desc">Slide your daily desk time to model active polling draw (3–14 mA) plus 0.05 mA deep sleep current:</p>
+          <div class="liquid-slider-wrap bento-slider-wrap" id="batSliderWrap">
+            <div class="liquid-slider-track" aria-hidden="true">
+              <div class="liquid-slider-fill" id="batBarFill" style="transform: scaleX(0.3)"></div>
+            </div>
+            <div class="liquid-slider-thumb" id="batLiquidThumb" aria-hidden="true"></div>
+            <input type="range" id="batHoursScrub" class="liquid-range-native" min="1" max="12" step="1" value="4" aria-label="Daily mouse usage hours per day">
+          </div>
+          <div class="bat-sim-foot">
+            <span>Active Budget: <b id="batActiveHrs">28.6 hrs</b></span>
+            <span>Idle Drain: <b>0.05 mA</b></span>
+            <span>Charge Mode: <b>USB-C 150 mA</b></span>
+          </div>
+        </article>
+      </div>
+
+      <!-- Wave 36: Semantic Responsive Driver Architecture Comparison Table (`responsive-table`) -->
+      <div class="compare-matrix-section" id="driverCompare">
+        <div tabindex="0" role="region" aria-labelledby="compareTableCaption" class="table-wrapper compare-table-wrap liquid-glass" id="driverCompareWrap">
+          <table class="compare-table">
+            <caption id="compareTableCaption">Verified Engineering Comparison — Clean-Room M3 Pro Driver v3.0.13 vs Stock Vendor Suites</caption>
+            <thead>
+              <tr>
+                <th scope="col">Engineering Metric</th>
+                <th scope="col">M3 Pro v3.0.13 (Rust)</th>
+                <th scope="col">Stock Vendor Suite</th>
+                <th scope="col">Generic OS HID</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Installer Footprint</th>
+                <td class="cell-peak">18 MB Native Tauri 2</td>
+                <td>320–480 MB Electron</td>
+                <td>Built-in (No Tuning)</td>
+              </tr>
+              <tr>
+                <th scope="row">Idle Memory Usage</th>
+                <td class="cell-peak">~14 MB Resident</td>
+                <td>220+ MB Background</td>
+                <td>0 MB</td>
+              </tr>
+              <tr>
+                <th scope="row">Kernel / Ring-0 Drivers</th>
+                <td class="cell-peak">Zero (Pure WebHID 0xFF01)</td>
+                <td>Unsigned Kernel Filters</td>
+                <td>Generic Class Driver</td>
+              </tr>
+              <tr>
+                <th scope="row">Telemetry &amp; Accounts</th>
+                <td class="cell-peak">Zero · 100% Offline MIT</td>
+                <td>Cloud Login &amp; Tracking</td>
+                <td>None</td>
+              </tr>
+              <tr>
+                <th scope="row">Custom 3D Mouse Skins</th>
+                <td class="cell-peak">67 Precision 944×1667 Skins</td>
+                <td>1 Static Illustration</td>
+                <td>None</td>
+              </tr>
+              <tr>
+                <th scope="row">Battery Estimation</th>
+                <td class="cell-peak">Calibrated mA + Sync 100%</td>
+                <td>Stuck 100% Until Cutoff</td>
+                <td>Unavailable</td>
+              </tr>
+              <tr>
+                <th scope="row">Supported Platforms</th>
+                <td class="cell-peak">Windows · macOS · Linux</td>
+                <td>Windows Only</td>
+                <td>Cross-Platform</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -935,9 +1029,9 @@
           </p>
 
           <div class="os-cards-grid">
-            <div class="os-card liquid-glass">
+            <div class="os-card liquid-glass" data-os-card="win">
               <div class="os-head">
-                <span class="os-badge">WINDOWS 10 / 11</span>
+                <span class="os-badge">WINDOWS 10 / 11 <em class="os-your-tag" data-os-tag="win"></em></span>
                 <span class="os-size">X64 · 18 MB</span>
               </div>
               <p>Native WebView2 installer + silent in-app self-updater and system tray battery bar.</p>
@@ -951,9 +1045,9 @@
               </div>
             </div>
 
-            <div class="os-card liquid-glass">
+            <div class="os-card liquid-glass" data-os-card="mac">
               <div class="os-head">
-                <span class="os-badge">MACOS</span>
+                <span class="os-badge">MACOS <em class="os-your-tag" data-os-tag="mac"></em></span>
                 <span class="os-size">DMG + APP</span>
               </div>
               <p>Retina ICNS bundle and portable zipped <code>.app</code> built automatically via GitHub Actions.</p>
@@ -967,9 +1061,9 @@
               </div>
             </div>
 
-            <div class="os-card liquid-glass">
+            <div class="os-card liquid-glass" data-os-card="linux">
               <div class="os-head">
-                <span class="os-badge">LINUX</span>
+                <span class="os-badge">LINUX <em class="os-your-tag" data-os-tag="linux"></em></span>
                 <span class="os-size">APPIMAGE + DEB</span>
               </div>
               <p>Portable single-file AppImage and Debian package with SHA-256 verification.</p>
@@ -1149,8 +1243,8 @@
         <!-- Populated dynamically by app.js -->
       </div>
       <div class="spotlight-foot">
-        <span><b>↑↓</b> Navigate · <b>Enter</b> Equip · <b>1–4</b> Tone · <b>M</b> Mode · <b>?</b> Actions · <b>Esc</b> Close</span>
-        <span id="spotlightCount">77 items ready</span>
+        <span><b>↑↓</b> Navigate · <b>1–4</b> Tone · <b>R</b> Shuffle · <b>X</b> X-Ray · <b>M</b> Mode · <b>?</b> Actions</span>
+        <span id="spotlightCount">79 items ready</span>
       </div>
     </div>
   </dialog>
@@ -1164,6 +1258,8 @@
     </div>
   </div>
   <div class="sr-live-region" id="srAnnouncer" aria-live="polite"></div>
+  <!-- Wave 42: Single Pooled Zero-Allocation Liquid Click Ripple -->
+  <span class="water-tap-ripple" id="waterTapPool" aria-hidden="true"></span>
 
   <!-- Low-Priority Preload of Edition Cutouts (Never competes with Hero LCP!) -->
   <div class="preload-vault" aria-hidden="true">

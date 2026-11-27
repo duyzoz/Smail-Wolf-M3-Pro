@@ -2281,22 +2281,64 @@
 
   const edPrev = document.getElementById('edPrev');
   const edNext = document.getElementById('edNext');
+  const edShuffle = document.getElementById('edShuffle');
   if (edPrev) edPrev.addEventListener('click', () => selectEditionByIndex(activeEditionIndex - 1));
   if (edNext) edNext.addEventListener('click', () => selectEditionByIndex(activeEditionIndex + 1));
 
-  // Wave 24 + 35: Power-User Keyboard Shortcuts (`1`-`4` Tones, `M` Mode, `?` Quick Actions)
+  // Wave 37: Randomize Surprise Skin from All 67 Real Cutouts
+  let lastShuffleIdx = -1;
+  function shuffleRandomSkin() {
+    if (!SKINS.length) return;
+    let pickIdx = Math.floor(Math.random() * SKINS.length);
+    if (pickIdx === lastShuffleIdx && SKINS.length > 1) pickIdx = (pickIdx + 1) % SKINS.length;
+    lastShuffleIdx = pickIdx;
+    const skin = SKINS[pickIdx];
+    const themeMap = {
+      oni: 'crimson',
+      cyber: 'cyber',
+      anime: 'hologram',
+      special: skin.id === 'default' ? 'pearl' : 'hologram',
+      topo: 'pearl'
+    };
+    const edKey = themeMap[skin.cat] || 'pearl';
+    activeEditionIndex = EDITION_ORDER.indexOf(edKey);
+    editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === edKey));
+    if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 0${EDITION_ORDER.length}`;
+    playWaterDrop('whoosh');
+    runSpinSwap({
+      editionKey: edKey,
+      customSrc: skin.src,
+      customName: `${skin.name} · ${skin.id.toUpperCase()}`
+    });
+    setTimeout(() => { if (typeof syncConfiguredLoadout === 'function') syncConfiguredLoadout(); }, 420);
+    showLiquidToast(`Shuffled Skin: ${skin.name} (${skin.id.toUpperCase()})`);
+  }
+
+  if (edShuffle) edShuffle.addEventListener('click', shuffleRandomSkin);
+
+  // Wave 24 + 35 + 43: Power-User Keyboard Shortcuts (`1`-`4` Tones, `R` Shuffle, `X` X-Ray, `M` Mode, `?` Actions)
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
     const tag = ev.target && ev.target.tagName ? ev.target.tagName : '';
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (ev.target && ev.target.isContentEditable)) return;
     if ((skinModal && skinModal.open) || (spotlightDialog && spotlightDialog.open)) return;
 
+    const k = ev.key.toLowerCase();
     if (ev.key >= '1' && ev.key <= '4') {
       selectEditionByIndex(Number(ev.key) - 1);
-    } else if (ev.key.toLowerCase() === 'm') {
+    } else if (k === 'm') {
       ev.preventDefault();
       if (modeMenuOpen) closeModeMenu(true);
       else openModeMenu(true);
+    } else if (k === 'r') {
+      ev.preventDefault();
+      shuffleRandomSkin();
+    } else if (k === 'x') {
+      const btn = document.getElementById('xrayToggleBtn');
+      if (btn) {
+        ev.preventDefault();
+        btn.click();
+      }
     } else if (ev.key === '?') {
       ev.preventDefault();
       spScope = 'actions';
@@ -2775,9 +2817,38 @@
     }
   }
 
+  // Wave 40: Persisted Favorite Skin Bookmarks (`localStorage`)
+  const favFilterCount = document.getElementById('favFilterCount');
+  const skinFavBtn = document.getElementById('skinFavBtn');
+  let activeSkinFilter = 'all';
+  const favoriteSkinIds = new Set();
+  try {
+    const savedFavs = JSON.parse(window.localStorage ? window.localStorage.getItem('m3pro_fav_skins') || '[]' : '[]');
+    if (Array.isArray(savedFavs)) savedFavs.forEach((id) => favoriteSkinIds.add(String(id)));
+  } catch (_) {}
+
+  function syncFavoriteBadge() {
+    if (favFilterCount) favFilterCount.textContent = String(favoriteSkinIds.size);
+    if (skinFavBtn && inspectedSkin) {
+      const isFav = favoriteSkinIds.has(inspectedSkin.id);
+      skinFavBtn.setAttribute('aria-pressed', String(isFav));
+      skinFavBtn.textContent = isFav ? 'Saved Favorite' : 'Save Favorite';
+    }
+  }
+  syncFavoriteBadge();
+
   function renderSkinTrack(filterKey) {
     if (!skinsTrack) return;
-    visibleSkins = filterKey === 'all' ? SKINS.slice() : SKINS.filter((s) => s.cat === filterKey);
+    activeSkinFilter = filterKey || 'all';
+    if (activeSkinFilter === 'favorites') {
+      visibleSkins = SKINS.filter((s) => favoriteSkinIds.has(s.id));
+      if (!visibleSkins.length) {
+        visibleSkins = SKINS.slice(0, 4);
+        showLiquidToast('No saved favorites yet — open any skin to Save Favorite!');
+      }
+    } else {
+      visibleSkins = activeSkinFilter === 'all' ? SKINS.slice() : SKINS.filter((s) => s.cat === activeSkinFilter);
+    }
     const frag = document.createDocumentFragment();
 
     visibleSkins.forEach((skin, idx) => {
@@ -3060,6 +3131,23 @@
     });
   }
 
+  if (skinFavBtn) {
+    skinFavBtn.addEventListener('click', () => {
+      if (!inspectedSkin) return;
+      if (favoriteSkinIds.has(inspectedSkin.id)) favoriteSkinIds.delete(inspectedSkin.id);
+      else favoriteSkinIds.add(inspectedSkin.id);
+      try {
+        if (window.localStorage) window.localStorage.setItem('m3pro_fav_skins', JSON.stringify(Array.from(favoriteSkinIds)));
+      } catch (_) {}
+      syncFavoriteBadge();
+      playWaterDrop('switch');
+      if (activeSkinFilter === 'favorites') renderSkinTrack('favorites');
+      showLiquidToast(favoriteSkinIds.has(inspectedSkin.id)
+        ? `Saved ${inspectedSkin.name} to Favorites`
+        : `Removed ${inspectedSkin.name} from Favorites`);
+    });
+  }
+
   function openSkinModal(skin, idx) {
     inspectedSkin = skin;
     if (skinModalImg) {
@@ -3071,6 +3159,7 @@
     if (skinCompareToggle) skinCompareToggle.hidden = skin.id === 'default';
     if (skinCompareSlider) skinCompareSlider.value = '50';
     setSkinCompareMode(false);
+    syncFavoriteBadge();
     if (skinModal && typeof skinModal.showModal === 'function') {
       skinModal.showModal();
     }
@@ -3936,6 +4025,11 @@
       const sec = document.getElementById('faq');
       if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
     }},
+    { type: 'action', badge: 'RNG', title: 'Shuffle Random Skin (67 Cutouts)', sub: 'Equip a surprise sculpted M3 Pro skin with 3D vortex burst', run: () => shuffleRandomSkin() },
+    { type: 'action', badge: 'CMP', title: 'Jump to Driver Comparison Matrix', sub: 'M3 Pro v3.0.13 Rust vs Stock Vendor Suite vs Generic HID', run: () => {
+      const sec = document.getElementById('driverCompare');
+      if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+    }},
     { type: 'action', badge: 'SPEC', title: 'Copy Configured M3 Pro Loadout', sub: 'Copy equipped skin, DPI, polling rate & register switches', run: () => {
       const btn = document.getElementById('copyLoadoutBtn');
       const target = document.getElementById('loadoutSpecText');
@@ -4307,7 +4401,7 @@
     if (!loadoutSpecText) return;
     const activeEdKey = EDITION_ORDER[activeEditionIndex] || 'pearl';
     const edMeta = EDITIONS[activeEdKey] || EDITIONS.pearl;
-    const heroHudSkinEl = document.getElementById('hudSkinTag');
+    const heroHudSkinEl = document.getElementById('heroEditionTag');
     const skinLabel = (heroHudSkinEl && heroHudSkinEl.textContent) ? heroHudSkinEl.textContent.trim() : edMeta.name;
     const dpiText = bentoDpiNum ? `${bentoDpiNum.textContent.trim()} DPI` : '12,000 DPI';
     const hzText = bentoHzNum ? `${bentoHzNum.textContent.trim()} Hz` : '1,000 Hz';
@@ -4373,6 +4467,135 @@
       }, { passive: true });
       card.addEventListener('pointerleave', () => { cRect = null; }, { passive: true });
     });
+  }
+
+  /* ------------------------------------------------------------------------
+     12. WAVES 38-42: BATTERY ENDURANCE SIM, DPI LED SYNC, OS DETECT & RIPPLE
+     ------------------------------------------------------------------------ */
+
+  // Wave 39: Authentic PAW3311 DPI LED Color-Stage Sync on Hero 3D HUD
+  const heroDpiDot = document.getElementById('heroDpiDot');
+  const heroDpiNum = document.getElementById('heroDpiNum');
+  const heroHzNum = document.getElementById('heroHzNum');
+  function syncHeroDpiLed(dpiVal) {
+    const d = Number(dpiVal) || 12000;
+    const ledColor = d <= 800 ? '#ef4444'
+      : d <= 1600 ? '#3b82f6'
+      : d <= 2400 ? '#22c55e'
+      : d <= 3200 ? '#eab308'
+      : d <= 6400 ? '#06b6d4'
+      : '#a855f7';
+    if (heroDpiDot) heroDpiDot.style.setProperty('--dpi-led-color', ledColor);
+    if (heroDpiNum) heroDpiNum.textContent = d.toLocaleString('en-US');
+  }
+  dpiPills.forEach((p) => {
+    const sync = () => syncHeroDpiLed(p.dataset.dpi);
+    p.addEventListener('click', sync);
+    p.addEventListener('dockselect', sync);
+  });
+  if (bentoDpiScrub) bentoDpiScrub.addEventListener('input', () => syncHeroDpiLed(bentoDpiScrub.value));
+  presetBtns.forEach((b) => {
+    const syncP = () => syncHeroDpiLed(b.dataset.preset === 'gaming' ? 3200 : b.dataset.preset === 'office' ? 1600 : 800);
+    b.addEventListener('click', syncP);
+    b.addEventListener('dockselect', syncP);
+  });
+
+  // Wave 38: Live Sleep-Aware Days-Per-Charge Lithium Endurance Calculator
+  const batHoursScrub = document.getElementById('batHoursScrub');
+  const batSliderWrap = document.getElementById('batSliderWrap');
+  const batBarFill = document.getElementById('batBarFill');
+  const batLiquidThumb = document.getElementById('batLiquidThumb');
+  const batDaysVal = document.getElementById('batDaysVal');
+  const batSimTag = document.getElementById('batSimTag');
+  const batActiveHrs = document.getElementById('batActiveHrs');
+  let activeSimMa = 14;
+  let activeSimHz = 1000;
+  let batScrubbing = false;
+
+  function updateBatterySimulator() {
+    const hrsPerDay = batHoursScrub ? clamp(Number(batHoursScrub.value) || 4, 1, 12) : 4;
+    const ratio = (hrsPerDay - 1) / 11;
+    const dailyMah = hrsPerDay * activeSimMa + (24 - hrsPerDay) * 0.05;
+    const days = clamp(400 / Math.max(0.1, dailyMah), 1, 999);
+    const activeHrs = 400 / Math.max(1, activeSimMa);
+
+    if (batDaysVal) batDaysVal.textContent = days >= 100 ? Math.round(days).toString() : days.toFixed(1);
+    if (batSimTag) batSimTag.textContent = `${hrsPerDay} ${hrsPerDay === 1 ? 'HR' : 'HRS'} / DAY · ${activeSimHz.toLocaleString('en-US')} HZ`;
+    if (batActiveHrs) batActiveHrs.textContent = `${activeHrs.toFixed(1)} hrs`;
+    if (batBarFill) batBarFill.style.transform = `scaleX(${clamp(0.06 + ratio * 0.94, 0.06, 1).toFixed(3)})`;
+    if (batLiquidThumb && batSliderWrap) {
+      const trackW = batSliderWrap.clientWidth || 320;
+      const maxLeft = Math.max(0, trackW - 62);
+      const sx = batScrubbing ? 1.22 : 1;
+      const sy = batScrubbing ? 1.26 : 1;
+      batLiquidThumb.style.transform = `translate3d(${(ratio * maxLeft).toFixed(2)}px, -50%, 0) scale(${sx}, ${sy})`;
+    }
+  }
+
+  hzPills.forEach((pill) => {
+    const syncHzSim = () => {
+      activeSimHz = Number(pill.dataset.hz) || 1000;
+      activeSimMa = parseFloat(pill.dataset.ma) || 14;
+      if (heroHzNum) heroHzNum.textContent = `${activeSimHz.toLocaleString('en-US')} Hz`;
+      updateBatterySimulator();
+    };
+    pill.addEventListener('click', syncHzSim);
+    pill.addEventListener('dockselect', syncHzSim);
+  });
+
+  if (batHoursScrub) {
+    const endBatScrub = () => {
+      if (!batScrubbing) return;
+      batScrubbing = false;
+      if (batSliderWrap) batSliderWrap.classList.remove('is-scrubbing');
+      updateBatterySimulator();
+    };
+    batHoursScrub.addEventListener('pointerdown', () => {
+      batScrubbing = true;
+      if (batSliderWrap) batSliderWrap.classList.add('is-scrubbing');
+      updateBatterySimulator();
+    });
+    window.addEventListener('pointerup', endBatScrub, { passive: true });
+    window.addEventListener('pointercancel', endBatScrub, { passive: true });
+    batHoursScrub.addEventListener('input', updateBatterySimulator);
+  }
+  updateBatterySimulator();
+  window.addEventListener('resize', debounce(updateBatterySimulator, 150), { passive: true });
+
+  // Wave 41: Auto-Detect Visitor OS -> Highlight Matching Download Card & SHA-256 Tab
+  (function detectVisitorOsCard() {
+    const rawPlat = String(
+      (navigator.userAgentData && navigator.userAgentData.platform) ||
+      navigator.platform ||
+      navigator.userAgent ||
+      ''
+    ).toLowerCase();
+    const osKey = rawPlat.includes('mac') ? 'mac' : rawPlat.includes('linux') ? 'linux' : 'win';
+    const matchCard = document.querySelector(`[data-os-card="${osKey}"]`);
+    const matchTag = document.querySelector(`[data-os-tag="${osKey}"]`);
+    if (matchCard) matchCard.classList.add('is-your-os');
+    if (matchTag) matchTag.textContent = '(your OS)';
+    if (osKey !== 'win') {
+      const unixBtn = document.querySelector('[data-sha-os="unix"]');
+      if (unixBtn) unixBtn.click();
+    }
+  })();
+
+  // Wave 42: Single Pooled Zero-Allocation Liquid Tap Ripple on Primary Buttons & Cards
+  const waterTapPool = document.getElementById('waterTapPool');
+  if (waterTapPool) {
+    let rippleEndTimer = 0;
+    document.addEventListener('pointerdown', (ev) => {
+      if (fpsLowActive || motionPaused || ev.button > 0) return;
+      const hit = ev.target && ev.target.closest ? ev.target.closest('.primary-btn, .os-btn, .edition-card, .nav-shuffle') : null;
+      if (!hit) return;
+      clearTimeout(rippleEndTimer);
+      waterTapPool.classList.remove('is-pulsing');
+      waterTapPool.style.transform = `translate3d(${ev.clientX.toFixed(1)}px, ${ev.clientY.toFixed(1)}px, 0)`;
+      void waterTapPool.offsetWidth;
+      waterTapPool.classList.add('is-pulsing');
+      rippleEndTimer = setTimeout(() => waterTapPool.classList.remove('is-pulsing'), 460);
+    }, { passive: true });
   }
 
   window.addEventListener('scroll', requestScrollFrame, { passive: true });
