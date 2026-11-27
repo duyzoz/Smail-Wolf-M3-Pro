@@ -35,13 +35,15 @@
   }
 
   /* ------------------------------------------------------------------------
-     0. HARDWARE TIER + REAL-TIME AUTO-FPS GOVERNOR (Auto / Ultra / Lite)
-     Automatically steps down ambient GPU cost if integrated GPU drops < 45fps
-     while keeping 100% Pure Clear Liquid Glass & 2-Layer Water Droplets!
+     0. HARDWARE TIER + UNLEASHED 60-240HZ AUTO-FPS & OPTICAL REFRACTION ENGINE
+     - Measures real monitor refresh rate (60 / 90 / 120 / 144 / 165 / 240 Hz)
+     - Unlocks real optical saturation & blur refraction (`fps-ultra`) on capable rigs
+     - Auto-steps down cleanly if integrated GPU drops < 38fps (`fps-lite`)
      ------------------------------------------------------------------------ */
   const hwCores = navigator.hardwareConcurrency || 4;
   const hwMem = navigator.deviceMemory || 4;
   const isLowPowerGPU = hwCores <= 4 || hwMem <= 4;
+  const isHighCapabilityHW = !isLowPowerGPU && hwCores >= 8 && hwMem >= 8 && !prefersReduced;
 
   const fpsToggle = document.getElementById('fpsToggle');
   const fpsToggleLabel = document.getElementById('fpsToggleLabel');
@@ -49,26 +51,43 @@
 
   let fpsMode = 'auto'; // 'auto' | 'ultra' | 'lite'
   let fpsLiteActive = false;
+  let fpsUltraActive = isHighCapabilityHW;
+  let detectedHz = 60;
   let fpsEmaMs = 16.6;
   let slowFrameStreak = 0;
 
+  function snapStandardHz(rawFps) {
+    const tiers = [60, 75, 90, 120, 144, 165, 240, 360];
+    let best = 60;
+    let bestDiff = Infinity;
+    for (let i = 0; i < tiers.length; i++) {
+      const d = Math.abs(rawFps - tiers[i]);
+      if (d < bestDiff) {
+        bestDiff = d;
+        best = tiers[i];
+      }
+    }
+    return best;
+  }
+
   function syncFpsBadge() {
     document.body.classList.toggle('fps-lite', fpsLiteActive);
+    document.body.classList.toggle('fps-ultra', fpsUltraActive && !fpsLiteActive && !motionPaused);
     if (!fpsToggle || !fpsToggleLabel) return;
     fpsToggle.setAttribute('data-fps-mode', fpsMode);
     if (fpsMode === 'auto') {
       if (fpsPrefixEl) fpsPrefixEl.textContent = 'Auto · ';
-      fpsToggleLabel.textContent = fpsLiteActive ? 'Lite' : '60fps';
+      fpsToggleLabel.textContent = fpsLiteActive ? 'Lite' : `${detectedHz}fps`;
       fpsToggle.setAttribute(
         'aria-label',
         fpsLiteActive
-          ? 'Graphics mode: Auto Lite active for smooth 60 FPS — click to switch Ultra or Lite'
-          : 'Graphics mode: Auto 60 FPS — click to switch Ultra or Lite'
+          ? 'Graphics mode: Auto Lite active — click to switch Ultra or Lite'
+          : `Graphics mode: Auto ${detectedHz} FPS — click to switch Ultra or Lite`
       );
     } else if (fpsMode === 'ultra') {
-      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Mode · ';
-      fpsToggleLabel.textContent = 'Ultra';
-      fpsToggle.setAttribute('aria-label', 'Graphics mode: Ultra — click to switch Lite or Auto');
+      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Ultra · ';
+      fpsToggleLabel.textContent = `${detectedHz}fps`;
+      fpsToggle.setAttribute('aria-label', `Graphics mode: Ultra ${detectedHz} FPS — click to switch Lite or Auto`);
     } else {
       if (fpsPrefixEl) fpsPrefixEl.textContent = 'Mode · ';
       fpsToggleLabel.textContent = 'Lite';
@@ -78,30 +97,71 @@
 
   function setFpsMode(nextMode) {
     fpsMode = nextMode;
-    fpsEmaMs = 16.6;
+    fpsEmaMs = 1000 / detectedHz;
     slowFrameStreak = 0;
-    if (fpsMode === 'ultra') fpsLiteActive = false;
-    else if (fpsMode === 'lite') fpsLiteActive = true;
-    else fpsLiteActive = false;
+    if (fpsMode === 'ultra') {
+      fpsLiteActive = false;
+      fpsUltraActive = true;
+    } else if (fpsMode === 'lite') {
+      fpsLiteActive = true;
+      fpsUltraActive = false;
+    } else {
+      fpsLiteActive = false;
+      fpsUltraActive = isHighCapabilityHW;
+    }
     syncFpsBadge();
     requestAnimationFrame(() => snapAllLiquidDocks());
   }
 
-  // Samples ONLY consecutive frame-to-frame deltas from continuous rAF loops (never sporadic scroll gaps!)
+  // Samples ONLY consecutive frame-to-frame deltas from continuous rAF loops
   function recordLoopDelta(deltaMs) {
     if (fpsMode !== 'auto' || fpsLiteActive || motionPaused || document.hidden) return;
-    if (deltaMs >= 7 && deltaMs <= 55) {
+    if (deltaMs >= 2 && deltaMs <= 55) {
       fpsEmaMs = fpsEmaMs * 0.88 + deltaMs * 0.12;
       if (fpsEmaMs > 26.5) {
         slowFrameStreak++;
         if (slowFrameStreak >= 28) {
-          fpsLiteActive = true;
+          if (fpsUltraActive) {
+            fpsUltraActive = false;
+            slowFrameStreak = 0;
+          } else {
+            fpsLiteActive = true;
+          }
           syncFpsBadge();
         }
       } else if (slowFrameStreak > 0) {
         slowFrameStreak--;
       }
     }
+  }
+
+  // Lightweight 28-frame display refresh rate calibration (detects 60/90/120/144/240Hz!)
+  function calibrateDisplayHz() {
+    if (prefersReduced || document.hidden) return;
+    let prev = 0;
+    const samples = [];
+    function sample(now) {
+      if (prev > 0) {
+        const dt = now - prev;
+        if (dt > 1.8 && dt < 28) samples.push(dt);
+      }
+      prev = now;
+      if (samples.length < 24) {
+        requestAnimationFrame(sample);
+      } else {
+        samples.sort((a, b) => a - b);
+        const medianMs = samples[Math.floor(samples.length * 0.45)] || 16.67;
+        const measured = snapStandardHz(1000 / medianMs);
+        if (measured !== detectedHz) {
+          detectedHz = measured;
+          if (detectedHz >= 90 && fpsMode === 'auto' && !isLowPowerGPU && !fpsLiteActive) {
+            fpsUltraActive = true;
+          }
+          syncFpsBadge();
+        }
+      }
+    }
+    requestAnimationFrame(sample);
   }
 
   if (fpsToggle) {
@@ -112,6 +172,7 @@
       setFpsMode(next);
     });
   }
+  window.addEventListener('load', () => setTimeout(calibrateDisplayHz, 180), { once: true });
 
   /* ------------------------------------------------------------------------
      1. 4 AUTHENTIC SKIN TONES & ALL 67 REAL MOUSE SKINS
@@ -283,6 +344,7 @@
         tx: 0, ty: 0, vx: 0, vy: 0, targetTx: 0, targetTy: 0,
         sx: 1, sy: 1, vsx: 0, vsy: 0, targetSx: 1, targetSy: 1,
         sk: 0, vsk: 0, targetSk: 0,
+        rx: 0, ry: 0, vrx: 0, vry: 0, targetRx: 0, targetRy: 0,
         hovered: false,
         pressed: false
       };
@@ -291,10 +353,41 @@
     return st;
   }
 
-  function stepSpring(pos, vel, target, k, damp) {
-    const nv = (vel + (target - pos) * k) * damp;
-    return [pos + nv, nv];
+  // Framerate-Independent Semi-Implicit Euler Spring (Identical feel at 60Hz, 120Hz, 144Hz, 240Hz!)
+  function stepSpringDt(pos, vel, target, stiff, damp, h) {
+    for (let s = 0; s < 2; s++) {
+      const acc = (target - pos) * stiff - vel * damp;
+      vel += acc * h;
+      pos += vel * h;
+    }
+    return [pos, vel];
   }
+
+  // Wave 7: Pooled Zero-Allocation WAAPI Hydro-Ripple Spawner (Works on Touch & Mouse!)
+  const hydroRipples = Array.from(document.querySelectorAll('#hydroRippleStage .hydro-ripple'));
+  let rippleCursor = 0;
+  function spawnHydroRipple(x, y) {
+    if (motionPaused || fpsLiteActive || !hydroRipples.length) return;
+    const ring = hydroRipples[rippleCursor % hydroRipples.length];
+    rippleCursor++;
+    if (typeof ring.animate === 'function') {
+      ring.animate(
+        [
+          { transform: `translate3d(${x.toFixed(0)}px, ${y.toFixed(0)}px, 0) scale(0.18)`, opacity: 0.85 },
+          { transform: `translate3d(${x.toFixed(0)}px, ${y.toFixed(0)}px, 0) scale(1.75)`, opacity: 0 }
+        ],
+        { duration: 540, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }
+      );
+    }
+  }
+
+  document.addEventListener('pointerdown', (ev) => {
+    if (motionPaused || fpsLiteActive || ev.button > 0) return;
+    const hit = ev.target && ev.target.closest
+      ? ev.target.closest('.liquid-glass, .liquid-pill, .liquid-bar, .hotspot-pin, .os-btn')
+      : null;
+    if (hit) spawnHydroRipple(ev.clientX, ev.clientY);
+  }, { passive: true });
 
   let lastLiquidTick = 0;
   function liquidPhysicsTick(now) {
@@ -304,8 +397,11 @@
       return;
     }
     liquidLoopRunning = true;
+    const rawDt = lastLiquidTick && now ? (now - lastLiquidTick) / 1000 : 1 / detectedHz;
     if (lastLiquidTick && now) recordLoopDelta(now - lastLiquidTick);
     lastLiquidTick = now || 0;
+    const dt = clamp(rawDt, 0.0018, 0.034);
+    const h = dt * 0.5;
 
     activeLiquidEls.forEach((el) => {
       const st = liquidStates.get(el);
@@ -314,14 +410,16 @@
         return;
       }
 
-      const k = st.hovered ? 0.24 : 0.15;
-      const damp = st.hovered ? 0.72 : 0.75;
+      const stiff = st.hovered ? 260 : 165;
+      const damp = st.hovered ? 21 : 18.5;
 
-      [st.tx, st.vx] = stepSpring(st.tx, st.vx, st.targetTx, k, damp);
-      [st.ty, st.vy] = stepSpring(st.ty, st.vy, st.targetTy, k, damp);
-      [st.sx, st.vsx] = stepSpring(st.sx, st.vsx, st.targetSx, k, damp);
-      [st.sy, st.vsy] = stepSpring(st.sy, st.vsy, st.targetSy, k, damp);
-      [st.sk, st.vsk] = stepSpring(st.sk, st.vsk, st.targetSk, k, damp);
+      [st.tx, st.vx] = stepSpringDt(st.tx, st.vx, st.targetTx, stiff, damp, h);
+      [st.ty, st.vy] = stepSpringDt(st.ty, st.vy, st.targetTy, stiff, damp, h);
+      [st.sx, st.vsx] = stepSpringDt(st.sx, st.vsx, st.targetSx, stiff, damp, h);
+      [st.sy, st.vsy] = stepSpringDt(st.sy, st.vsy, st.targetSy, stiff, damp, h);
+      [st.sk, st.vsk] = stepSpringDt(st.sk, st.vsk, st.targetSk, stiff, damp, h);
+      [st.rx, st.vrx] = stepSpringDt(st.rx, st.vrx, st.targetRx, stiff, damp, h);
+      [st.ry, st.vry] = stepSpringDt(st.ry, st.vry, st.targetRy, stiff, damp, h);
 
       const settled =
         !st.hovered &&
@@ -330,11 +428,13 @@
         Math.abs(st.sx - 1) < 0.0008 &&
         Math.abs(st.sy - 1) < 0.0008 &&
         Math.abs(st.sk) < 0.02 &&
-        Math.abs(st.vx) < 0.05 &&
-        Math.abs(st.vy) < 0.05;
+        Math.abs(st.rx) < 0.04 &&
+        Math.abs(st.ry) < 0.04 &&
+        Math.abs(st.vx) < 0.6 &&
+        Math.abs(st.vy) < 0.6;
 
       if (settled) {
-        st.tx = 0; st.ty = 0; st.sx = 1; st.sy = 1; st.sk = 0;
+        st.tx = 0; st.ty = 0; st.sx = 1; st.sy = 1; st.sk = 0; st.rx = 0; st.ry = 0;
         el.style.translate = '';
         el.style.scale = '';
         el.style.transform = '';
@@ -342,7 +442,12 @@
       } else {
         el.style.translate = `${st.tx.toFixed(2)}px ${st.ty.toFixed(2)}px`;
         el.style.scale = `${st.sx.toFixed(4)} ${st.sy.toFixed(4)}`;
-        el.style.transform = st.sk ? `skewX(${st.sk.toFixed(2)}deg)` : '';
+        const hasTilt = Math.abs(st.rx) > 0.03 || Math.abs(st.ry) > 0.03;
+        if (hasTilt) {
+          el.style.transform = `perspective(1100px) rotateX(${st.rx.toFixed(2)}deg) rotateY(${st.ry.toFixed(2)}deg)${st.sk ? ` skewX(${st.sk.toFixed(2)}deg)` : ''}`;
+        } else {
+          el.style.transform = st.sk ? `skewX(${st.sk.toFixed(2)}deg)` : '';
+        }
       }
     });
 
@@ -350,6 +455,7 @@
       requestAnimationFrame(liquidPhysicsTick);
     } else {
       liquidLoopRunning = false;
+      lastLiquidTick = 0;
     }
   }
 
@@ -422,6 +528,8 @@
           st.targetSx = 1;
           st.targetSy = 1;
           st.targetSk = 0;
+          st.targetRx = 0;
+          st.targetRy = 0;
           activeLiquidEls.add(prev);
         }
       }
@@ -466,6 +574,10 @@
         st.targetSx = 1 + ax * stretchAmp - ay * (stretchAmp * 0.3) + pressBoost;
         st.targetSy = 1 + ay * stretchAmp - ax * (stretchAmp * 0.3) + pressBoost;
         st.targetSk = nx * ny * skewAmp;
+
+        const canTilt = !fpsLiteActive && el.hasAttribute && el.hasAttribute('data-tilt3d');
+        st.targetRx = canTilt ? -ny * 5.2 : 0;
+        st.targetRy = canTilt ? nx * 5.8 : 0;
 
         activeLiquidEls.add(el);
       }
@@ -574,6 +686,7 @@
     motionToggle.addEventListener('click', () => {
       motionPaused = !motionPaused;
       document.body.classList.toggle('motion-paused', motionPaused);
+      syncFpsBadge();
       motionToggleLabel.textContent = motionPaused ? 'Play' : 'Pause';
       motionToggle.setAttribute('aria-label', motionPaused ? 'Play ambient motion' : 'Pause ambient motion');
       if (motionPaused) {
@@ -633,24 +746,24 @@
 
     dockLoopRunning = true;
     if (lastDockTickTime && now) recordLoopDelta(now - lastDockTickTime);
-    const rawDt = lastDockTickTime ? (now - lastDockTickTime) / 1000 : 1 / 60;
+    const rawDt = lastDockTickTime ? (now - lastDockTickTime) / 1000 : 1 / detectedHz;
     lastDockTickTime = now;
-    const dt = clamp(rawDt, 0.004, 0.034);
+    const dt = clamp(rawDt, 0.0018, 0.034);
     const h = dt * 0.5;
 
     activeDocks.forEach((st) => {
       const isDrag = st.dragging;
-      const stiffLead = isDrag ? 420 : 200;
-      const dampLead = isDrag ? 35 : 24;
-      const stiffTrail = isDrag ? 210 : 48;
-      const dampTrail = isDrag ? 25 : 9.8;
+      const stiffLead = isDrag ? 440 : 215;
+      const dampLead = isDrag ? 35 : 23.5;
+      const stiffTrail = isDrag ? 220 : 46;
+      const dampTrail = isDrag ? 25 : 9.4;
 
       const stiffA = st.dir >= 0 ? stiffTrail : stiffLead;
       const dampA = st.dir >= 0 ? dampTrail : dampLead;
       const stiffB = st.dir >= 0 ? stiffLead : stiffTrail;
       const dampB = st.dir >= 0 ? dampLead : dampTrail;
 
-      const targetSwell = isDrag ? 0.18 : 0;
+      const targetSwell = isDrag ? 0.20 : 0;
 
       for (let s = 0; s < 2; s++) {
         const accA = (st.targetA - st.posA) * stiffA - st.velA * dampA;
@@ -661,7 +774,7 @@
         st.velB += accB * h;
         st.posB += st.velB * h;
 
-        const accSw = (targetSwell - st.swell) * 110 - st.velSwell * 12;
+        const accSw = (targetSwell - st.swell) * 148 - st.velSwell * 10.2;
         st.velSwell += accSw * h;
         st.swell += st.velSwell * h;
       }
@@ -871,6 +984,21 @@
         const neededW = last ? last.offsetLeft + last.offsetWidth + 6 : 0;
         st.scrollable = dockEl.clientWidth > 0 && neededW > dockEl.clientWidth + 2;
         dockEl.classList.toggle('is-scrollable', st.scrollable);
+        if (st.scrollable && !st.fadeIO && !(window.CSS && CSS.supports('animation-timeline', 'scroll()'))) {
+          const firstTab = tabs[0];
+          const lastTab = tabs[tabs.length - 1];
+          st.fadeIO = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+              dockEl.classList.toggle(entry.target === firstTab ? 'more-start' : 'more-end', entry.intersectionRatio < 1);
+            }
+          }, { root: dockEl, threshold: 1, rootMargin: '1px' });
+          st.fadeIO.observe(firstTab);
+          st.fadeIO.observe(lastTab);
+        } else if (!st.scrollable && st.fadeIO) {
+          st.fadeIO.disconnect();
+          st.fadeIO = null;
+          dockEl.classList.remove('more-start', 'more-end');
+        }
       } else {
         st.scrollable = false;
         dockEl.classList.remove('is-scrollable');
@@ -942,7 +1070,7 @@
         activeDocks.delete(st);
         renderDockDropletImmediate(st);
       } else if (changed || Math.abs(nextA - st.posA) > 0.5 || Math.abs(nextB - st.posB) > 0.5) {
-        st.velSwell = clamp(st.velSwell + 1.32, -2, 2.3);
+        st.velSwell = clamp(st.velSwell + 1.58, -2.4, 2.65);
         activeDocks.add(st);
         wakeDockPhysics();
       }
@@ -1495,13 +1623,17 @@
       lastHeroTick = 0;
       return;
     }
+    const rawDt = lastHeroTick && now ? (now - lastHeroTick) / 1000 : 1 / detectedHz;
     if (lastHeroTick && now) recordLoopDelta(now - lastHeroTick);
     lastHeroTick = now || 0;
+    const dt = clamp(rawDt, 0.0018, 0.034);
+    const mouseAlpha = 1 - Math.exp(-9.2 * dt);
+    const orbAlpha = 1 - Math.exp(-10.5 * dt);
 
     const dxMouse = mouse.x - currentMouse.x;
     const dyMouse = mouse.y - currentMouse.y;
-    currentMouse.x += dxMouse * 0.12;
-    currentMouse.y += dyMouse * 0.12;
+    currentMouse.x += dxMouse * mouseAlpha;
+    currentMouse.y += dyMouse * mouseAlpha;
 
     if (productRig) {
       const rotY = currentMouse.x * 28 + switchSpin;
@@ -1530,9 +1662,9 @@
             targetRy = (diffY / dist) * force * -50;
           }
 
-          const stepX = (targetRx - o.rx) * 0.14;
-          const stepY = (targetRy - o.ry) * 0.14;
-          if (Math.abs(stepX) > 0.1 || Math.abs(stepY) > 0.1) orbsSettling = true;
+          const stepX = (targetRx - o.rx) * orbAlpha;
+          const stepY = (targetRy - o.ry) * orbAlpha;
+          if (Math.abs(stepX) > 0.06 || Math.abs(stepY) > 0.06) orbsSettling = true;
 
           o.rx += stepX;
           o.ry += stepY;
@@ -1822,6 +1954,11 @@
       `;
       btn.addEventListener('click', () => {
         if (performance.now() < suppressSkinClickUntil) return;
+        if (idx !== lastActiveSkinIdx && visibleSkins.length > 1 && !prefersReduced && !motionPaused) {
+          const targetSp = idx / (visibleSkins.length - 1);
+          glideCoverflowTo(targetSp);
+          return;
+        }
         openSkinModal(skin, idx);
       });
       frag.appendChild(btn);
@@ -1921,27 +2058,65 @@
     });
   }
 
-  // Direct Horizontal Touch / Drag Swipe Scrubbing on Coverflow Stage (Mobile & PC!)
+  // Wave 9: Viscous Inertial Momentum Flick + Magnetic Center Snap on Coverflow Stage
+  let cancelCfGlide = null;
+  function glideCoverflowTo(targetSp, durationMs = 420) {
+    if (cancelCfGlide) {
+      cancelCfGlide();
+      cancelCfGlide = null;
+    }
+    const clampedTarget = clamp(targetSp, 0, 1);
+    const startSp = currentSkinProgress;
+    if (Math.abs(clampedTarget - startSp) < 0.0005) {
+      updateCoverflowAtProgress(clampedTarget);
+      return;
+    }
+    cancelCfGlide = startTween({
+      from: startSp,
+      to: clampedTarget,
+      duration: durationMs,
+      ease: (t) => 1 - Math.pow(1 - t, 3),
+      onUpdate: (v) => updateCoverflowAtProgress(v),
+      onComplete: () => { cancelCfGlide = null; }
+    });
+  }
+
   if (coverflowViewport) {
     let cfPtrId = null;
     let cfStartX = 0;
     let cfStartY = 0;
     let cfStartSp = 0;
+    let cfLastX = 0;
+    let cfLastT = 0;
+    let cfVelPxMs = 0;
     let cfSwiping = false;
 
     coverflowViewport.addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0 || visibleSkins.length <= 1) return;
+      if (cancelCfGlide) {
+        cancelCfGlide();
+        cancelCfGlide = null;
+      }
       cfPtrId = ev.pointerId;
       cfStartX = ev.clientX;
       cfStartY = ev.clientY;
+      cfLastX = ev.clientX;
+      cfLastT = performance.now();
+      cfVelPxMs = 0;
       cfStartSp = currentSkinProgress;
       cfSwiping = false;
     });
 
     coverflowViewport.addEventListener('pointermove', (ev) => {
       if (cfPtrId !== ev.pointerId) return;
+      const now = performance.now();
       const dx = ev.clientX - cfStartX;
       const dy = ev.clientY - cfStartY;
+      const stepDt = Math.max(1, now - cfLastT);
+      cfVelPxMs = cfVelPxMs * 0.62 + ((ev.clientX - cfLastX) / stepDt) * 0.38;
+      cfLastX = ev.clientX;
+      cfLastT = now;
+
       if (!cfSwiping) {
         if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy) * 1.15) return;
         cfSwiping = true;
@@ -1969,7 +2144,16 @@
       } catch (_) {}
       if (wasSwiping) {
         suppressSkinClickUntil = performance.now() + 260;
-        syncLiquidSliderVisual(currentSkinProgress);
+        const swipeRangePx = Math.max(240, Math.min(window.innerWidth * 2.2, visibleSkins.length * 36));
+        const inertiaDelta = (!motionPaused && !prefersReduced) ? (-cfVelPxMs * 190) / swipeRangePx : 0;
+        const projected = clamp(currentSkinProgress + inertiaDelta, 0, 1);
+        const maxIdx = Math.max(1, visibleSkins.length - 1);
+        const snappedSp = Math.round(projected * maxIdx) / maxIdx;
+        if (!motionPaused && !prefersReduced) {
+          glideCoverflowTo(snappedSp, clamp(280 + Math.abs(cfVelPxMs) * 140, 280, 560));
+        } else {
+          updateCoverflowAtProgress(snappedSp);
+        }
       }
     };
 
@@ -2252,18 +2436,27 @@
     tab.addEventListener('dockselect', applyRail);
   });
 
+  const studioWaveStrip = document.getElementById('studioWaveStrip');
+  const studioWaveMeta = document.getElementById('studioWaveMeta');
+
   const connTabs = Array.from(document.querySelectorAll('.conn-tab'));
   connTabs.forEach((btn) => {
     const applyConn = () => {
       const mode = btn.dataset.conn || '2.4GHz';
       if (mode === '2.4GHz') {
         if (stHzVal) stHzVal.textContent = '1,000 Hz';
+        if (studioWaveStrip) studioWaveStrip.style.setProperty('--wave-dur', '0.74s');
+        if (studioWaveMeta) studioWaveMeta.textContent = '1,000 HZ · 1.0 MS 2.4GHZ STREAM';
         emitStudioHex('F0 ED 01 03 E8 00 00 00', '2.4GHZ DONGLE LINK');
       } else if (mode === 'USB-C') {
         if (stHzVal) stHzVal.textContent = '1,000 Hz';
+        if (studioWaveStrip) studioWaveStrip.style.setProperty('--wave-dur', '0.62s');
+        if (studioWaveMeta) studioWaveMeta.textContent = '1,000 HZ · 1.0 MS USB-C DIRECT';
         emitStudioHex('F0 ED 02 03 E8 01 64 00', 'USB-C DIRECT + CHARGE');
       } else {
         if (stHzVal) stHzVal.textContent = '125 Hz';
+        if (studioWaveStrip) studioWaveStrip.style.setProperty('--wave-dur', '1.85s');
+        if (studioWaveMeta) studioWaveMeta.textContent = '125 HZ · 8.0 MS BT LOW-POWER';
         emitStudioHex('F0 ED 03 00 7D 00 00 00', 'BLUETOOTH 5.2 LOW-POWER');
       }
     };
@@ -2319,6 +2512,11 @@
      9. ULTRA-LEAN READ-THEN-WRITE SCROLL ENGINE (ZERO REFLOW, CACHED OFFSETS!)
      ------------------------------------------------------------------------ */
   const scrollProgress = document.getElementById('scrollProgress');
+  const hasNativeScrollTimeline = Boolean(
+    !prefersReduced &&
+    window.CSS &&
+    CSS.supports('(animation-timeline: scroll()) and (animation-range: 0% 100%)')
+  );
   const toTopBtn = document.getElementById('toTop');
   let scrollTicking = false;
   let anatomyTop = 0;
@@ -2359,8 +2557,10 @@
     const H = window.innerHeight;
 
     // ZERO getBoundingClientRect() during scroll -> 0ms layout read cost!
-    const globalRatio = clamp(y / docMaxScroll, 0, 1);
-    if (scrollProgress) scrollProgress.style.transform = `scaleX(${globalRatio.toFixed(4)})`;
+    if (scrollProgress && !hasNativeScrollTimeline) {
+      const globalRatio = clamp(y / docMaxScroll, 0, 1);
+      scrollProgress.style.transform = `scaleX(${globalRatio.toFixed(4)})`;
+    }
     if (siteHeader) siteHeader.classList.toggle('condensed', y > 48);
     if (toTopBtn) toTopBtn.classList.toggle('show', y > 520);
 

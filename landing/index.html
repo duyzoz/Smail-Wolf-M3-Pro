@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SMAILWOLF M3 Pro — Driver Control · v3.0.13</title>
   <meta name="description" content="Clean-room desktop driver for the SMAILWOLF M3 Pro wireless mouse. Direct 64-byte WebHID control, PAW3311 12,000 DPI sensor, 1,000 Hz polling, 67 real mouse skins, and native builds for Windows, macOS, and Linux.">
   <meta name="theme-color" content="#F8FAFC">
@@ -23,6 +23,14 @@
 <body data-edition="pearl" class="is-light-tone">
   <!-- Single Shared GPU-Composited Water Glint (Replaces 90 per-card radial repaints!) -->
   <div class="liquid-cursor-glint" id="liquidCursorGlint" aria-hidden="true"></div>
+
+  <!-- Pooled Zero-Allocation Hydro-Ripple Surface Rings (WAAPI Compositor Thread!) -->
+  <div class="hydro-ripple-stage" id="hydroRippleStage" aria-hidden="true">
+    <span class="hydro-ripple"></span>
+    <span class="hydro-ripple"></span>
+    <span class="hydro-ripple"></span>
+    <span class="hydro-ripple"></span>
+  </div>
 
   <!-- Top Optical Scroll Progress Filament -->
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
@@ -687,6 +695,12 @@
                   <span class="sp-kicker" id="spKicker">INTERACTIVE BUTTON MAP</span>
                   <h3 id="spTitle">Select Any Pin on the Mouse</h3>
                   <p id="spDesc">Every button write builds a 64-byte <code>[240, 9, 165, 34, ...]</code> HID report, computes the mod-256 checksum, and verifies persistence with a live read-back.</p>
+                  <div class="studio-wave-strip liquid-pill" id="studioWaveStrip" aria-hidden="true">
+                    <span class="wave-bars">
+                      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                    </span>
+                    <span class="wave-meta" id="studioWaveMeta">1,000 HZ · 1.0 MS OPTICAL STREAM</span>
+                  </div>
                   <div class="sp-quick-actions liquid-taskbar-dock" id="spActions" data-liquid-dock role="group" aria-label="Quick hardware DPI presets">
                     <button type="button" class="sim-pill active" aria-pressed="true" data-preset="gaming">Gaming 3200 DPI</button>
                     <button type="button" class="sim-pill" aria-pressed="false" data-preset="office">Office 1600 DPI</button>
