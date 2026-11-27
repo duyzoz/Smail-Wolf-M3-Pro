@@ -392,6 +392,15 @@
           <div class="anatomy-3d-frame liquid-glass" id="anatomyFrame">
             <canvas id="dissectCanvas" width="1280" height="720" role="img" aria-label="Interactive 121-frame 3D explosion of the SMAILWOLF M3 Pro mouse"></canvas>
             <div class="frame-specular" aria-hidden="true"></div>
+            <!-- Wave 29: PAW3311 Interactive Pointer-Lens X-Ray Blueprint Reveal -->
+            <div class="anatomy-xray-layer" id="anatomyXrayLayer" aria-hidden="true">
+              <div class="xray-grid"></div>
+              <span class="xray-tag xt-sensor">PAW3311 · 300 IPS · 35G</span>
+              <span class="xray-tag xt-mcu">FR2012A · 48 MHZ · 512 KB</span>
+              <span class="xray-tag xt-switch">HUANO 80M · 0.7N TACTILE</span>
+              <span class="xray-tag xt-cell">500 MAH LI-PO · 10-BIT ADC</span>
+              <div class="xray-reticle"></div>
+            </div>
             <p class="dissect-loader liquid-pill" id="dissectLoader">
               <span>3D Frames</span> <b id="dissectCount">0/121</b>
             </p>
@@ -438,6 +447,7 @@
             <input type="range" id="anatomyScrub" class="liquid-range-native" min="0" max="120" value="0" aria-label="Scrub hardware dissection progress">
           </div>
           <span class="anatomy-pct" id="anatomyPct">0% EXPLODED</span>
+          <button type="button" class="xray-toggle-btn liquid-pill" id="xrayToggleBtn" aria-pressed="false" aria-label="Toggle full PAW3311 X-Ray blueprint overlay">X-Ray</button>
         </div>
       </div>
     </section>
@@ -522,6 +532,16 @@
           <div class="dialog-3d-stage" id="modalMouseStage">
             <div class="modal-mouse-rig" id="modalMouseRig">
               <img id="skinModalImg" src="assets/mouse-hero-480.webp" srcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" sizes="(max-width: 640px) 160px, 220px" alt="Selected SMAILWOLF M3 Pro skin" width="472" height="834" fetchpriority="low" decoding="async">
+              <!-- Wave 31: Split-Curtain Stock Pure White Comparator -->
+              <div class="skin-compare-overlay" id="skinCompareOverlay" aria-hidden="true">
+                <img src="assets/mouse-hero-480.webp" alt="" width="472" height="834" decoding="async">
+              </div>
+              <div class="skin-compare-divider" id="skinCompareDivider" aria-hidden="true"></div>
+            </div>
+            <div class="skin-compare-bar" id="skinCompareBar" hidden>
+              <span>Pure White</span>
+              <input type="range" id="skinCompareSlider" min="0" max="100" value="50" aria-label="Slide to compare selected skin against Pure White">
+              <span>Selected</span>
             </div>
             <p class="modal-drag-hint">MOVE CURSOR TO TILT IN 3D</p>
           </div>
@@ -534,6 +554,7 @@
                 <span>Equip on Hero Stage</span>
                 <span class="btn-pill-tag">3D</span>
               </button>
+              <button type="button" class="secondary-btn liquid-pill" id="skinCompareToggle" aria-pressed="false">Compare vs White</button>
               <a href="#download" class="secondary-btn liquid-pill" id="modalDownloadLink">Download v3.0.13</a>
             </div>
           </div>
@@ -984,6 +1005,21 @@
                 </span>
               </div>
             </div>
+            <!-- Wave 30: Live Configured M3 Pro Loadout Summary & Shareable Spec Copy -->
+            <div class="loadout-summary-bar liquid-glass" id="loadoutSummaryBar">
+              <div class="loadout-meta">
+                <span class="loadout-kicker">YOUR LIVE CONFIGURED LOADOUT</span>
+                <code id="loadoutSpecText">SMAILWOLF M3 Pro · Pure White · 12,000 DPI · 1,000 Hz · Motion Sync + Eco LED</code>
+              </div>
+              <span class="copy-wrap">
+                <button type="button" class="copy-btn liquid-pill" id="copyLoadoutBtn" command="--copy" commandfor="loadoutSpecText" aria-label="Copy your configured M3 Pro loadout">
+                  <svg class="copy-ic ic-copy" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3A2.5 2.5 0 0 0 4 5.5v7A2.5 2.5 0 0 0 6.5 15h6a2.5 2.5 0 0 0 2.5-2.5v-7A2.5 2.5 0 0 0 12.5 3h-6Zm6.8 13.5H7.2a3.7 3.7 0 0 1-3.7-3.7V6.6a1.1 1.1 0 0 0-1.5 1v5.9A5.5 5.5 0 0 0 7.5 19h5.8a1.1 1.1 0 0 0 0-2.5Z"/></svg>
+                  <svg class="copy-ic ic-check" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.7 5.3a1.4 1.4 0 0 1 0 2l-7.6 7.6a1.4 1.4 0 0 1-2 0l-3.8-3.8a1.4 1.4 0 1 1 2-2l2.8 2.8 6.6-6.6a1.4 1.4 0 0 1 2 0Z"/></svg>
+                  <span>Copy Loadout</span>
+                </button>
+                <span class="copy-tip" role="status"></span>
+              </span>
+            </div>
             <div class="community-row">
               <a class="secondary-btn liquid-pill" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">
                 GitHub Source Code
@@ -999,6 +1035,60 @@
           <div class="pedestal-orb liquid-glass">
             <img id="dlMouseImg" src="assets/mouse-hero-480.webp" srcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" sizes="165px" alt="" width="472" height="834" loading="lazy" decoding="async">
           </div>
+        </div>
+      </div>
+    </section>
+    <!-- ================= 08 / NATIVE LIQUID GLASS ENGINEERING FAQ (WAVE 32) ================= -->
+    <section class="faq-vault offscreen-opt scroll-3d-section" id="faq" aria-labelledby="faq-title">
+      <div class="faq-shell">
+        <div class="section-header compact">
+          <p class="kicker-pill liquid-pill">08 · ENGINEERING &amp; PROTOCOL FAQ</p>
+          <h2 id="faq-title" class="section-title" data-split>Transparent by <em>Design.</em></h2>
+          <p class="section-sub">Straight technical answers on stock firmware safety, unsigned builds, battery telemetry, and multi-OS WebHID support.</p>
+        </div>
+
+        <div class="faq-accordion accordion" id="faqAccordion">
+          <div class="faq-toolbar">
+            <button type="button" class="faq-toggle-all liquid-pill" id="faqToggleAll" commandfor="faqAccordion" command="--toggle-all" aria-expanded="false">
+              <span class="expand">Expand all</span>
+              <span class="collapse">Collapse all</span>
+            </button>
+          </div>
+
+          <details class="faq-item liquid-glass" open>
+            <summary>Does SMAILWOLF M3 Pro Driver v3.0.13 flash or modify stock mouse firmware?</summary>
+            <div class="faq-answer">
+              <p>Never. Factory firmware <b>v2.1.3</b> on the FR2012A controller stays 100% untouched. The app only writes documented 64-byte WebHID configuration registers (<code>[240, 15]</code> DPI/polling, <code>[240, 9]</code> button bindings, and <code>[240, 13]</code> / <code>[240, 16]</code> delta macros) with mod-256 checksum verification.</p>
+            </div>
+          </details>
+
+          <details class="faq-item liquid-glass">
+            <summary>Why does Windows SmartScreen warn on first launch of the installer?</summary>
+            <div class="faq-answer">
+              <p>This is an independent open-source MIT project without a paid commercial EV code-signing certificate. Every Windows, macOS, and Linux binary is built transparently via GitHub Actions with published <code>SHA256SUMS.txt</code> hashes you can verify with the command above before clicking <em>More info → Run anyway</em>.</p>
+            </div>
+          </details>
+
+          <details class="faq-item liquid-glass">
+            <summary>How is battery percentage estimated so accurately without a Coulomb counter IC?</summary>
+            <div class="faq-answer">
+              <p>Stock M3 Pro hardware reports 100% until voltage nears cutoff. Our Rust telemetry engine combines active polling-rate current draw (3 mA at 125 Hz up to 14 mA at 1,000 Hz), 0.05 mA sleep idle modeling, live USB-C cable charge sensing over the 2.4 GHz dongle, custom mAh cell sizing, and one-click <b>Sync 100%</b> full-charge calibration.</p>
+            </div>
+          </details>
+
+          <details class="faq-item liquid-glass">
+            <summary>How do all 67 custom mouse skins work without altering hardware?</summary>
+            <div class="faq-answer">
+              <p>Every skin cutout is normalized onto a precision <code>944×1667</code> transparent canvas so interactive button pins align pixel-for-pixel inside the desktop driver viewport. You can preview, compare side-by-side against Pure White, and equip any skin directly inside the app.</p>
+            </div>
+          </details>
+
+          <details class="faq-item liquid-glass">
+            <summary>Does v3.0.13 support macOS and Linux in addition to Windows?</summary>
+            <div class="faq-answer">
+              <p>Yes. Because the driver runs on native Tauri 2 + Rust with zero Windows-only kernel drivers, clean builds ship automatically for Windows x64 (<code>.exe</code> / portable <code>.zip</code>), macOS (<code>.dmg</code> / <code>.app</code>), and Linux (<code>.AppImage</code> / <code>.deb</code>) at roughly 18 MB.</p>
+            </div>
+          </details>
         </div>
       </div>
     </section>
@@ -1059,8 +1149,8 @@
         <!-- Populated dynamically by app.js -->
       </div>
       <div class="spotlight-foot">
-        <span><b>↑↓</b> Navigate · <b>Enter</b> Equip · <b>1–4</b> Tone · <b>M</b> Mode · <b>Esc</b> Close</span>
-        <span id="spotlightCount">73 items ready</span>
+        <span><b>↑↓</b> Navigate · <b>Enter</b> Equip · <b>1–4</b> Tone · <b>M</b> Mode · <b>?</b> Actions · <b>Esc</b> Close</span>
+        <span id="spotlightCount">77 items ready</span>
       </div>
     </div>
   </dialog>

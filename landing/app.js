@@ -2284,7 +2284,7 @@
   if (edPrev) edPrev.addEventListener('click', () => selectEditionByIndex(activeEditionIndex - 1));
   if (edNext) edNext.addEventListener('click', () => selectEditionByIndex(activeEditionIndex + 1));
 
-  // Wave 24: Power-User Keyboard Shortcuts (`1`-`4` Tones, `M` Mode Dropdown)
+  // Wave 24 + 35: Power-User Keyboard Shortcuts (`1`-`4` Tones, `M` Mode, `?` Quick Actions)
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
     const tag = ev.target && ev.target.tagName ? ev.target.tagName : '';
@@ -2297,6 +2297,15 @@
       ev.preventDefault();
       if (modeMenuOpen) closeModeMenu(true);
       else openModeMenu(true);
+    } else if (ev.key === '?') {
+      ev.preventDefault();
+      spScope = 'actions';
+      spScopePills.forEach((p) => {
+        const active = p.dataset.spScope === 'actions';
+        p.classList.toggle('active', active);
+        p.setAttribute('aria-pressed', String(active));
+      });
+      openSpotlight();
     }
   });
 
@@ -2358,6 +2367,14 @@
     };
     mouse3dViewport.addEventListener('pointerup', resetHeroDrag);
     mouse3dViewport.addEventListener('pointercancel', resetHeroDrag);
+
+    // Wave 33: Double-Click 360° Showcase Spin on Hero Mouse
+    mouse3dViewport.addEventListener('dblclick', () => {
+      if (motionPaused) return;
+      dragVelY = clamp(dragVelY + 680, -900, 900);
+      playWaterDrop('whoosh');
+      wakeHeroLoop();
+    });
   }
 
   let lastHeroTick = 0;
@@ -3012,6 +3029,36 @@
   const modalDownloadLink = document.getElementById('modalDownloadLink');
   const modalMouseStage = document.getElementById('modalMouseStage');
   const modalMouseRig = document.getElementById('modalMouseRig');
+  const skinCompareToggle = document.getElementById('skinCompareToggle');
+  const skinCompareBar = document.getElementById('skinCompareBar');
+  const skinCompareSlider = document.getElementById('skinCompareSlider');
+
+  function setSkinCompareMode(enabled) {
+    const canCompare = Boolean(enabled && inspectedSkin && inspectedSkin.id !== 'default');
+    if (modalMouseRig) {
+      modalMouseRig.classList.toggle('is-comparing', canCompare);
+      if (canCompare) modalMouseRig.style.setProperty('--cmp-pct', `${skinCompareSlider ? skinCompareSlider.value : 50}%`);
+    }
+    if (skinCompareBar) skinCompareBar.hidden = !canCompare;
+    if (skinCompareToggle) {
+      skinCompareToggle.setAttribute('aria-pressed', String(canCompare));
+      skinCompareToggle.textContent = canCompare ? 'Hide Compare' : 'Compare vs White';
+    }
+  }
+
+  if (skinCompareToggle) {
+    skinCompareToggle.addEventListener('click', () => {
+      const next = skinCompareToggle.getAttribute('aria-pressed') !== 'true';
+      setSkinCompareMode(next);
+      playWaterDrop('switch');
+    });
+  }
+
+  if (skinCompareSlider && modalMouseRig) {
+    skinCompareSlider.addEventListener('input', () => {
+      modalMouseRig.style.setProperty('--cmp-pct', `${clamp(Number(skinCompareSlider.value) || 50, 0, 100)}%`);
+    });
+  }
 
   function openSkinModal(skin, idx) {
     inspectedSkin = skin;
@@ -3021,6 +3068,9 @@
     }
     if (skinModalId) skinModalId.textContent = `${skin.id.toUpperCase()} · ${String(idx + 1).padStart(2, '0')}/${visibleSkins.length}`;
     if (skinModalName) skinModalName.textContent = skin.name;
+    if (skinCompareToggle) skinCompareToggle.hidden = skin.id === 'default';
+    if (skinCompareSlider) skinCompareSlider.value = '50';
+    setSkinCompareMode(false);
     if (skinModal && typeof skinModal.showModal === 'function') {
       skinModal.showModal();
     }
@@ -3868,6 +3918,29 @@
     { type: 'action', badge: 'OS', title: 'Jump to v3.0.13 Multi-OS Downloads', sub: 'Windows .exe · macOS .dmg · Linux .AppImage', run: () => {
       const sec = document.getElementById('download');
       if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+    }},
+    { type: 'action', badge: 'SFX', title: 'Toggle Water Sound Acoustics', sub: 'Procedural Web Audio crystal drop & switch chimes', run: () => {
+      const sw = document.getElementById('waterSoundSwitch');
+      if (sw) {
+        sw.checked = !sw.checked;
+        sw.dispatchEvent(new CustomEvent('change'));
+      }
+    }},
+    { type: 'action', badge: 'XRAY', title: 'Toggle PAW3311 X-Ray Blueprint', sub: 'Inspect optical sensor, FR2012A MCU & 500 mAh cell', run: () => {
+      const sec = document.getElementById('anatomy');
+      if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+      const btn = document.getElementById('xrayToggleBtn');
+      if (btn) btn.click();
+    }},
+    { type: 'action', badge: 'FAQ', title: 'Jump to Engineering & Protocol FAQ', sub: 'Firmware safety, SmartScreen, battery math & multi-OS', run: () => {
+      const sec = document.getElementById('faq');
+      if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+    }},
+    { type: 'action', badge: 'SPEC', title: 'Copy Configured M3 Pro Loadout', sub: 'Copy equipped skin, DPI, polling rate & register switches', run: () => {
+      const btn = document.getElementById('copyLoadoutBtn');
+      const target = document.getElementById('loadoutSpecText');
+      if (btn && target) runCopy(btn, target);
+      showLiquidToast('Copied your configured M3 Pro loadout!');
     }}
   ];
 
@@ -4190,6 +4263,116 @@
       scrollTicking = true;
       requestAnimationFrame(onScrollFrame);
     }
+  }
+
+  /* ------------------------------------------------------------------------
+     11. WAVES 29-34: PAW3311 X-RAY LENS, LIVE LOADOUT, FAQ ACCORDION & CAUSTICS
+     ------------------------------------------------------------------------ */
+
+  // Wave 29: Interactive Pointer-Lens X-Ray Reveal (`interactive-content-reveal` guide!)
+  const anatomyFrame = document.getElementById('anatomyFrame');
+  const xrayToggleBtn = document.getElementById('xrayToggleBtn');
+  if (anatomyFrame) {
+    let xrayRect = null;
+    const refreshXrayRect = () => {
+      xrayRect = anatomyFrame.getBoundingClientRect();
+    };
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(refreshXrayRect).observe(anatomyFrame);
+    }
+    anatomyFrame.addEventListener('pointerenter', refreshXrayRect, { passive: true });
+    anatomyFrame.addEventListener('pointermove', (ev) => {
+      if (fpsLowActive || motionPaused) return;
+      if (!xrayRect || !xrayRect.width) refreshXrayRect();
+      const x = clamp(((ev.clientX - xrayRect.left) / Math.max(1, xrayRect.width)) * 100, 0, 100);
+      const y = clamp(((ev.clientY - xrayRect.top) / Math.max(1, xrayRect.height)) * 100, 0, 100);
+      anatomyFrame.style.setProperty('--xray-x', `${x.toFixed(1)}%`);
+      anatomyFrame.style.setProperty('--xray-y', `${y.toFixed(1)}%`);
+    }, { passive: true });
+
+    if (xrayToggleBtn) {
+      xrayToggleBtn.addEventListener('click', () => {
+        const nextFull = !anatomyFrame.classList.contains('is-xray-full');
+        anatomyFrame.classList.toggle('is-xray-full', nextFull);
+        xrayToggleBtn.setAttribute('aria-pressed', String(nextFull));
+        playWaterDrop('switch');
+        showLiquidToast(nextFull ? 'PAW3311 X-Ray Blueprint: FULL LOCK' : 'PAW3311 X-Ray Blueprint: POINTER LENS');
+      });
+    }
+  }
+
+  // Wave 30: Live Configured M3 Pro Loadout Builder Mirror
+  const loadoutSpecText = document.getElementById('loadoutSpecText');
+  function syncConfiguredLoadout() {
+    if (!loadoutSpecText) return;
+    const activeEdKey = EDITION_ORDER[activeEditionIndex] || 'pearl';
+    const edMeta = EDITIONS[activeEdKey] || EDITIONS.pearl;
+    const heroHudSkinEl = document.getElementById('hudSkinTag');
+    const skinLabel = (heroHudSkinEl && heroHudSkinEl.textContent) ? heroHudSkinEl.textContent.trim() : edMeta.name;
+    const dpiText = bentoDpiNum ? `${bentoDpiNum.textContent.trim()} DPI` : '12,000 DPI';
+    const hzText = bentoHzNum ? `${bentoHzNum.textContent.trim()} Hz` : '1,000 Hz';
+    const activeSw = studioSwitches
+      .filter((sw) => sw.checked)
+      .map((sw) => (sw.dataset.swLabel || '').replace(/\b\w/g, (c) => c.toUpperCase()).toLowerCase())
+      .map((s) => s.replace(/(^|\s)\S/g, (t) => t.toUpperCase()));
+    const flags = activeSw.length ? activeSw.join(' + ') : 'Raw Sensor';
+    loadoutSpecText.textContent = `SMAILWOLF M3 Pro · ${skinLabel} · ${dpiText} · ${hzText} · ${flags}`;
+  }
+
+  syncConfiguredLoadout();
+  studioSwitches.forEach((sw) => sw.addEventListener('change', syncConfiguredLoadout));
+  dpiPills.forEach((p) => { p.addEventListener('click', syncConfiguredLoadout); p.addEventListener('dockselect', syncConfiguredLoadout); });
+  hzPills.forEach((p) => { p.addEventListener('click', syncConfiguredLoadout); p.addEventListener('dockselect', syncConfiguredLoadout); });
+  if (bentoDpiScrub) bentoDpiScrub.addEventListener('input', syncConfiguredLoadout);
+  editionCards.forEach((c) => c.addEventListener('click', () => setTimeout(syncConfiguredLoadout, 360)));
+  if (equipHeroBtn) equipHeroBtn.addEventListener('click', () => setTimeout(syncConfiguredLoadout, 750));
+
+  // Wave 32: Native FAQ Accordion Expand/Collapse All (`accordion` guide — Invoker + Fallback + Capture `toggle`)
+  const faqAccordion = document.getElementById('faqAccordion');
+  const faqToggleAll = document.getElementById('faqToggleAll');
+  function runFaqToggleAll(button, accordionEl) {
+    if (!button || !accordionEl) return;
+    const expand = button.getAttribute('aria-expanded') !== 'true';
+    accordionEl.querySelectorAll('details').forEach((d) => { d.open = expand; });
+    button.setAttribute('aria-expanded', String(expand));
+    playWaterDrop('switch');
+  }
+
+  if (faqAccordion && faqToggleAll) {
+    if ('CommandEvent' in window) {
+      document.addEventListener('command', (ev) => {
+        if (ev.command !== '--toggle-all') return;
+        runFaqToggleAll(ev.source, ev.target);
+      }, { capture: true });
+    } else {
+      faqToggleAll.addEventListener('click', () => runFaqToggleAll(faqToggleAll, faqAccordion));
+    }
+    document.addEventListener('toggle', (ev) => {
+      if (!ev.target || !ev.target.matches || !ev.target.matches('#faqAccordion > details')) return;
+      const items = faqAccordion.querySelectorAll('details');
+      const allOpen = items.length > 0 && Array.prototype.every.call(items, (d) => d.open);
+      faqToggleAll.setAttribute('aria-expanded', String(allOpen));
+    }, { capture: true });
+  }
+
+  // Wave 34: Ultra Card Specular Caustic Tracking (Cached Rect on Enter — Zero Layout Thrash!)
+  if (finePointer) {
+    const causticCards = document.querySelectorAll('.edition-card, .bento-card, .os-card');
+    causticCards.forEach((card) => {
+      let cRect = null;
+      card.addEventListener('pointerenter', () => {
+        if (!fpsUltraActive || motionPaused) return;
+        cRect = card.getBoundingClientRect();
+      }, { passive: true });
+      card.addEventListener('pointermove', (ev) => {
+        if (!fpsUltraActive || motionPaused || !cRect || !cRect.width) return;
+        const rx = clamp(((ev.clientX - cRect.left) / cRect.width) * 100, 0, 100);
+        const ry = clamp(((ev.clientY - cRect.top) / cRect.height) * 100, 0, 100);
+        card.style.setProperty('--card-mx', `${rx.toFixed(1)}%`);
+        card.style.setProperty('--card-my', `${ry.toFixed(1)}%`);
+      }, { passive: true });
+      card.addEventListener('pointerleave', () => { cRect = null; }, { passive: true });
+    });
   }
 
   window.addEventListener('scroll', requestScrollFrame, { passive: true });

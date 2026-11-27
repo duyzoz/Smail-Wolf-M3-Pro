@@ -5160,6 +5160,395 @@ body.fps-low ::view-transition-new(*) {
   }
 }
 
+/* ==========================================================================
+   WAVES 29-35: PAW3311 X-RAY LENS, SKIN COMPARE, LIVE LOADOUT & FAQ ACCORDION
+   ========================================================================== */
+
+@property --xray-inner {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --xray-outer {
+  syntax: "<length-percentage>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* Wave 29: Interactive Pointer-Lens Silicon X-Ray Blueprint (`interactive-content-reveal`) */
+.anatomy-xray-layer {
+  position: absolute;
+  inset: 6px;
+  border-radius: 22px;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.24) 0%, rgba(2, 16, 36, 0.72) 78%);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  box-shadow: inset 0 0 38px rgba(56, 189, 248, 0.34);
+  transition: --xray-inner 0.24s ease-out, --xray-outer 0.24s ease-out;
+  -webkit-mask-image: radial-gradient(
+    circle at var(--xray-x, 50%) var(--xray-y, 50%),
+    #000 var(--xray-inner, 0px),
+    transparent var(--xray-outer, 0px)
+  );
+  mask-image: radial-gradient(
+    circle at var(--xray-x, 50%) var(--xray-y, 50%),
+    #000 var(--xray-inner, 0px),
+    transparent var(--xray-outer, 0px)
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.anatomy-3d-frame:hover {
+  --xray-inner: 112px;
+  --xray-outer: 168px;
+}
+
+.anatomy-3d-frame.is-xray-full {
+  --xray-inner: 145%;
+  --xray-outer: 165%;
+}
+
+.xray-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.16) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.xray-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 156px;
+  height: 156px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5px dashed rgba(125, 211, 252, 0.78);
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.36);
+}
+
+.xray-tag {
+  position: absolute;
+  padding: 0.24rem 0.56rem;
+  border-radius: 999px;
+  background: rgba(6, 24, 46, 0.84);
+  border: 1px solid rgba(125, 211, 252, 0.65);
+  color: #e0f2fe;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.xt-sensor { top: 44%; left: 50%; transform: translate(-50%, -50%); }
+.xt-mcu { top: 24%; left: 32%; }
+.xt-switch { top: 24%; right: 26%; }
+.xt-cell { bottom: 20%; left: 50%; transform: translateX(-50%); }
+
+.xray-toggle-btn {
+  min-height: 32px;
+  padding: 0.28rem 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-strong);
+  cursor: pointer;
+  flex: none;
+  transition: transform 0.22s var(--ease-spring), border-color 0.22s ease, color 0.22s ease;
+}
+
+.xray-toggle-btn[aria-pressed="true"] {
+  border-color: rgba(14, 165, 233, 0.82);
+  color: #0284c7;
+  box-shadow:
+    inset 0 2px 2px #ffffff,
+    0 6px 16px -4px rgba(14, 165, 233, 0.36);
+}
+
+body:not(.is-light-tone) .xray-toggle-btn[aria-pressed="true"] {
+  color: #7dd3fc;
+}
+
+body.fps-low .anatomy-xray-layer {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anatomy-xray-layer {
+    transition: none !important;
+  }
+}
+
+/* Wave 31: Split-Curtain Stock Pure White Comparator inside #skinModal */
+.modal-mouse-rig {
+  position: relative;
+}
+
+.skin-compare-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  clip-path: inset(0 calc(100% - var(--cmp-pct, 50%)) 0 0);
+  transition: opacity 0.22s ease;
+}
+
+.skin-compare-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.skin-compare-divider {
+  position: absolute;
+  top: 4%;
+  bottom: 4%;
+  left: var(--cmp-pct, 50%);
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, #38bdf8 20%, #ffffff 50%, #38bdf8 80%, transparent);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.72);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.modal-mouse-rig.is-comparing .skin-compare-overlay,
+.modal-mouse-rig.is-comparing .skin-compare-divider {
+  opacity: 1;
+}
+
+.skin-compare-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: min(100%, 240px);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.skin-compare-bar[hidden] {
+  display: none;
+}
+
+.skin-compare-bar input[type="range"] {
+  flex: 1;
+  accent-color: #0ea5e9;
+  cursor: ew-resize;
+}
+
+/* Wave 30: Live Configured M3 Pro Loadout Summary Strip */
+.loadout-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  padding: 0.78rem 1rem;
+  border-radius: 20px;
+}
+
+.loadout-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.loadout-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+}
+
+.loadout-meta code {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  word-break: break-word;
+}
+
+/* Wave 32: Native Liquid Glass Engineering FAQ Accordion (`accordion` guide) */
+.faq-vault {
+  padding: clamp(3rem, 7vw, 5.2rem) clamp(1rem, 4vw, 4%) clamp(2.5rem, 5vw, 4rem);
+}
+
+.faq-shell {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.faq-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.72rem;
+}
+
+.faq-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.15rem;
+}
+
+.faq-toggle-all {
+  min-height: 34px;
+  padding: 0.34rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-strong);
+  cursor: pointer;
+}
+
+[command="--toggle-all"][aria-expanded="true"] .expand,
+[command="--toggle-all"][aria-expanded="false"] .collapse {
+  display: none;
+}
+
+.faq-item {
+  border-radius: 22px;
+  overflow: clip;
+  transition: border-color 0.24s ease, box-shadow 0.24s ease;
+}
+
+.faq-item[open] {
+  background: var(--glass-bg-elevated);
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-active);
+}
+
+.faq-item > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.05rem 1.25rem;
+  font-family: var(--font-display);
+  font-size: clamp(0.92rem, 1.15vw, 1.05rem);
+  font-weight: 700;
+  color: var(--ink-strong);
+  cursor: pointer;
+  user-select: none;
+}
+
+.faq-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item > summary::before {
+  content: "";
+  inline-size: 1.05em;
+  block-size: 1.05em;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' d='M5 7.5 10 12.5 15 7.5'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' d='M5 7.5 10 12.5 15 7.5'/%3E%3C/svg%3E") no-repeat center / contain;
+  rotate: -90deg;
+}
+
+.faq-item[open] > summary::before {
+  rotate: 0deg;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .faq-item > summary::before {
+    transition: rotate 0.22s var(--ease-spring);
+  }
+}
+
+.faq-item::details-content {
+  interpolate-size: allow-keywords;
+  overflow: clip;
+  contain: layout;
+}
+
+.faq-item:not([open])::details-content {
+  block-size: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.fps-low) .faq-item::details-content {
+    transition: block-size, content-visibility, display;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out;
+    transition-behavior: allow-discrete;
+  }
+}
+
+.faq-answer {
+  padding: 0 1.25rem 1.15rem 2.95rem;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.faq-answer code {
+  padding: 0.1rem 0.38rem;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-strong);
+}
+
+/* Wave 34: Ultra Card Specular Caustic Sheen (GPU-Only, Zero Repaint!) */
+body.fps-ultra .edition-card,
+body.fps-ultra .bento-card,
+body.fps-ultra .os-card {
+  position: relative;
+}
+
+body.fps-ultra .edition-card::after,
+body.fps-ultra .bento-card::after,
+body.fps-ultra .os-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--card-mx, 50%) var(--card-my, 50%),
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(125, 211, 252, 0.14) 42%,
+    transparent 74%
+  );
+  transition: opacity 0.24s ease;
+}
+
+body.fps-ultra:not(.is-light-tone) .edition-card::after,
+body.fps-ultra:not(.is-light-tone) .bento-card::after,
+body.fps-ultra:not(.is-light-tone) .os-card::after {
+  background: radial-gradient(
+    220px circle at var(--card-mx, 50%) var(--card-my, 50%),
+    rgba(186, 230, 253, 0.24) 0%,
+    rgba(192, 132, 252, 0.12) 45%,
+    transparent 75%
+  );
+}
+
+body.fps-ultra .edition-card:hover::after,
+body.fps-ultra .bento-card:hover::after,
+body.fps-ultra .os-card:hover::after {
+  opacity: 1;
+}
+
 /* Smartphones & Small Screens (< 640px — Tested down to 360x640!) */
 @media (max-width: 640px) {
   html { scroll-padding-top: 6.9rem; }
@@ -5569,6 +5958,25 @@ body.fps-low ::view-transition-new(*) {
 
   .community-row .secondary-btn {
     width: 100%;
+  }
+
+  .faq-item > summary {
+    padding: 0.88rem 0.95rem;
+    font-size: 0.88rem;
+  }
+
+  .faq-answer {
+    padding: 0 0.95rem 0.95rem 2.35rem;
+    font-size: 0.82rem;
+  }
+
+  .xray-tag {
+    font-size: 0.5rem;
+    padding: 0.18rem 0.42rem;
+  }
+
+  .loadout-summary-bar {
+    padding: 0.7rem 0.8rem;
   }
 
   /* Top Liquid Glass Navbar stays pinned on phones, so hide redundant bottom-right TOP pill to prevent overlapping sticky docks */
