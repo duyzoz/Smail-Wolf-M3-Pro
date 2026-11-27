@@ -127,6 +127,14 @@
     </nav>
 
     <div class="header-actions">
+      <button type="button" class="spotlight-trigger liquid-pill" id="spotlightTrigger" command="show-modal" commandfor="spotlightDialog" aria-label="Quick search 67 skins and commands (Ctrl+K)">
+        <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M8.8 2.6a6.2 6.2 0 1 0 3.72 11.16l3.16 3.16a1.45 1.45 0 0 0 2.05-2.05l-3.16-3.16A6.2 6.2 0 0 0 8.8 2.6ZM5.3 8.8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z"/>
+          <circle class="ic-sub" cx="8.8" cy="8.8" r="1.5"/>
+        </svg>
+        <span class="sp-btn-text">Find</span>
+        <kbd class="sp-kbd">⌘K</kbd>
+      </button>
       <button type="button" class="fps-toggle liquid-pill" id="fpsToggle" data-fps-mode="auto" aria-label="Graphics performance mode: Auto 60 FPS — click to cycle Auto, Ultra, or Lite">
         <span class="fps-dot" aria-hidden="true"></span>
         <span class="fps-prefix">Auto · </span><span id="fpsToggleLabel">60fps</span>
@@ -664,6 +672,13 @@
                 </svg>
                 <span>Battery &amp; Sync</span>
               </button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="hztest">
+                <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                  <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M10 2.6a7.4 7.4 0 1 0 7.4 7.4A7.4 7.4 0 0 0 10 2.6Zm-3.6 7.4a1 1 0 0 1 1-1h1.35l1.05-2.25a.95.95 0 0 1 1.74.06l1.28 3.22.72-1.08a.95.95 0 0 1 .79-.42h1.27a1 1 0 1 1 0 2h-.74l-1.35 2.02a.95.95 0 0 1-1.68-.18l-1.26-3.17-.64 1.37a1 1 0 0 1-.9.58H7.4a1 1 0 0 1-1-1.15Z"/>
+                  <circle class="ic-sub" cx="15.6" cy="4.4" r="1.75"/>
+                </svg>
+                <span>Live Hz Arena</span>
+              </button>
             </aside>
 
             <div class="studio-stage">
@@ -718,13 +733,43 @@
                   <button type="button" class="hotspot-pin hp-back" data-pin="Side 2 · Ctrl+V" data-hex="F0 09 A5 22 2C 01 19 00"><span>Back · Paste</span></button>
                 </div>
               </div>
+
+              <!-- Wave 15: Live Real-Mouse Polling Rate & Coalesced Sensor Test Arena -->
+              <div class="hz-arena-card liquid-glass" id="hzArenaCard">
+                <div class="hz-arena-head">
+                  <div>
+                    <span class="sp-kicker">LIVE HARDWARE POLLING &amp; SENSOR BENCHMARK</span>
+                    <h4>Move Your Mouse Inside the Liquid Pad to Measure Real Hz</h4>
+                  </div>
+                  <div class="hz-arena-stats">
+                    <span class="hz-stat liquid-pill"><small>LIVE</small> <b id="hzLiveVal">0 Hz</b></span>
+                    <span class="hz-stat liquid-pill"><small>PEAK</small> <b id="hzPeakVal">0 Hz</b></span>
+                    <span class="hz-stat liquid-pill"><small>DELTA</small> <b id="hzJitterVal">-- ms</b></span>
+                    <button type="button" class="hz-reset-btn liquid-pill" id="hzResetBtn">Reset</button>
+                  </div>
+                </div>
+                <div class="hz-pad-wrap" id="hzTestPad" role="application" aria-label="Interactive mouse polling rate test surface — move cursor rapidly inside">
+                  <canvas id="hzArenaCanvas" width="760" height="132"></canvas>
+                  <span class="hz-pad-hint" id="hzPadHint">SWIRL MOUSE OR DRAG FINGER FAST TO BENCHMARK REPORT RATE</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="studio-hexbar">
-            <span class="hex-status"><i class="status-pip"></i> WEBHID 64B WIRE</span>
-            <code id="studioHexOut">TX [64B] : F0 0F AE 0A 2F 03 40 06 00 00 00 ... · CHK 0x8B MATCHED</code>
-            <span class="hex-verified" id="studioVerifyTag">ROUND-TRIP VERIFIED</span>
+            <span class="hex-status"><i class="status-pip"></i> <span id="webhidStatusText">WEBHID 64B WIRE</span></span>
+            <div class="hex-copy-group">
+              <code id="studioHexOut">TX [64B] : F0 0F AE 0A 2F 03 40 06 00 00 00 ... · CHK 0x8B MATCHED</code>
+              <span class="copy-wrap">
+                <button type="button" class="copy-btn liquid-pill" command="--copy" commandfor="studioHexOut" aria-label="Copy 64-byte WebHID packet">
+                  <svg class="copy-ic ic-copy" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3A2.5 2.5 0 0 0 4 5.5v7A2.5 2.5 0 0 0 6.5 15h6a2.5 2.5 0 0 0 2.5-2.5v-7A2.5 2.5 0 0 0 12.5 3h-6Zm6.8 13.5H7.2a3.7 3.7 0 0 1-3.7-3.7V6.6a1.1 1.1 0 0 0-1.5 1v5.9A5.5 5.5 0 0 0 7.5 19h5.8a1.1 1.1 0 0 0 0-2.5Z"/></svg>
+                  <svg class="copy-ic ic-check" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.7 5.3a1.4 1.4 0 0 1 0 2l-7.6 7.6a1.4 1.4 0 0 1-2 0l-3.8-3.8a1.4 1.4 0 1 1 2-2l2.8 2.8 6.6-6.6a1.4 1.4 0 0 1 2 0Z"/></svg>
+                  <span>Copy</span>
+                </button>
+                <span class="copy-tip" role="status"></span>
+              </span>
+            </div>
+            <button type="button" class="webhid-probe-btn liquid-pill" id="webhidProbeBtn">Check WebHID</button>
           </div>
         </div>
       </div>
@@ -802,6 +847,23 @@
             <p class="smartscreen-note">
               <b>Security &amp; Checksums:</b> Binaries are open-source and unsigned — if Windows SmartScreen prompts on first launch, verify <code>SHA256SUMS.txt</code> on GitHub and choose <em>More info, then Run anyway</em>. Mouse stock firmware v2.1.3 is never flashed or modified.
             </p>
+            <div class="sha-verify-bar liquid-glass">
+              <div class="sha-os-tabs">
+                <button type="button" class="sha-os-btn active" data-sha-os="win" aria-pressed="true">PowerShell / CMD</button>
+                <button type="button" class="sha-os-btn" data-sha-os="unix" aria-pressed="false">macOS / Linux</button>
+              </div>
+              <div class="sha-cmd-row">
+                <code id="shaVerifyCmd">CertUtil -hashfile SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe SHA256</code>
+                <span class="copy-wrap">
+                  <button type="button" class="copy-btn liquid-pill" command="--copy" commandfor="shaVerifyCmd" aria-label="Copy SHA-256 checksum command">
+                    <svg class="copy-ic ic-copy" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3A2.5 2.5 0 0 0 4 5.5v7A2.5 2.5 0 0 0 6.5 15h6a2.5 2.5 0 0 0 2.5-2.5v-7A2.5 2.5 0 0 0 12.5 3h-6Zm6.8 13.5H7.2a3.7 3.7 0 0 1-3.7-3.7V6.6a1.1 1.1 0 0 0-1.5 1v5.9A5.5 5.5 0 0 0 7.5 19h5.8a1.1 1.1 0 0 0 0-2.5Z"/></svg>
+                    <svg class="copy-ic ic-check" viewBox="0 0 20 20" aria-hidden="true"><path d="M16.7 5.3a1.4 1.4 0 0 1 0 2l-7.6 7.6a1.4 1.4 0 0 1-2 0l-3.8-3.8a1.4 1.4 0 1 1 2-2l2.8 2.8 6.6-6.6a1.4 1.4 0 0 1 2 0Z"/></svg>
+                    <span>Copy SHA-256</span>
+                  </button>
+                  <span class="copy-tip" role="status"></span>
+                </span>
+              </div>
+            </div>
             <div class="community-row">
               <a class="secondary-btn liquid-pill" href="https://github.com/duyzoz/Smail-Wolf-M3-Pro" target="_blank" rel="noopener">
                 GitHub Source Code
@@ -856,6 +918,42 @@
   <button type="button" id="toTop" class="to-top liquid-pill" aria-label="Scroll back to top">
     <span>TOP</span>
   </button>
+
+  <!-- Wave 14: iOS Spotlight-Style Quick Skin & Command Palette Dialog -->
+  <dialog id="spotlightDialog" class="spotlight-dialog liquid-glass" closedby="any" aria-label="Quick Skin Finder and Command Palette">
+    <div class="spotlight-inner">
+      <div class="spotlight-search-row">
+        <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+          <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M8.8 2.6a6.2 6.2 0 1 0 3.72 11.16l3.16 3.16a1.45 1.45 0 0 0 2.05-2.05l-3.16-3.16A6.2 6.2 0 0 0 8.8 2.6ZM5.3 8.8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0Z"/>
+          <circle class="ic-sub" cx="8.8" cy="8.8" r="1.5"/>
+        </svg>
+        <input type="search" id="spotlightInput" class="spotlight-input" placeholder="Search 67 mouse skins (e.g. Sakura, Oni, Cyber, F02) or commands..." autocomplete="off" spellcheck="false" aria-label="Search skins and commands">
+        <button type="button" class="spotlight-close liquid-pill" id="spotlightClose" command="close" commandfor="spotlightDialog">ESC</button>
+      </div>
+      <div class="spotlight-scope-row" role="group" aria-label="Filter command palette">
+        <button type="button" class="sp-scope-pill active" data-sp-scope="all" aria-pressed="true">All</button>
+        <button type="button" class="sp-scope-pill" data-sp-scope="skins" aria-pressed="false">67 Skins</button>
+        <button type="button" class="sp-scope-pill" data-sp-scope="actions" aria-pressed="false">Quick Actions</button>
+      </div>
+      <div class="spotlight-results" id="spotlightResults" role="listbox" aria-label="Matching skins and actions">
+        <!-- Populated dynamically by app.js -->
+      </div>
+      <div class="spotlight-foot">
+        <span><b>↑↓</b> Navigate · <b>Enter</b> Equip / Run · <b>Esc</b> Close</span>
+        <span id="spotlightCount">73 items ready</span>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Accessible Persistent Toast Notification Region (popover="manual") -->
+  <div class="toast-region" id="toastRegion" role="region" aria-label="Notifications">
+    <div id="statusToast" class="liquid-toast liquid-glass" popover="manual">
+      <span class="status-pip" aria-hidden="true"></span>
+      <span class="toast-msg" id="toastMsg">Ready</span>
+      <button type="button" class="toast-dismiss liquid-pill" id="toastDismiss" popovertarget="statusToast" popovertargetaction="hide" aria-label="Dismiss notification">OK</button>
+    </div>
+  </div>
+  <div class="sr-live-region" id="srAnnouncer" aria-live="polite"></div>
 
   <!-- Low-Priority Preload of Edition Cutouts (Never competes with Hero LCP!) -->
   <div class="preload-vault" aria-hidden="true">

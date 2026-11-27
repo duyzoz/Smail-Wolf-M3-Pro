@@ -43,7 +43,30 @@
   const hwCores = navigator.hardwareConcurrency || 4;
   const hwMem = navigator.deviceMemory || 4;
   const isLowPowerGPU = hwCores <= 4 || hwMem <= 4;
-  const isHighCapabilityHW = !isLowPowerGPU && hwCores >= 8 && hwMem >= 8 && !prefersReduced;
+
+  // Wave 11: Detect Discrete / Apple-Silicon GPU vs Integrated Laptop GPU (0 lingering WebGL context!)
+  function detectDiscreteGPU() {
+    if (isLowPowerGPU || prefersReduced) return false;
+    try {
+      const c = document.createElement('canvas');
+      c.width = 1;
+      c.height = 1;
+      const gl = c.getContext('webgl', { powerPreference: 'high-performance' }) || c.getContext('experimental-webgl');
+      if (!gl) return false;
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : String(gl.getParameter(gl.RENDERER) || '');
+      const lose = gl.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+      if (/intel|uhd|iris|hd graphics|swiftshader|llvmpipe|basic render|mali-g5|adreno \(tm\) 61/i.test(renderer)) {
+        return false;
+      }
+      return /nvidia|geforce|rtx|gtx|radeon rx|radeon pro|apple m[1-9]/i.test(renderer);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  const isHighCapabilityHW = detectDiscreteGPU();
 
   const fpsToggle = document.getElementById('fpsToggle');
   const fpsToggleLabel = document.getElementById('fpsToggleLabel');
@@ -154,7 +177,7 @@
         const measured = snapStandardHz(1000 / medianMs);
         if (measured !== detectedHz) {
           detectedHz = measured;
-          if (detectedHz >= 90 && fpsMode === 'auto' && !isLowPowerGPU && !fpsLiteActive) {
+          if (detectedHz >= 120 && fpsMode === 'auto' && isHighCapabilityHW && !fpsLiteActive) {
             fpsUltraActive = true;
           }
           syncFpsBadge();
@@ -308,6 +331,7 @@
   const LIQUID_SELECTOR = [
     '.liquid-taskbar-dock',
     '.brand-pill',
+    '.spotlight-trigger',
     '.fps-toggle',
     '.motion-toggle',
     '.header-cta',
@@ -1374,11 +1398,26 @@
     imgEl.src = midSrc;
   }
 
+  let fadeLayerTimer = 0;
+  function switchToneLayers(nextKey) {
+    clearTimeout(fadeLayerTimer);
+    toneLayers.forEach((layer) => {
+      const isNext = layer.dataset.tb === nextKey;
+      if (layer.classList.contains('active') && !isNext) {
+        layer.classList.add('fading');
+      }
+      layer.classList.toggle('active', isNext);
+    });
+    fadeLayerTimer = setTimeout(() => {
+      toneLayers.forEach((layer) => layer.classList.remove('fading'));
+    }, 760);
+  }
+
   function applyThemeAndMouse(ed, finalSrc, finalTag) {
     document.body.setAttribute('data-edition', ed.key);
     document.body.classList.toggle('is-light-tone', ed.isLight);
     if (themeMetaEl) themeMetaEl.setAttribute('content', ed.themeMeta);
-    toneLayers.forEach((layer) => layer.classList.toggle('active', layer.dataset.tb === ed.key));
+    switchToneLayers(ed.key);
 
     if (heroMouseImg) {
       setResponsiveMouseImg(heroMouseImg, finalSrc, '(max-width: 768px) 185px, 280px');
@@ -1397,7 +1436,7 @@
   function triggerToneSweepWave(ed) {
     document.body.setAttribute('data-edition', ed.key);
     document.body.classList.toggle('is-light-tone', ed.isLight);
-    toneLayers.forEach((layer) => layer.classList.toggle('active', layer.dataset.tb === ed.key));
+    switchToneLayers(ed.key);
 
     if (!toneSweepWave || motionPaused) return;
     toneSweepWave.classList.remove('sweeping');
@@ -1678,12 +1717,15 @@
       requestAnimationFrame(heroTick);
     } else {
       heroRunning = false;
+      lastHeroTick = 0;
+      if (productRig) productRig.style.willChange = 'auto';
     }
   }
 
   function wakeHeroLoop() {
     if (!heroRunning && heroVisible && !motionPaused && !document.hidden) {
       heroRunning = true;
+      if (productRig) productRig.style.willChange = 'transform';
       requestAnimationFrame(heroTick);
     }
   }
@@ -1709,7 +1751,9 @@
 
   const anatomySection = document.getElementById('anatomy');
   const dissectCanvas = document.getElementById('dissectCanvas');
-  const dissectCtx = dissectCanvas ? dissectCanvas.getContext('2d', { alpha: false }) : null;
+  const dissectCtx = dissectCanvas
+    ? (dissectCanvas.getContext('2d', { alpha: false, desynchronized: true }) || dissectCanvas.getContext('2d', { alpha: false }))
+    : null;
   const dissectLoader = document.getElementById('dissectLoader');
   const dissectCount = document.getElementById('dissectCount');
   const anatomyBarFill = document.getElementById('anatomyBarFill');
@@ -2019,7 +2063,25 @@
           el._cf = cls;
         }
       }
+      scheduleCoverflowPrewarm(activeIdx);
     }
+  }
+
+  // Wave 13: Idle Neighbor Thumbnail Pre-Decoder (Eliminates Coverflow Scroll Decode Hitches!)
+  let prewarmTimer = 0;
+  function scheduleCoverflowPrewarm(centerIdx) {
+    clearTimeout(prewarmTimer);
+    prewarmTimer = setTimeout(() => {
+      const start = Math.max(0, centerIdx - 5);
+      const end = Math.min(pedestalEls.length - 1, centerIdx + 5);
+      for (let i = start; i <= end; i++) {
+        const img = pedestalEls[i] && pedestalEls[i].querySelector('img');
+        if (img && !img._decoded && typeof img.decode === 'function') {
+          img._decoded = true;
+          img.decode().catch(() => {});
+        }
+      }
+    }, 60);
   }
 
   filterChips.forEach((chip) => {
@@ -2188,7 +2250,78 @@
     }
   }
 
+  // Top-Layer Discrete Exit Helper (modern-web-guidance `animate-to-from-top-layer` pattern)
+  let supportsDisplayTransition;
+  function canTransitionDisplay() {
+    if (supportsDisplayTransition !== undefined) return supportsDisplayTransition;
+    if (!window.CSS || !CSS.supports || !CSS.supports('transition-behavior', 'allow-discrete') || !document.body) {
+      supportsDisplayTransition = false;
+      return false;
+    }
+    const probe = document.createElement('div');
+    probe.style.cssText = 'transition: display 1s allow-discrete !important; display: block;';
+    document.body.appendChild(probe);
+    getComputedStyle(probe).display;
+    probe.style.display = 'none';
+    supportsDisplayTransition = getComputedStyle(probe).display === 'block';
+    probe.remove();
+    return supportsDisplayTransition;
+  }
+
+  function supportsTopLayerExit() {
+    return Boolean(window.CSS && CSS.supports && CSS.supports('overlay', 'auto') && canTransitionDisplay());
+  }
+
+  async function closeTopLayer(dialogEl) {
+    if (!dialogEl || !dialogEl.open) return;
+    if (!supportsTopLayerExit() && !motionPaused && !prefersReduced) {
+      dialogEl.setAttribute('data-closing', '');
+      const anims = dialogEl.getAnimations ? dialogEl.getAnimations({ subtree: true }) : [];
+      if (anims.length > 0) {
+        await Promise.race([
+          Promise.allSettled(anims.map((a) => a.finished)),
+          new Promise((r) => setTimeout(r, 320))
+        ]);
+      }
+      if (!dialogEl.hasAttribute('data-closing')) return;
+      dialogEl.removeAttribute('data-closing');
+    }
+    dialogEl.close();
+  }
+
+  function equipSkinOnHero(skin) {
+    if (!skin) return;
+    if (navDock && navItems[0]) {
+      markNavClickLock();
+      navDock.setActive(navItems[0], { animate: true, scrollDock: true, bounceIcon: true });
+    }
+    window.scrollTo({ top: 0, behavior: motionPaused ? 'auto' : 'smooth' });
+    setTimeout(() => {
+      const themeMap = {
+        oni: 'crimson',
+        cyber: 'cyber',
+        anime: 'hologram',
+        special: skin.id === 'default' ? 'pearl' : 'hologram',
+        topo: 'pearl'
+      };
+      const edKey = themeMap[skin.cat] || 'pearl';
+      activeEditionIndex = EDITION_ORDER.indexOf(edKey);
+      editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === edKey));
+      if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 04`;
+      runSpinSwap({
+        editionKey: edKey,
+        customSrc: skin.src,
+        customName: `${skin.name} · ${skin.id.toUpperCase()}`
+      });
+      showLiquidToast(`Equipped ${skin.name} (${skin.id.toUpperCase()}) on 3D Stage`);
+    }, motionPaused ? 0 : 320);
+  }
+
   if (skinModal) {
+    skinModal.addEventListener('cancel', (ev) => {
+      ev.preventDefault();
+      closeTopLayer(skinModal);
+    });
     if (!('closedBy' in HTMLDialogElement.prototype)) {
       skinModal.addEventListener('click', (event) => {
         if (event.target !== skinModal) return;
@@ -2198,37 +2331,15 @@
           event.clientY <= rect.top + rect.height &&
           rect.left <= event.clientX &&
           event.clientX <= rect.left + rect.width;
-        if (!inside) skinModal.close();
+        if (!inside) closeTopLayer(skinModal);
       });
     }
-    if (skinModalClose) skinModalClose.addEventListener('click', () => skinModal.close());
-    if (modalDownloadLink) modalDownloadLink.addEventListener('click', () => skinModal.close());
+    if (skinModalClose) skinModalClose.addEventListener('click', () => closeTopLayer(skinModal));
+    if (modalDownloadLink) modalDownloadLink.addEventListener('click', () => closeTopLayer(skinModal));
     if (equipHeroBtn) {
       equipHeroBtn.addEventListener('click', () => {
-        skinModal.close();
-        if (navDock && navItems[0]) {
-          markNavClickLock();
-          navDock.setActive(navItems[0], { animate: true, scrollDock: true, bounceIcon: true });
-        }
-        window.scrollTo({ top: 0, behavior: motionPaused ? 'auto' : 'smooth' });
-        setTimeout(() => {
-          const themeMap = {
-            oni: 'crimson',
-            cyber: 'cyber',
-            anime: 'hologram',
-            special: inspectedSkin.id === 'default' ? 'pearl' : 'hologram',
-            topo: 'pearl'
-          };
-          const edKey = themeMap[inspectedSkin.cat] || 'pearl';
-          activeEditionIndex = EDITION_ORDER.indexOf(edKey);
-          editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === edKey));
-          if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 04`;
-          runSpinSwap({
-            editionKey: edKey,
-            customSrc: inspectedSkin.src,
-            customName: `${inspectedSkin.name} · ${inspectedSkin.id.toUpperCase()}`
-          });
-        }, motionPaused ? 0 : 340);
+        closeTopLayer(skinModal);
+        equipSkinOnHero(inspectedSkin);
       });
     }
   }
@@ -2420,16 +2531,31 @@
       desc: 'Calibrate cell capacity (default 500 mAh / 400 mAh usable), auto-detect USB-C charging over 2.4 GHz, and reset to 100.0% in one click.',
       hex: 'F0 30 00 00 00 00 64 00',
       note: 'BATTERY SYNC'
+    },
+    hztest: {
+      kicker: 'LIVE COALESCED POINTER BENCHMARK',
+      title: 'Real-Time Polling Rate Arena Below',
+      desc: 'Swirl your physical gaming mouse rapidly inside the Liquid Sensor Pad below to benchmark real 125–1,000 Hz report intervals right in the browser.',
+      hex: 'F0 ED 01 03 E8 00 00 00',
+      note: 'POLLING BENCHMARK'
     }
   };
 
+  const hzArenaCard = document.getElementById('hzArenaCard');
   const railTabs = Array.from(document.querySelectorAll('.rail-tab'));
   railTabs.forEach((tab) => {
     const applyRail = () => {
-      const info = STUDIO_TABS[tab.dataset.stab] || STUDIO_TABS.dashboard;
+      const key = tab.dataset.stab || 'dashboard';
+      const info = STUDIO_TABS[key] || STUDIO_TABS.dashboard;
       if (spKicker) spKicker.textContent = info.kicker;
       if (spTitle) spTitle.textContent = info.title;
       if (spDesc) spDesc.textContent = info.desc;
+      if (hzArenaCard) {
+        hzArenaCard.classList.toggle('is-highlighted', key === 'hztest');
+        if (key === 'hztest') {
+          hzArenaCard.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth', block: 'nearest' });
+        }
+      }
       emitStudioHex(info.hex, info.note);
     };
     tab.addEventListener('click', applyRail);
@@ -2509,7 +2635,519 @@
   }
 
   /* ------------------------------------------------------------------------
-     9. ULTRA-LEAN READ-THEN-WRITE SCROLL ENGINE (ZERO REFLOW, CACHED OFFSETS!)
+     9. WAVES 14-16: SPOTLIGHT PALETTE, LIVE 1,000HZ ARENA, COPY & WEBHID
+     ------------------------------------------------------------------------ */
+  const statusToast = document.getElementById('statusToast');
+  const toastMsg = document.getElementById('toastMsg');
+  const toastDismiss = document.getElementById('toastDismiss');
+  const srAnnouncer = document.getElementById('srAnnouncer');
+  let toastHideTimer = 0;
+  let lastSrText = '';
+
+  function hideLiquidToast() {
+    if (!statusToast) return;
+    clearTimeout(toastHideTimer);
+    if (typeof statusToast.hidePopover === 'function') {
+      try { statusToast.hidePopover(); } catch (_) {}
+    } else {
+      statusToast.classList.remove('is-fallback-open');
+    }
+  }
+
+  function showLiquidToast(message) {
+    if (!statusToast || !toastMsg) return;
+    const modalBlocking =
+      (skinModal && skinModal.open && !skinModal.hasAttribute('data-closing')) ||
+      (spotlightDialog && spotlightDialog.open && !spotlightDialog.hasAttribute('data-closing'));
+    if (modalBlocking) return;
+    clearTimeout(toastHideTimer);
+    toastMsg.textContent = message;
+    if (typeof statusToast.showPopover === 'function') {
+      try { statusToast.showPopover(); } catch (_) {}
+    } else {
+      statusToast.classList.add('is-fallback-open');
+    }
+    let srMsg = message;
+    if (srMsg === lastSrText) srMsg += '\u00A0';
+    lastSrText = srMsg;
+    if (typeof document.ariaNotify === 'function') {
+      try { document.ariaNotify(message); } catch (_) {}
+    } else if (srAnnouncer) {
+      srAnnouncer.textContent = srMsg;
+    }
+    const scheduleDismiss = () => {
+      toastHideTimer = setTimeout(() => {
+        if (statusToast.contains(document.activeElement)) {
+          scheduleDismiss();
+          return;
+        }
+        hideLiquidToast();
+      }, 2800);
+    };
+    scheduleDismiss();
+  }
+
+  if (toastDismiss) {
+    toastDismiss.addEventListener('click', hideLiquidToast);
+  }
+
+  // Wave 16: Invoker Copy Buttons + Async Clipboard + Legacy Fallback (`copy-button` guide!)
+  const copyTimers = new WeakMap();
+  let lastCopyBubbleMsg = '';
+
+  function legacyCopy(text) {
+    const previousFocus = document.activeElement;
+    const field = Object.assign(document.createElement('textarea'), { value: text });
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;inset-block-start:0;opacity:0';
+    document.body.append(field);
+    field.select();
+    try {
+      return document.execCommand('copy');
+    } finally {
+      field.remove();
+      if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  function reportCopy(button, ok) {
+    if (!button) return;
+    const tip = button.nextElementSibling;
+    clearTimeout(copyTimers.get(button));
+    button.removeAttribute('data-copied');
+    button.removeAttribute('data-failed');
+    let message = ok ? 'Copied' : 'Copy failed';
+    if (message === lastCopyBubbleMsg) message += '\u00A0';
+    lastCopyBubbleMsg = message;
+    if (tip) tip.textContent = '';
+    button.setAttribute(ok ? 'data-copied' : 'data-failed', '');
+    if (tip) requestAnimationFrame(() => { tip.textContent = message; });
+    copyTimers.set(button, setTimeout(() => {
+      button.removeAttribute('data-copied');
+      button.removeAttribute('data-failed');
+      if (tip) tip.textContent = '';
+    }, 2000));
+  }
+
+  async function runCopy(button, target) {
+    if (!button || !target) return;
+    const text = target.matches('input, textarea') ? target.value : target.innerText.trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      reportCopy(button, true);
+    } catch (_) {
+      if (legacyCopy(text)) reportCopy(button, true);
+      else reportCopy(button, false);
+    }
+  }
+
+  if ('CommandEvent' in window) {
+    document.addEventListener('command', (event) => {
+      if (event.command && event.command.startsWith('--copy')) {
+        runCopy(event.source, event.target);
+      }
+    }, true);
+  } else {
+    document.addEventListener('click', (event) => {
+      if (event.defaultPrevented) return;
+      const copyBtn = event.target.closest ? event.target.closest('button[command^="--copy"]') : null;
+      if (copyBtn) {
+        const target = document.getElementById(copyBtn.getAttribute('commandfor'));
+        if (target) runCopy(copyBtn, target);
+      }
+    });
+  }
+
+  // SHA-256 OS Command Switcher
+  const shaVerifyCmd = document.getElementById('shaVerifyCmd');
+  const shaOsBtns = Array.from(document.querySelectorAll('[data-sha-os]'));
+  shaOsBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      shaOsBtns.forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', String(active));
+      });
+      if (shaVerifyCmd) {
+        shaVerifyCmd.textContent = btn.dataset.shaOs === 'unix'
+          ? 'shasum -a 256 SMAILWOLF-M3-Pro-Driver_3.0.13*'
+          : 'CertUtil -hashfile SMAILWOLF-M3-Pro-Driver_3.0.13_x64-setup.exe SHA256';
+      }
+    });
+  });
+
+  // Live WebHID Browser Capability Check
+  const webhidProbeBtn = document.getElementById('webhidProbeBtn');
+  const webhidStatusText = document.getElementById('webhidStatusText');
+  if (webhidProbeBtn) {
+    const hasHid = typeof navigator !== 'undefined' && 'hid' in navigator;
+    if (hasHid && webhidStatusText) {
+      webhidStatusText.textContent = 'WEBHID API READY';
+    }
+    webhidProbeBtn.addEventListener('click', async () => {
+      if (!('hid' in navigator)) {
+        emitStudioHex('F0 0E 00 00 00 00 00 00', 'USE CHROMIUM OR NATIVE TAURI APP');
+        showLiquidToast('WebHID requires Chromium or the native Desktop Installer');
+        return;
+      }
+      try {
+        const devices = await navigator.hid.getDevices();
+        const m3 = devices.find((d) => d.collections && d.collections.some((c) => c.usagePage === 0xff01));
+        if (m3) {
+          emitStudioHex('F0 0E 01 00 00 00 64 00', `DETECTED ${m3.productName || 'M3 PRO'}`);
+          showLiquidToast(`M3 Pro WebHID interface ready (${m3.productName || '0xFF01'})`);
+        } else {
+          emitStudioHex('F0 0E 00 01 FF 01 00 10', 'WEBHID ENGINE READY · 0 PAIRED');
+          showLiquidToast('Browser WebHID engine verified & ready for M3 Pro (0xFF01)');
+        }
+      } catch (_) {
+        emitStudioHex('F0 0E 00 01 FF 01 00 10', 'WEBHID SUPPORTED (LOCAL DESKTOP)');
+        showLiquidToast('WebHID supported — use Desktop App or HTTPS to pair');
+      }
+    });
+  }
+
+  // Wave 15: Live 1,000 Hz Coalesced Pointer Polling Rate & Sensor Benchmark Arena
+  const hzTestPad = document.getElementById('hzTestPad');
+  const hzArenaCanvas = document.getElementById('hzArenaCanvas');
+  const hzCtx = hzArenaCanvas
+    ? (hzArenaCanvas.getContext('2d', { desynchronized: true }) || hzArenaCanvas.getContext('2d'))
+    : null;
+  const hzLiveVal = document.getElementById('hzLiveVal');
+  const hzPeakVal = document.getElementById('hzPeakVal');
+  const hzJitterVal = document.getElementById('hzJitterVal');
+  const hzResetBtn = document.getElementById('hzResetBtn');
+
+  if (hzTestPad && hzArenaCanvas && hzCtx) {
+    const RING_LEN = 256;
+    const stampRing = new Float64Array(RING_LEN);
+    let ringHead = 0;
+    let ringCount = 0;
+    let peakHz = 0;
+    const trailPts = [];
+    let padActive = false;
+    let padRaf = false;
+    let decayTimer = 0;
+
+    function sizeHzCanvas() {
+      const w = Math.max(240, Math.round(hzTestPad.clientWidth));
+      const h = Math.max(90, Math.round(hzTestPad.clientHeight));
+      if (hzArenaCanvas.width !== w || hzArenaCanvas.height !== h) {
+        hzArenaCanvas.width = w;
+        hzArenaCanvas.height = h;
+      }
+    }
+    sizeHzCanvas();
+    window.addEventListener('resize', debounce(sizeHzCanvas, 160), { passive: true });
+
+    function drawHzTrail() {
+      padRaf = false;
+      const w = hzArenaCanvas.width;
+      const h = hzArenaCanvas.height;
+      hzCtx.clearRect(0, 0, w, h);
+      if (trailPts.length < 2) return;
+      hzCtx.lineCap = 'round';
+      hzCtx.lineJoin = 'round';
+      for (let i = 1; i < trailPts.length; i++) {
+        const p0 = trailPts[i - 1];
+        const p1 = trailPts[i];
+        const alpha = i / trailPts.length;
+        hzCtx.beginPath();
+        hzCtx.moveTo(p0.x, p0.y);
+        hzCtx.lineTo(p1.x, p1.y);
+        hzCtx.strokeStyle = `rgba(56, 189, 248, ${(alpha * 0.85).toFixed(2)})`;
+        hzCtx.lineWidth = 1.5 + alpha * 3.5;
+        hzCtx.stroke();
+      }
+    }
+
+    hzTestPad.addEventListener('pointermove', (ev) => {
+      const rect = hzTestPad.getBoundingClientRect();
+      const events = typeof ev.getCoalescedEvents === 'function' ? ev.getCoalescedEvents() : [ev];
+      const list = events.length ? events : [ev];
+
+      if (!padActive) {
+        padActive = true;
+        hzTestPad.classList.add('is-active');
+      }
+
+      for (let i = 0; i < list.length; i++) {
+        const ce = list[i];
+        const t = ce.timeStamp || performance.now();
+        stampRing[ringHead] = t;
+        ringHead = (ringHead + 1) % RING_LEN;
+        if (ringCount < RING_LEN) ringCount++;
+
+        trailPts.push({
+          x: ce.clientX - rect.left,
+          y: ce.clientY - rect.top
+        });
+        if (trailPts.length > 36) trailPts.shift();
+      }
+
+      if (ringCount >= 4) {
+        const newestIdx = (ringHead - 1 + RING_LEN) % RING_LEN;
+        const newestT = stampRing[newestIdx];
+        let validSamples = 0;
+        let oldestInWindow = newestT;
+        let deltaSum = 0;
+        let prevT = newestT;
+
+        for (let k = 1; k < ringCount; k++) {
+          const idx = (newestIdx - k + RING_LEN) % RING_LEN;
+          const t = stampRing[idx];
+          const age = newestT - t;
+          if (age > 350 || age < 0) break;
+          const d = prevT - t;
+          if (d > 0.15 && d < 60) {
+            deltaSum += d;
+            validSamples++;
+            oldestInWindow = t;
+          }
+          prevT = t;
+        }
+
+        const spanMs = newestT - oldestInWindow;
+        if (validSamples >= 3 && spanMs > 24) {
+          const liveHz = Math.round((validSamples * 1000) / spanMs);
+          const clampedHz = clamp(liveHz, 1, 8000);
+          if (clampedHz > peakHz) peakHz = clampedHz;
+          const avgDelta = deltaSum / validSamples;
+          if (hzLiveVal) hzLiveVal.textContent = `${clampedHz.toLocaleString('en-US')} Hz`;
+          if (hzPeakVal) hzPeakVal.textContent = `${peakHz.toLocaleString('en-US')} Hz`;
+          if (hzJitterVal) hzJitterVal.textContent = `${avgDelta.toFixed(2)} ms`;
+        }
+      }
+
+      if (!padRaf && !motionPaused) {
+        padRaf = true;
+        requestAnimationFrame(drawHzTrail);
+      }
+
+      clearTimeout(decayTimer);
+      decayTimer = setTimeout(() => {
+        if (hzLiveVal) hzLiveVal.textContent = '0 Hz';
+        trailPts.length = 0;
+        hzCtx.clearRect(0, 0, hzArenaCanvas.width, hzArenaCanvas.height);
+        padActive = false;
+        hzTestPad.classList.remove('is-active');
+      }, 450);
+    }, { passive: true });
+
+    if (hzResetBtn) {
+      hzResetBtn.addEventListener('click', () => {
+        peakHz = 0;
+        ringCount = 0;
+        ringHead = 0;
+        trailPts.length = 0;
+        hzCtx.clearRect(0, 0, hzArenaCanvas.width, hzArenaCanvas.height);
+        if (hzLiveVal) hzLiveVal.textContent = '0 Hz';
+        if (hzPeakVal) hzPeakVal.textContent = '0 Hz';
+        if (hzJitterVal) hzJitterVal.textContent = '-- ms';
+      });
+    }
+  }
+
+  // Wave 14: iOS Spotlight Quick Skin & Command Palette (`Ctrl+K` / `⌘K` + Invoker Fallback)
+  const spotlightDialog = document.getElementById('spotlightDialog');
+  const spotlightTrigger = document.getElementById('spotlightTrigger');
+  const spotlightClose = document.getElementById('spotlightClose');
+  const spotlightInput = document.getElementById('spotlightInput');
+  const spotlightResults = document.getElementById('spotlightResults');
+  const spotlightCount = document.getElementById('spotlightCount');
+  const spScopePills = Array.from(document.querySelectorAll('[data-sp-scope]'));
+
+  const QUICK_ACTIONS = [
+    { type: 'action', badge: 'TONE', title: 'Switch to Pure White Tone', sub: 'Default pristine water-lens edition', run: () => selectEditionByIndex(0) },
+    { type: 'action', badge: 'TONE', title: 'Switch to Oni Crimson Tone', sub: 'Skin A03 dark crimson crystal', run: () => selectEditionByIndex(1) },
+    { type: 'action', badge: 'TONE', title: 'Switch to Cyber Neon Tone', sub: 'Skin F02 ultraviolet cyan crystal', run: () => selectEditionByIndex(2) },
+    { type: 'action', badge: 'TONE', title: 'Switch to Pastel Hologram Tone', sub: 'Skin C07 iridescent prism crystal', run: () => selectEditionByIndex(3) },
+    { type: 'action', badge: 'HZ', title: 'Open Live 1,000 Hz Mouse Benchmark', sub: 'Test real physical mouse polling rate', run: () => {
+      const sec = document.getElementById('driver');
+      if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+      const hzTab = document.querySelector('[data-stab="hztest"]');
+      if (hzTab) hzTab.click();
+    }},
+    { type: 'action', badge: 'OS', title: 'Jump to v3.0.13 Multi-OS Downloads', sub: 'Windows .exe · macOS .dmg · Linux .AppImage', run: () => {
+      const sec = document.getElementById('download');
+      if (sec) sec.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth' });
+    }}
+  ];
+
+  let spScope = 'all';
+  let spFocusIdx = 0;
+  let currentSpItems = [];
+
+  function renderSpotlightList() {
+    if (!spotlightResults) return;
+    const q = (spotlightInput ? spotlightInput.value : '').trim().toLowerCase();
+    const matchedItems = [];
+
+    if (spScope === 'all' || spScope === 'actions') {
+      QUICK_ACTIONS.forEach((act) => {
+        if (!q || act.title.toLowerCase().includes(q) || act.sub.toLowerCase().includes(q)) {
+          matchedItems.push(act);
+        }
+      });
+    }
+
+    if (spScope === 'all' || spScope === 'skins') {
+      SKINS.forEach((skin, idx) => {
+        if (!q || skin.name.toLowerCase().includes(q) || skin.id.toLowerCase().includes(q) || skin.cat.toLowerCase().includes(q)) {
+          matchedItems.push({
+            type: 'skin',
+            skin,
+            idx,
+            title: skin.name,
+            sub: `${skin.id.toUpperCase()} · ${skin.cat.toUpperCase()} SERIES · #${String(idx + 1).padStart(2, '0')}`
+          });
+        }
+      });
+    }
+
+    currentSpItems = matchedItems;
+    spFocusIdx = 0;
+    if (spotlightCount) spotlightCount.textContent = `${matchedItems.length} matching items`;
+
+    if (!matchedItems.length) {
+      spotlightResults.innerHTML = '<p class="sp-empty">No matching skins or commands found.</p>';
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    matchedItems.slice(0, 40).forEach((item, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `sp-result-item${i === 0 ? ' is-focused' : ''}`;
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', String(i === 0));
+      const mediaHtml = item.type === 'skin'
+        ? `<img class="sp-res-thumb" src="${item.skin.thumb}" alt="" width="28" height="44" loading="lazy" decoding="async">`
+        : `<span class="sp-res-badge-ic">${item.badge}</span>`;
+      btn.innerHTML = `
+        <span class="sp-res-left">
+          ${mediaHtml}
+          <span class="sp-res-text">
+            <strong>${item.title}</strong>
+            <small>${item.sub}</small>
+          </span>
+        </span>
+        <span class="sp-res-action">${item.type === 'skin' ? 'Equip 3D' : 'Run'}</span>
+      `;
+      btn.addEventListener('click', () => executeSpotlightItem(item));
+      frag.appendChild(btn);
+    });
+    spotlightResults.innerHTML = '';
+    spotlightResults.appendChild(frag);
+  }
+
+  function executeSpotlightItem(item) {
+    if (!item) return;
+    if (spotlightDialog) closeTopLayer(spotlightDialog);
+    if (item.type === 'skin') {
+      equipSkinOnHero(item.skin);
+    } else if (item.run) {
+      item.run();
+    }
+  }
+
+  function openSpotlight() {
+    if (!spotlightDialog || spotlightDialog.open) return;
+    renderSpotlightList();
+    spotlightDialog.showModal();
+    if (spotlightInput) {
+      spotlightInput.focus();
+      spotlightInput.select();
+    }
+  }
+
+  if (spotlightDialog) {
+    spotlightDialog.addEventListener('cancel', (ev) => {
+      ev.preventDefault();
+      closeTopLayer(spotlightDialog);
+    });
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+      spotlightDialog.addEventListener('click', (event) => {
+        if (event.target !== spotlightDialog) return;
+        const rect = spotlightDialog.getBoundingClientRect();
+        const inside =
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width;
+        if (!inside) closeTopLayer(spotlightDialog);
+      });
+    }
+    if (spotlightTrigger) {
+      spotlightTrigger.addEventListener('click', () => {
+        renderSpotlightList();
+        requestAnimationFrame(() => {
+          if (!spotlightDialog.open) openSpotlight();
+          else if (spotlightInput) {
+            spotlightInput.focus();
+            spotlightInput.select();
+          }
+        });
+      });
+    }
+    if (spotlightClose && !('commandForElement' in HTMLButtonElement.prototype)) {
+      spotlightClose.addEventListener('click', () => closeTopLayer(spotlightDialog));
+    }
+
+    if (spotlightInput) {
+      spotlightInput.addEventListener('input', renderSpotlightList);
+      spotlightInput.addEventListener('keydown', (ev) => {
+        const renderedBtns = Array.from(spotlightResults.querySelectorAll('.sp-result-item'));
+        if (!renderedBtns.length) return;
+        if (ev.key === 'ArrowDown') {
+          ev.preventDefault();
+          spFocusIdx = (spFocusIdx + 1) % renderedBtns.length;
+        } else if (ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          spFocusIdx = (spFocusIdx - 1 + renderedBtns.length) % renderedBtns.length;
+        } else if (ev.key === 'Enter') {
+          ev.preventDefault();
+          const chosen = currentSpItems[spFocusIdx];
+          if (chosen) executeSpotlightItem(chosen);
+          return;
+        } else {
+          return;
+        }
+        renderedBtns.forEach((b, bi) => {
+          const foc = bi === spFocusIdx;
+          b.classList.toggle('is-focused', foc);
+          b.setAttribute('aria-selected', String(foc));
+          if (foc) b.scrollIntoView({ block: 'nearest' });
+        });
+      });
+    }
+
+    spScopePills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        spScope = pill.dataset.spScope || 'all';
+        spScopePills.forEach((p) => {
+          const active = p === pill;
+          p.classList.toggle('active', active);
+          p.setAttribute('aria-pressed', String(active));
+        });
+        renderSpotlightList();
+      });
+    });
+
+    document.addEventListener('keydown', (ev) => {
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') {
+        ev.preventDefault();
+        if (spotlightDialog.open) closeTopLayer(spotlightDialog);
+        else openSpotlight();
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     10. ULTRA-LEAN READ-THEN-WRITE SCROLL ENGINE (ZERO REFLOW, CACHED OFFSETS!)
      ------------------------------------------------------------------------ */
   const scrollProgress = document.getElementById('scrollProgress');
   const hasNativeScrollTimeline = Boolean(
@@ -2551,18 +3189,29 @@
     });
   }
 
+  let headerCondensedState = false;
+  let toTopShownState = false;
+
   function onScrollFrame() {
     scrollTicking = false;
     const y = window.scrollY || window.pageYOffset;
     const H = window.innerHeight;
 
-    // ZERO getBoundingClientRect() during scroll -> 0ms layout read cost!
+    // ZERO getBoundingClientRect() & ZERO redundant classList touches during scroll!
     if (scrollProgress && !hasNativeScrollTimeline) {
       const globalRatio = clamp(y / docMaxScroll, 0, 1);
       scrollProgress.style.transform = `scaleX(${globalRatio.toFixed(4)})`;
     }
-    if (siteHeader) siteHeader.classList.toggle('condensed', y > 48);
-    if (toTopBtn) toTopBtn.classList.toggle('show', y > 520);
+    const nextCondensed = y > 48;
+    if (nextCondensed !== headerCondensedState) {
+      headerCondensedState = nextCondensed;
+      if (siteHeader) siteHeader.classList.toggle('condensed', nextCondensed);
+    }
+    const nextToTop = y > 520;
+    if (nextToTop !== toTopShownState) {
+      toTopShownState = nextToTop;
+      if (toTopBtn) toTopBtn.classList.toggle('show', nextToTop);
+    }
 
     if (anatomySection && y + H * 1.5 > anatomyTop && y < anatomyTop + anatomyHeight + H * 0.5) {
       const travel = Math.max(1, anatomyHeight - H);
