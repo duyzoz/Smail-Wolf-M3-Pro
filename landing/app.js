@@ -35,11 +35,83 @@
   }
 
   /* ------------------------------------------------------------------------
-     0. HARDWARE TIER DETECTION (Auto-scales heavy asset memory on 4-8GB PCs!)
+     0. HARDWARE TIER + REAL-TIME AUTO-FPS GOVERNOR (Auto / Ultra / Lite)
+     Automatically steps down ambient GPU cost if integrated GPU drops < 45fps
+     while keeping 100% Pure Clear Liquid Glass & 2-Layer Water Droplets!
      ------------------------------------------------------------------------ */
   const hwCores = navigator.hardwareConcurrency || 4;
   const hwMem = navigator.deviceMemory || 4;
   const isLowPowerGPU = hwCores <= 4 || hwMem <= 4;
+
+  const fpsToggle = document.getElementById('fpsToggle');
+  const fpsToggleLabel = document.getElementById('fpsToggleLabel');
+  const fpsPrefixEl = fpsToggle ? fpsToggle.querySelector('.fps-prefix') : null;
+
+  let fpsMode = 'auto'; // 'auto' | 'ultra' | 'lite'
+  let fpsLiteActive = false;
+  let fpsEmaMs = 16.6;
+  let slowFrameStreak = 0;
+
+  function syncFpsBadge() {
+    document.body.classList.toggle('fps-lite', fpsLiteActive);
+    if (!fpsToggle || !fpsToggleLabel) return;
+    fpsToggle.setAttribute('data-fps-mode', fpsMode);
+    if (fpsMode === 'auto') {
+      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Auto · ';
+      fpsToggleLabel.textContent = fpsLiteActive ? 'Lite' : '60fps';
+      fpsToggle.setAttribute(
+        'aria-label',
+        fpsLiteActive
+          ? 'Graphics mode: Auto Lite active for smooth 60 FPS — click to switch Ultra or Lite'
+          : 'Graphics mode: Auto 60 FPS — click to switch Ultra or Lite'
+      );
+    } else if (fpsMode === 'ultra') {
+      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Mode · ';
+      fpsToggleLabel.textContent = 'Ultra';
+      fpsToggle.setAttribute('aria-label', 'Graphics mode: Ultra — click to switch Lite or Auto');
+    } else {
+      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Mode · ';
+      fpsToggleLabel.textContent = 'Lite';
+      fpsToggle.setAttribute('aria-label', 'Graphics mode: Lite — click to switch Auto or Ultra');
+    }
+  }
+
+  function setFpsMode(nextMode) {
+    fpsMode = nextMode;
+    fpsEmaMs = 16.6;
+    slowFrameStreak = 0;
+    if (fpsMode === 'ultra') fpsLiteActive = false;
+    else if (fpsMode === 'lite') fpsLiteActive = true;
+    else fpsLiteActive = false;
+    syncFpsBadge();
+    requestAnimationFrame(() => snapAllLiquidDocks());
+  }
+
+  // Samples ONLY consecutive frame-to-frame deltas from continuous rAF loops (never sporadic scroll gaps!)
+  function recordLoopDelta(deltaMs) {
+    if (fpsMode !== 'auto' || fpsLiteActive || motionPaused || document.hidden) return;
+    if (deltaMs >= 7 && deltaMs <= 55) {
+      fpsEmaMs = fpsEmaMs * 0.88 + deltaMs * 0.12;
+      if (fpsEmaMs > 26.5) {
+        slowFrameStreak++;
+        if (slowFrameStreak >= 28) {
+          fpsLiteActive = true;
+          syncFpsBadge();
+        }
+      } else if (slowFrameStreak > 0) {
+        slowFrameStreak--;
+      }
+    }
+  }
+
+  if (fpsToggle) {
+    syncFpsBadge();
+    fpsToggle.addEventListener('click', () => {
+      const order = ['auto', 'ultra', 'lite'];
+      const next = order[(order.indexOf(fpsMode) + 1) % order.length];
+      setFpsMode(next);
+    });
+  }
 
   /* ------------------------------------------------------------------------
      1. 4 AUTHENTIC SKIN TONES & ALL 67 REAL MOUSE SKINS
@@ -175,6 +247,7 @@
   const LIQUID_SELECTOR = [
     '.liquid-taskbar-dock',
     '.brand-pill',
+    '.fps-toggle',
     '.motion-toggle',
     '.header-cta',
     '.eyebrow-pill',
@@ -223,12 +296,16 @@
     return [pos + nv, nv];
   }
 
-  function liquidPhysicsTick() {
+  let lastLiquidTick = 0;
+  function liquidPhysicsTick(now) {
     if (motionPaused || !activeLiquidEls.size || document.hidden) {
       liquidLoopRunning = false;
+      lastLiquidTick = 0;
       return;
     }
     liquidLoopRunning = true;
+    if (lastLiquidTick && now) recordLoopDelta(now - lastLiquidTick);
+    lastLiquidTick = now || 0;
 
     activeLiquidEls.forEach((el) => {
       const st = liquidStates.get(el);
@@ -321,7 +398,7 @@
 
       // Move ONE single GPU-composited glint via translate3d -> ZERO card gradient repaints!
       if (cursorGlint) {
-        if (matched.length > 0) {
+        if (!fpsLiteActive && matched.length > 0) {
           cursorGlint.style.transform = `translate3d(${rawX.toFixed(0)}px, ${rawY.toFixed(0)}px, 0)`;
           if (!glintVisible) {
             glintVisible = true;
@@ -378,7 +455,7 @@
 
         const pullAmp = isTaskbarDock ? 2.8 : (isLarge ? 5.0 : 8.5);
         const stretchAmp = isTaskbarDock ? 0.008 : (isLarge ? 0.015 : 0.042);
-        const skewAmp = isTaskbarDock ? 0 : (isLarge ? 0.45 : 1.35);
+        const skewAmp = (isTaskbarDock || fpsLiteActive) ? 0 : (isLarge ? 0.45 : 1.35);
         const pressBoost = st.pressed ? 0.032 : 0.008;
 
         st.targetTx = nx * pullAmp;
@@ -555,6 +632,7 @@
     }
 
     dockLoopRunning = true;
+    if (lastDockTickTime && now) recordLoopDelta(now - lastDockTickTime);
     const rawDt = lastDockTickTime ? (now - lastDockTickTime) / 1000 : 1 / 60;
     lastDockTickTime = now;
     const dt = clamp(rawDt, 0.004, 0.034);
@@ -1148,6 +1226,26 @@
   cacheOrbCenters();
   window.addEventListener('resize', debounce(cacheOrbCenters, 180), { passive: true });
 
+  function getMidSrc(fullSrc) {
+    if (!fullSrc || fullSrc === 'assets/mouse-hero.webp') return 'assets/mouse-hero-480.webp';
+    if (
+      fullSrc.startsWith('assets/skins/') &&
+      !fullSrc.startsWith('assets/skins/mid/') &&
+      !fullSrc.startsWith('assets/skins/thumbs/')
+    ) {
+      return fullSrc.replace('assets/skins/', 'assets/skins/mid/');
+    }
+    return fullSrc;
+  }
+
+  function setResponsiveMouseImg(imgEl, fullSrc, sizesStr) {
+    if (!imgEl) return;
+    const midSrc = getMidSrc(fullSrc);
+    imgEl.srcset = `${midSrc} 480w, ${fullSrc} 944w`;
+    if (sizesStr) imgEl.sizes = sizesStr;
+    imgEl.src = midSrc;
+  }
+
   function applyThemeAndMouse(ed, finalSrc, finalTag) {
     document.body.setAttribute('data-edition', ed.key);
     document.body.classList.toggle('is-light-tone', ed.isLight);
@@ -1155,11 +1253,11 @@
     toneLayers.forEach((layer) => layer.classList.toggle('active', layer.dataset.tb === ed.key));
 
     if (heroMouseImg) {
-      heroMouseImg.src = finalSrc;
+      setResponsiveMouseImg(heroMouseImg, finalSrc, '(max-width: 768px) 185px, 280px');
       heroMouseImg.alt = `SMAILWOLF M3 Pro Wireless Gaming Mouse — ${finalTag}`;
     }
-    if (studioMouseImg) studioMouseImg.src = finalSrc;
-    if (dlMouseImg) dlMouseImg.src = finalSrc;
+    setResponsiveMouseImg(studioMouseImg, finalSrc, '160px');
+    setResponsiveMouseImg(dlMouseImg, finalSrc, '165px');
 
     if (heroEditionTag) heroEditionTag.textContent = finalTag;
     if (heroScriptLeft) heroScriptLeft.textContent = ed.scriptLeft;
@@ -1178,84 +1276,156 @@
     requestAnimationFrame(() => toneSweepWave.classList.add('sweeping'));
   }
 
+  // Zero-CDN Native rAF Tween Engine (Replaces 72 KB GSAP with 0 external requests!)
+  const easeInQuad = (t) => t * t;
+  const makeEaseOutBack = (overshoot) => (t) => {
+    const c1 = overshoot;
+    const c3 = c1 + 1;
+    const u = t - 1;
+    return 1 + c3 * u * u * u + c1 * u * u;
+  };
+  const easeOutBackSpin = makeEaseOutBack(0.8);
+  const easeOutBackOrb = makeEaseOutBack(1.35);
+
+  function startTween({ from, to, duration, delay = 0, ease, onUpdate, onComplete }) {
+    let cancelled = false;
+    let prevNow = 0;
+    const startAt = performance.now() + delay;
+    function frame(now) {
+      if (cancelled) return;
+      if (prevNow) recordLoopDelta(now - prevNow);
+      prevNow = now;
+      if (now < startAt) {
+        requestAnimationFrame(frame);
+        return;
+      }
+      const raw = clamp((now - startAt) / duration, 0, 1);
+      const k = ease ? ease(raw) : raw;
+      onUpdate(from + (to - from) * k, k);
+      if (raw < 1) {
+        requestAnimationFrame(frame);
+      } else if (onComplete) {
+        onComplete();
+      }
+    }
+    requestAnimationFrame(frame);
+    return () => { cancelled = true; };
+  }
+
+  let cancelSpinTween = null;
+  let cancelOrbTweens = [];
+
+  function stopSpinTweens() {
+    if (cancelSpinTween) {
+      cancelSpinTween();
+      cancelSpinTween = null;
+    }
+    while (cancelOrbTweens.length) {
+      const fn = cancelOrbTweens.pop();
+      if (fn) fn();
+    }
+  }
+
   function runSpinSwap({ editionKey, customSrc, customName }) {
     const ed = EDITIONS[editionKey] || EDITIONS.pearl;
     const finalSrc = customSrc || ed.src;
     const finalTag = customName ? customName.toUpperCase() : ed.tag;
 
     triggerToneSweepWave(ed);
+    stopSpinTweens();
 
-    if (window.gsap && !motionPaused) {
-      gsap.killTweensOf(spinObj);
-      orbState.forEach((o) => gsap.killTweensOf(o.el));
+    if (!motionPaused) {
       isSwitching = true;
-      spinObj.val = switchSpin % 360;
+      const startAngle = ((switchSpin % 360) + 360) % 360;
+      spinObj.val = startAngle;
       wakeHeroLoop();
 
-      gsap.to(spinObj, {
-        val: 360,
-        duration: 0.4,
-        ease: 'power2.in',
-        onUpdate: () => {
-          switchSpin = spinObj.val;
+      cancelSpinTween = startTween({
+        from: startAngle,
+        to: 360,
+        duration: 380,
+        ease: easeInQuad,
+        onUpdate: (v) => {
+          switchSpin = v;
           wakeHeroLoop();
         },
         onComplete: () => {
           applyThemeAndMouse(ed, finalSrc, finalTag);
-          gsap.to(spinObj, {
-            val: 720,
-            duration: 0.92,
-            ease: 'back.out(0.8)',
-            onUpdate: () => {
-              switchSpin = spinObj.val;
+          cancelSpinTween = startTween({
+            from: 360,
+            to: 720,
+            duration: 880,
+            ease: easeOutBackSpin,
+            onUpdate: (v) => {
+              switchSpin = v;
               wakeHeroLoop();
             },
             onComplete: () => {
               switchSpin = 0;
               spinObj.val = 0;
               isSwitching = false;
+              cancelSpinTween = null;
               wakeHeroLoop();
             }
           });
         }
       });
 
-      if (window.innerWidth > 1040) {
+      if (window.innerWidth > 1040 && !fpsLiteActive) {
         let imgCounter = 0;
         orbState.forEach((o) => {
+          const fromX = o.rx + o.baseX;
+          const fromY = o.ry + o.baseY;
           const toCenterX = window.innerWidth / 2 - o.cx;
           const toCenterY = window.innerHeight / 2 - o.cy;
           const nextBaseX = (Math.random() - 0.5) * 90;
           const nextBaseY = (Math.random() - 0.5) * 90;
           const skinCode = o.img ? ed.orbSkins[imgCounter++ % ed.orbSkins.length] : null;
 
-          gsap.timeline()
-            .to(o.el, {
-              x: toCenterX,
-              y: toCenterY,
-              scale: 0.18,
-              opacity: 0,
-              duration: 0.32,
-              ease: 'power2.in',
-              onComplete: () => {
-                if (o.img && skinCode) o.img.src = `assets/skins/thumbs/${skinCode}.webp`;
-              }
-            })
-            .to(o.el, {
-              x: nextBaseX,
-              y: nextBaseY,
-              scale: 1,
-              opacity: 1,
-              duration: 0.64,
-              delay: 0.06,
-              ease: 'back.out(1.35)',
-              onComplete: () => {
-                o.baseX = nextBaseX;
-                o.baseY = nextBaseY;
-                o.rx = 0;
-                o.ry = 0;
-              }
-            });
+          const c1 = startTween({
+            from: 0,
+            to: 1,
+            duration: 300,
+            ease: easeInQuad,
+            onUpdate: (_, k) => {
+              const x = fromX + (toCenterX - fromX) * k;
+              const y = fromY + (toCenterY - fromY) * k;
+              const sc = 1 + (0.18 - 1) * k;
+              o.el.style.opacity = (1 - k).toFixed(3);
+              o.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${sc.toFixed(3)})`;
+            },
+            onComplete: () => {
+              if (o.img && skinCode) o.img.src = `assets/skins/thumbs/${skinCode}.webp`;
+              const c2 = startTween({
+                from: 0,
+                to: 1,
+                duration: 600,
+                delay: 50,
+                ease: easeOutBackOrb,
+                onUpdate: (_, k) => {
+                  const x = toCenterX + (nextBaseX - toCenterX) * k;
+                  const y = toCenterY + (nextBaseY - toCenterY) * k;
+                  const sc = 0.18 + (1 - 0.18) * k;
+                  o.el.style.opacity = clamp(k, 0, 1).toFixed(3);
+                  o.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${sc.toFixed(3)})`;
+                },
+                onComplete: () => {
+                  o.baseX = nextBaseX;
+                  o.baseY = nextBaseY;
+                  o.rx = 0;
+                  o.ry = 0;
+                  o.el.style.opacity = '';
+                }
+              });
+              cancelOrbTweens.push(c2);
+            }
+          });
+          cancelOrbTweens.push(c1);
+        });
+      } else {
+        let imgCounter = 0;
+        orbState.forEach((o) => {
+          if (o.img) o.img.src = `assets/skins/thumbs/${ed.orbSkins[imgCounter++ % ed.orbSkins.length]}.webp`;
         });
       }
     } else {
@@ -1285,11 +1455,48 @@
   if (edPrev) edPrev.addEventListener('click', () => selectEditionByIndex(activeEditionIndex - 1));
   if (edNext) edNext.addEventListener('click', () => selectEditionByIndex(activeEditionIndex + 1));
 
-  function heroTick() {
+  // Mobile / Touch 3D Finger-Tilt on Hero Mouse Stage
+  const mouse3dViewport = document.querySelector('.mouse-3d-viewport');
+  if (mouse3dViewport) {
+    let heroPtrId = null;
+    let heroDownX = 0;
+    let heroDownY = 0;
+    mouse3dViewport.addEventListener('pointerdown', (ev) => {
+      if (finePointer || motionPaused) return;
+      heroPtrId = ev.pointerId;
+      heroDownX = ev.clientX;
+      heroDownY = ev.clientY;
+    });
+    mouse3dViewport.addEventListener('pointermove', (ev) => {
+      if (heroPtrId !== ev.pointerId || motionPaused) return;
+      const dx = ev.clientX - heroDownX;
+      const dy = ev.clientY - heroDownY;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        mouse.x = clamp(dx / 180, -0.85, 0.85);
+        mouse.y = clamp(dy / 220, -0.55, 0.55);
+        wakeHeroLoop();
+      }
+    });
+    const resetHeroTouch = (ev) => {
+      if (heroPtrId !== ev.pointerId) return;
+      heroPtrId = null;
+      mouse.x = 0;
+      mouse.y = 0;
+      wakeHeroLoop();
+    };
+    mouse3dViewport.addEventListener('pointerup', resetHeroTouch);
+    mouse3dViewport.addEventListener('pointercancel', resetHeroTouch);
+  }
+
+  let lastHeroTick = 0;
+  function heroTick(now) {
     if (!heroVisible || motionPaused || document.hidden) {
       heroRunning = false;
+      lastHeroTick = 0;
       return;
     }
+    if (lastHeroTick && now) recordLoopDelta(now - lastHeroTick);
+    lastHeroTick = now || 0;
 
     const dxMouse = mouse.x - currentMouse.x;
     const dyMouse = mouse.y - currentMouse.y;
@@ -1303,7 +1510,7 @@
     }
 
     let orbsSettling = false;
-    if (window.innerWidth > 1040) {
+    if (window.innerWidth > 1040 && !fpsLiteActive) {
       if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 32).toFixed(1)}px, ${(currentMouse.y * 32).toFixed(1)}px, 0)`;
       if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -16).toFixed(1)}px, ${(currentMouse.y * -16).toFixed(1)}px, 0)`;
 
@@ -1380,21 +1587,31 @@
 
   const pad3 = (n) => String(n).padStart(3, '0');
 
+  function isFrameReady(frame) {
+    if (!frame) return false;
+    if (typeof HTMLImageElement !== 'undefined' && frame instanceof HTMLImageElement) {
+      return frame.complete && frame.naturalWidth > 0;
+    }
+    return frame.width > 0 && frame.height > 0;
+  }
+
   function drawDissectFrame(idx) {
     if (!dissectCtx || !dissectCanvas) return;
     let img = frameImgs[idx];
-    if (!img || !img.complete || !img.naturalWidth) {
+    if (!isFrameReady(img)) {
       // Check adjacent even frame on stride-2 low-RAM mode before falling back to frame 121
       const adj = idx + 1 < TOTAL_FRAMES && frameImgs[idx + 1] ? frameImgs[idx + 1] : frameImgs[idx - 1];
-      img = (adj && adj.complete && adj.naturalWidth) ? adj : frameImgs[TOTAL_FRAMES - 1];
-      if (!img || !img.complete || !img.naturalWidth) return;
+      img = isFrameReady(adj) ? adj : frameImgs[TOTAL_FRAMES - 1];
+      if (!isFrameReady(img)) return;
     }
     const cw = dissectCanvas.width;
     const ch = dissectCanvas.height;
     if (!cw || !ch) return;
-    const scale = Math.max(cw / 1280, ch / 720);
-    const dw = 1280 * scale;
-    const dh = 720 * scale;
+    const srcW = img.naturalWidth || img.width || 1280;
+    const srcH = img.naturalHeight || img.height || 720;
+    const scale = Math.max(cw / srcW, ch / srcH);
+    const dw = srcW * scale;
+    const dh = srcH * scale;
     dissectCtx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   }
 
@@ -1412,27 +1629,55 @@
   }
 
   const targetDissectTotal = isLowPowerGPU ? 61 : TOTAL_FRAMES;
+  const canBitmapDecode = typeof window.createImageBitmap === 'function' && window.location.protocol !== 'file:';
 
-  function loadSingleFrame(idx) {
+  function markFrameLoaded(idx) {
+    loadedFrames++;
+    if (dissectCount) dissectCount.textContent = `${Math.min(loadedFrames, targetDissectTotal)}/${targetDissectTotal}`;
+    if (Math.abs(idx - currentDissectFrame) <= 1) drawDissectFrame(currentDissectFrame);
+    if (loadedFrames >= targetDissectTotal && dissectLoader) dissectLoader.classList.add('done');
+  }
+
+  function loadViaImageElement(idx, url) {
     return new Promise((resolve) => {
-      if (frameImgs[idx]) {
-        resolve();
-        return;
-      }
       const im = new Image();
       im.decoding = 'async';
       frameImgs[idx] = im;
       const done = () => {
-        loadedFrames++;
-        if (dissectCount) dissectCount.textContent = `${Math.min(loadedFrames, targetDissectTotal)}/${targetDissectTotal}`;
-        if (Math.abs(idx - currentDissectFrame) <= 1) drawDissectFrame(currentDissectFrame);
-        if (loadedFrames >= targetDissectTotal && dissectLoader) dissectLoader.classList.add('done');
+        markFrameLoaded(idx);
         resolve();
       };
       im.onload = done;
       im.onerror = done;
-      im.src = `assets/explode/f${pad3(idx + 1)}.webp`;
+      im.src = url;
     });
+  }
+
+  function loadSingleFrame(idx) {
+    if (frameImgs[idx]) return Promise.resolve();
+    const url = `assets/explode/f${pad3(idx + 1)}.webp`;
+
+    if (canBitmapDecode) {
+      frameImgs[idx] = true; // reserve slot while decoding off-main-thread
+      const bmpW = (isLowPowerGPU || fpsLiteActive || window.innerWidth <= 768) ? 640 : 960;
+      const bmpH = (isLowPowerGPU || fpsLiteActive || window.innerWidth <= 768) ? 360 : 540;
+      return fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.blob();
+        })
+        .then((blob) => createImageBitmap(blob, { resizeWidth: bmpW, resizeHeight: bmpH, resizeQuality: 'medium' }))
+        .then((bmp) => {
+          frameImgs[idx] = bmp;
+          markFrameLoaded(idx);
+        })
+        .catch(() => {
+          frameImgs[idx] = null;
+          return loadViaImageElement(idx, url);
+        });
+    }
+
+    return loadViaImageElement(idx, url);
   }
 
   // Load ONLY initial assembled frame #121 at page open (0 background decode storm while on Hero!)
@@ -1509,6 +1754,7 @@
      Culls offscreen 60 cards (visibility:hidden) -> 90% less GPU work!
      ------------------------------------------------------------------------ */
   const skinsSection = document.getElementById('skins');
+  const coverflowViewport = document.getElementById('coverflowViewport');
   const skinsTrack = document.getElementById('skinsTrack');
   const skinsCounter = document.getElementById('skinsCounter');
   const skinsScrub = document.getElementById('skinsScrub');
@@ -1526,6 +1772,8 @@
   let sliderTrackWidth = 300;
   let sliderScrubbing = false;
   let lastSliderRatio = 0;
+  let currentSkinProgress = 0;
+  let suppressSkinClickUntil = 0;
 
   function measureSkinCardSize() {
     if (!skinsSection) return;
@@ -1572,7 +1820,10 @@
           <span>${skin.id.toUpperCase()} · #${String(idx + 1).padStart(2, '0')}</span>
         </figcaption>
       `;
-      btn.addEventListener('click', () => openSkinModal(skin, idx));
+      btn.addEventListener('click', () => {
+        if (performance.now() < suppressSkinClickUntil) return;
+        openSkinModal(skin, idx);
+      });
       frag.appendChild(btn);
     });
 
@@ -1591,9 +1842,10 @@
 
   function updateCoverflowAtProgress(sp) {
     if (!skinsTrack || !visibleSkins.length || !pedestalEls.length) return;
+    currentSkinProgress = clamp(sp, 0, 1);
     const firstCenter = pedestalCenters[0] || 0;
     const lastCenter = pedestalCenters[pedestalEls.length - 1] || firstCenter;
-    const focusX = firstCenter + sp * Math.max(0, lastCenter - firstCenter);
+    const focusX = firstCenter + currentSkinProgress * Math.max(0, lastCenter - firstCenter);
     const tx = window.innerWidth / 2 - focusX;
 
     if (!prefersReduced) {
@@ -1669,6 +1921,62 @@
     });
   }
 
+  // Direct Horizontal Touch / Drag Swipe Scrubbing on Coverflow Stage (Mobile & PC!)
+  if (coverflowViewport) {
+    let cfPtrId = null;
+    let cfStartX = 0;
+    let cfStartY = 0;
+    let cfStartSp = 0;
+    let cfSwiping = false;
+
+    coverflowViewport.addEventListener('pointerdown', (ev) => {
+      if (ev.button !== 0 || visibleSkins.length <= 1) return;
+      cfPtrId = ev.pointerId;
+      cfStartX = ev.clientX;
+      cfStartY = ev.clientY;
+      cfStartSp = currentSkinProgress;
+      cfSwiping = false;
+    });
+
+    coverflowViewport.addEventListener('pointermove', (ev) => {
+      if (cfPtrId !== ev.pointerId) return;
+      const dx = ev.clientX - cfStartX;
+      const dy = ev.clientY - cfStartY;
+      if (!cfSwiping) {
+        if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy) * 1.15) return;
+        cfSwiping = true;
+        sliderScrubbing = true;
+        coverflowViewport.classList.add('is-swiping');
+        sliderSliderMeasure();
+        try { coverflowViewport.setPointerCapture(ev.pointerId); } catch (_) {}
+      }
+      const swipeRangePx = Math.max(240, Math.min(window.innerWidth * 2.2, visibleSkins.length * 36));
+      const nextSp = clamp(cfStartSp - dx / swipeRangePx, 0, 1);
+      updateCoverflowAtProgress(nextSp);
+    });
+
+    const endCfSwipe = (ev) => {
+      if (cfPtrId !== ev.pointerId) return;
+      const wasSwiping = cfSwiping;
+      cfPtrId = null;
+      cfSwiping = false;
+      sliderScrubbing = false;
+      coverflowViewport.classList.remove('is-swiping');
+      try {
+        if (coverflowViewport.hasPointerCapture(ev.pointerId)) {
+          coverflowViewport.releasePointerCapture(ev.pointerId);
+        }
+      } catch (_) {}
+      if (wasSwiping) {
+        suppressSkinClickUntil = performance.now() + 260;
+        syncLiquidSliderVisual(currentSkinProgress);
+      }
+    };
+
+    coverflowViewport.addEventListener('pointerup', endCfSwipe);
+    coverflowViewport.addEventListener('pointercancel', endCfSwipe);
+  }
+
   function sliderSliderMeasure() {
     if (skinsSliderWrap) sliderTrackWidth = skinsSliderWrap.clientWidth || 300;
   }
@@ -1686,7 +1994,7 @@
   function openSkinModal(skin, idx) {
     inspectedSkin = skin;
     if (skinModalImg) {
-      skinModalImg.src = skin.src;
+      setResponsiveMouseImg(skinModalImg, skin.src, '(max-width: 640px) 160px, 220px');
       skinModalImg.alt = `SMAILWOLF M3 Pro — ${skin.name}`;
     }
     if (skinModalId) skinModalId.textContent = `${skin.id.toUpperCase()} · ${String(idx + 1).padStart(2, '0')}/${visibleSkins.length}`;

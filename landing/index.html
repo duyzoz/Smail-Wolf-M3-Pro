@@ -11,7 +11,7 @@
   <!-- Self-hosted fallback fonts -->
   <link rel="preload" href="assets/fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/fira-sans-400.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="assets/mouse-hero.webp" as="image" type="image/webp" fetchpriority="high">
+  <link rel="preload" href="assets/mouse-hero.webp" as="image" type="image/webp" imagesrcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" imagesizes="(max-width: 768px) 185px, 280px" fetchpriority="high">
 
   <!-- UI/UX Pro Max Spatial & Editorial Typography Stack -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
 </head>
 <body data-edition="pearl" class="is-light-tone">
   <!-- Single Shared GPU-Composited Water Glint (Replaces 90 per-card radial repaints!) -->
@@ -120,6 +119,10 @@
     </nav>
 
     <div class="header-actions">
+      <button type="button" class="fps-toggle liquid-pill" id="fpsToggle" data-fps-mode="auto" aria-label="Graphics performance mode: Auto 60 FPS — click to cycle Auto, Ultra, or Lite">
+        <span class="fps-dot" aria-hidden="true"></span>
+        <span class="fps-prefix">Auto · </span><span id="fpsToggleLabel">60fps</span>
+      </button>
       <button type="button" class="motion-toggle liquid-pill" id="motionToggle" aria-label="Pause ambient motion">
         <span class="status-pip" aria-hidden="true"></span>
         <span id="motionToggleLabel">Pause</span>
@@ -190,7 +193,7 @@
 
               <!-- Crisp Authentic High-Resolution M3 Pro Cutout -->
               <div class="rig-main">
-                <img id="heroMouseImg" src="assets/mouse-hero.webp" alt="SMAILWOLF M3 Pro Wireless Gaming Mouse — Pure White Edition" width="944" height="1667" fetchpriority="high" decoding="async">
+                <img id="heroMouseImg" src="assets/mouse-hero.webp" srcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" sizes="(max-width: 768px) 185px, 280px" alt="SMAILWOLF M3 Pro Wireless Gaming Mouse — Pure White Edition" width="944" height="1667" fetchpriority="high" decoding="async">
               </div>
 
               <!-- Floating 3D Z-Space Liquid Glass Telemetry Chips -->
@@ -353,12 +356,48 @@
           <p class="section-sub">Scroll vertically to glide across all 67 real transparent mouse cutouts in 60fps 3D Coverflow. Select any mouse to inspect or equip it onto the Hero Stage.</p>
 
           <div class="skin-filters liquid-glass liquid-taskbar-dock" id="skinFilters" data-liquid-dock role="group" aria-label="Filter mouse skins">
-            <button type="button" class="filter-chip active" aria-pressed="true" data-filter="all">All 67</button>
-            <button type="button" class="filter-chip" aria-pressed="false" data-filter="cyber">Cyber &amp; RGB</button>
-            <button type="button" class="filter-chip" aria-pressed="false" data-filter="anime">Anime &amp; Sakura</button>
-            <button type="button" class="filter-chip" aria-pressed="false" data-filter="topo">Topographic</button>
-            <button type="button" class="filter-chip" aria-pressed="false" data-filter="oni">Oni &amp; Dragon</button>
-            <button type="button" class="filter-chip" aria-pressed="false" data-filter="special">Special Series</button>
+            <button type="button" class="filter-chip active" aria-pressed="true" data-filter="all">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <path class="ic-main" d="M3 4.8A1.8 1.8 0 0 1 4.8 3h2.7a1.8 1.8 0 0 1 1.8 1.8v2.7a1.8 1.8 0 0 1-1.8 1.8H4.8A1.8 1.8 0 0 1 3 7.5V4.8Zm0 7.7a1.8 1.8 0 0 1 1.8-1.8h2.7a1.8 1.8 0 0 1 1.8 1.8v2.7A1.8 1.8 0 0 1 7.5 17H4.8A1.8 1.8 0 0 1 3 15.2v-2.7Zm7.7 0a1.8 1.8 0 0 1 1.8-1.8h2.7a1.8 1.8 0 0 1 1.8 1.8v2.7a1.8 1.8 0 0 1-1.8 1.8h-2.7a1.8 1.8 0 0 1-1.8-1.8v-2.7Z"/>
+                <path class="ic-sub" d="M12.8 2.6a1.5 1.5 0 0 1 2.1 0l2.5 2.5a1.5 1.5 0 0 1 0 2.1l-2.5 2.5a1.5 1.5 0 0 1-2.1 0l-2.5-2.5a1.5 1.5 0 0 1 0-2.1l2.5-2.5Z"/>
+              </svg>
+              <span>All 67</span>
+            </button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="cyber">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <path class="ic-main" d="M8.8 2.3a2.4 2.4 0 0 1 2.4 0l4.6 2.65a2.4 2.4 0 0 1 1.2 2.08v5.94a2.4 2.4 0 0 1-1.2 2.08L11.2 17.7a2.4 2.4 0 0 1-2.4 0L4.2 15.05A2.4 2.4 0 0 1 3 12.97V7.03a2.4 2.4 0 0 1 1.2-2.08L8.8 2.3Zm1.95 3.4L6.9 10.4c-.32.4.02.98.53.98h2.05l-.68 2.92c-.12.52.53.83.86.41l3.85-4.7a.62.62 0 0 0-.48-1.01h-2.1l.68-2.88c.12-.52-.53-.83-.86-.42Z"/>
+                <circle class="ic-sub" cx="15.4" cy="4.4" r="1.7"/>
+              </svg>
+              <span>Cyber &amp; RGB</span>
+            </button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="anime">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <path class="ic-main" d="M10 2.2c1.45 0 2.55 1.2 2.45 2.65a2.65 2.65 0 0 1 4.7 2.45c1.15.9.98 2.68-.3 3.38.98 1.1.48 2.85-.95 3.22-.25 1.42-1.88 2.18-3.1 1.38a2.55 2.55 0 0 1-5.6 0c-1.22.8-2.85.04-3.1-1.38-1.43-.37-1.93-2.12-.95-3.22-1.28-.7-1.45-2.48-.3-3.38a2.65 2.65 0 0 1 4.7-2.45C7.45 3.4 8.55 2.2 10 2.2Zm0 5.4a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Z"/>
+                <circle class="ic-sub" cx="10" cy="10" r="1.65"/>
+              </svg>
+              <span>Anime &amp; Sakura</span>
+            </button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="topo">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M10 2.4c4.35 0 7.6 3.1 7.6 7.6 0 4.35-3.25 7.6-7.6 7.6-4.4 0-7.6-3.25-7.6-7.6 0-4.5 3.2-7.6 7.6-7.6Zm0 2.3c-2.95 0-5.2 2.15-5.2 5.3 0 2.98 2.25 5.2 5.2 5.2 2.92 0 5.2-2.22 5.2-5.2 0-3.15-2.28-5.3-5.2-5.3Z"/>
+                <path class="ic-sub" d="M10 6.8c1.9 0 3.2 1.28 3.2 3.2 0 1.88-1.3 3.2-3.2 3.2-1.92 0-3.2-1.32-3.2-3.2 0-1.92 1.28-3.2 3.2-3.2Z"/>
+              </svg>
+              <span>Topographic</span>
+            </button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="oni">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <path class="ic-sub" d="M4.3 2.5c.55-.25 1.2.05 1.38.62l.78 2.42-2.42-.58a1.1 1.1 0 0 1-.52-1.76l.78-.7Zm11.4 0 .78.7a1.1 1.1 0 0 1-.52 1.76l-2.42.58.78-2.42c.18-.57.83-.87 1.38-.62Z"/>
+                <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M10 5.2c3.75 0 6.4 2.45 6.4 5.95 0 3.65-2.75 6.45-6.4 6.45s-6.4-2.8-6.4-6.45C3.6 7.65 6.25 5.2 10 5.2Zm-2.35 4.2a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm4.7 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z"/>
+              </svg>
+              <span>Oni &amp; Dragon</span>
+            </button>
+            <button type="button" class="filter-chip" aria-pressed="false" data-filter="special">
+              <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                <circle class="ic-sub" cx="10" cy="3.6" r="1.65"/>
+                <path class="ic-main" d="M3.1 7.35a1.15 1.15 0 0 1 1.92-.82l2.48 2.28 1.62-2.38a1.08 1.08 0 0 1 1.76 0l1.62 2.38 2.48-2.28a1.15 1.15 0 0 1 1.92.82l-.78 6.95a2.4 2.4 0 0 1-2.38 2.14H6.26a2.4 2.4 0 0 1-2.38-2.14l-.78-6.95Z"/>
+              </svg>
+              <span>Special Series</span>
+            </button>
           </div>
         </div>
 
@@ -387,7 +426,7 @@
           <button type="button" class="dialog-close liquid-pill" id="skinModalClose" aria-label="Close skin inspector">CLOSE</button>
           <div class="dialog-3d-stage" id="modalMouseStage">
             <div class="modal-mouse-rig" id="modalMouseRig">
-              <img id="skinModalImg" src="assets/mouse-hero.webp" alt="Selected SMAILWOLF M3 Pro skin" width="472" height="834">
+              <img id="skinModalImg" src="assets/mouse-hero-480.webp" srcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" sizes="(max-width: 640px) 160px, 220px" alt="Selected SMAILWOLF M3 Pro skin" width="472" height="834" fetchpriority="low" decoding="async">
             </div>
             <p class="modal-drag-hint">MOVE CURSOR TO TILT IN 3D</p>
           </div>
@@ -582,11 +621,41 @@
 
           <div class="studio-body">
             <aside class="studio-rail liquid-taskbar-dock" id="studioRailDock" data-liquid-dock role="tablist" focusgroup="tablist nomemory" aria-label="Driver Studio preview tabs">
-              <button type="button" role="tab" aria-selected="true" focusgroupstart class="rail-tab active" data-stab="dashboard">Dashboard</button>
-              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="keys">Key Bindings</button>
-              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="dpi">DPI &amp; Sensor</button>
-              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="macro">Macro Studio</button>
-              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="battery">Battery &amp; Sync</button>
+              <button type="button" role="tab" aria-selected="true" focusgroupstart class="rail-tab active" data-stab="dashboard">
+                <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                  <path class="ic-sub" d="M8.75 2.4a1.9 1.9 0 0 1 2.5 0l6.1 5.5c.74.67.26 1.9-.74 1.9H3.39c-1 0-1.48-1.23-.74-1.9l6.1-5.5Z"/>
+                  <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M4.4 8.9h11.2v6.4a2.4 2.4 0 0 1-2.4 2.4H6.8a2.4 2.4 0 0 1-2.4-2.4V8.9Zm4.35 2.7a1.25 1.25 0 0 1 2.5 0v3.6a1.25 1.25 0 0 1-2.5 0v-3.6Z"/>
+                </svg>
+                <span>Dashboard</span>
+              </button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="keys">
+                <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                  <rect class="ic-sub" x="6.2" y="2.8" width="7.6" height="5.2" rx="1.9"/>
+                  <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M3.2 8.2A2.4 2.4 0 0 1 5.6 5.8h8.8a2.4 2.4 0 0 1 2.4 2.4v6.6a2.6 2.6 0 0 1-2.6 2.6H5.8a2.6 2.6 0 0 1-2.6-2.6V8.2Zm3.6 4.7a1.1 1.1 0 0 1 1.1-1.1h4.2a1.1 1.1 0 1 1 0 2.2H7.9a1.1 1.1 0 0 1-1.1-1.1Z"/>
+                </svg>
+                <span>Key Bindings</span>
+              </button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="dpi">
+                <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                  <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M10 2.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm0 2.4a5.1 5.1 0 1 1 0 10.2 5.1 5.1 0 0 1 0-10.2Z"/>
+                  <circle class="ic-sub" cx="10" cy="10" r="2.45"/>
+                </svg>
+                <span>DPI &amp; Sensor</span>
+              </button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="macro">
+                <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                  <path class="ic-main" d="M3.2 5.4A1.4 1.4 0 0 1 4.6 4h6.6a1.4 1.4 0 1 1 0 2.8H4.6a1.4 1.4 0 0 1-1.4-1.4Zm0 4.6a1.4 1.4 0 0 1 1.4-1.4h10.8a1.4 1.4 0 1 1 0 2.8H4.6A1.4 1.4 0 0 1 3.2 10Zm0 4.6a1.4 1.4 0 0 1 1.4-1.4h5.2a1.4 1.4 0 1 1 0 2.8H4.6a1.4 1.4 0 0 1-1.4-1.4Z"/>
+                  <circle class="ic-sub" cx="15.2" cy="14.6" r="2.1"/>
+                </svg>
+                <span>Macro Studio</span>
+              </button>
+              <button type="button" role="tab" aria-selected="false" class="rail-tab" data-stab="battery">
+                <svg class="sub-glyph" viewBox="0 0 20 20" aria-hidden="true">
+                  <rect class="ic-sub" x="16.4" y="7.6" width="2" height="4.8" rx="1"/>
+                  <path class="ic-main" fill-rule="evenodd" clip-rule="evenodd" d="M2.6 7A2.6 2.6 0 0 1 5.2 4.4h8.2A2.6 2.6 0 0 1 16 7v6a2.6 2.6 0 0 1-2.6 2.6H5.2A2.6 2.6 0 0 1 2.6 13V7Zm7.15-.15-2.6 3.25c-.26.33-.02.82.4.82h1.55l-.45 2.12c-.1.44.44.7.72.35l2.6-3.25c.26-.33.02-.82-.4-.82H9.98l.45-2.12c.1-.44-.44-.7-.72-.35Z"/>
+                </svg>
+                <span>Battery &amp; Sync</span>
+              </button>
             </aside>
 
             <div class="studio-stage">
@@ -626,7 +695,7 @@
                 </div>
 
                 <div class="studio-mouse-figure">
-                  <img id="studioMouseImg" src="assets/mouse-hero.webp" alt="Interactive M3 Pro button map" width="320" height="565" loading="lazy" decoding="async">
+                  <img id="studioMouseImg" src="assets/mouse-hero-480.webp" srcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" sizes="160px" alt="Interactive M3 Pro button map" width="320" height="565" loading="lazy" decoding="async">
                   <button type="button" class="hotspot-pin hp-left active" data-pin="Left Click" data-hex="F0 09 A5 22 2C 01 00 00"><span>Left Click</span></button>
                   <button type="button" class="hotspot-pin hp-right" data-pin="Right Click" data-hex="F0 09 A5 22 2C 02 00 00"><span>Right Click</span></button>
                   <button type="button" class="hotspot-pin hp-middle" data-pin="Middle Wheel" data-hex="F0 09 A5 22 2C 04 00 00"><span>Middle Scroll</span></button>
@@ -732,7 +801,7 @@
 
         <div class="download-pedestal" aria-hidden="true">
           <div class="pedestal-orb liquid-glass">
-            <img id="dlMouseImg" src="assets/mouse-hero.webp" alt="" width="472" height="834" loading="lazy" decoding="async">
+            <img id="dlMouseImg" src="assets/mouse-hero-480.webp" srcset="assets/mouse-hero-480.webp 480w, assets/mouse-hero.webp 944w" sizes="165px" alt="" width="472" height="834" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
@@ -776,9 +845,9 @@
 
   <!-- Low-Priority Preload of Edition Cutouts (Never competes with Hero LCP!) -->
   <div class="preload-vault" aria-hidden="true">
-    <img src="assets/skins/A03.webp" alt="" loading="lazy" fetchpriority="low" decoding="async">
-    <img src="assets/skins/F02.webp" alt="" loading="lazy" fetchpriority="low" decoding="async">
-    <img src="assets/skins/C07.webp" alt="" loading="lazy" fetchpriority="low" decoding="async">
+    <img src="assets/skins/mid/A03.webp" srcset="assets/skins/mid/A03.webp 480w, assets/skins/A03.webp 944w" sizes="(max-width: 768px) 185px, 280px" alt="" loading="lazy" fetchpriority="low" decoding="async">
+    <img src="assets/skins/mid/F02.webp" srcset="assets/skins/mid/F02.webp 480w, assets/skins/F02.webp 944w" sizes="(max-width: 768px) 185px, 280px" alt="" loading="lazy" fetchpriority="low" decoding="async">
+    <img src="assets/skins/mid/C07.webp" srcset="assets/skins/mid/C07.webp 480w, assets/skins/C07.webp 944w" sizes="(max-width: 768px) 185px, 280px" alt="" loading="lazy" fetchpriority="low" decoding="async">
   </div>
 
   <script src="app.js" defer></script>

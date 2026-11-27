@@ -804,6 +804,10 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
   cursor: grab;
 }
 
+.nav-capsule.is-icon-dock:not(.is-scrollable) {
+  touch-action: none;
+}
+
 .nav-capsule.is-icon-dock.is-dragging {
   cursor: grabbing;
 }
@@ -902,6 +906,63 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
     transform 0.28s var(--ease-spring) 0.21s;
 }
 
+/* On touch devices (no cursor hover), display active tab's label cleanly inside droplet */
+@media (hover: none), (pointer: coarse) {
+  .nav-capsule.is-icon-dock .nav-item.active .nav-glyph {
+    transform: translate3d(0, -5.5px, 0) scale(0.95);
+  }
+  .nav-capsule.is-icon-dock .nav-item.active .nav-label {
+    opacity: 1;
+    transform: translate3d(-50%, 0, 0) scale(1);
+    transition: opacity 0.18s ease, transform 0.22s var(--ease-spring);
+  }
+}
+
+/* Bespoke Plump Solid Rounded Sub-Taskbar Icons (#skinFilters & #studioRailDock) */
+.sub-glyph {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  flex: none;
+  pointer-events: none;
+  transform-origin: 50% 72%;
+  transition: transform 0.28s var(--ease-spring), color 0.2s ease;
+}
+
+.sub-glyph .ic-sub {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.32s var(--ease-liquid);
+}
+
+.filter-chip.active .sub-glyph,
+.rail-tab.active .sub-glyph {
+  color: var(--icon-active-color);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .filter-chip:hover .sub-glyph,
+  .rail-tab:hover .sub-glyph,
+  .filter-chip.icon-pop .sub-glyph,
+  .rail-tab.icon-pop .sub-glyph {
+    animation: subIconBounce 0.42s var(--ease-liquid);
+  }
+
+  .filter-chip:hover .sub-glyph .ic-sub,
+  .rail-tab:hover .sub-glyph .ic-sub,
+  .filter-chip.icon-pop .sub-glyph .ic-sub,
+  .rail-tab.icon-pop .sub-glyph .ic-sub {
+    animation: iconSubPop 0.44s var(--ease-liquid);
+  }
+}
+
+@keyframes subIconBounce {
+  0% { transform: translateY(0) scale(1); }
+  36% { transform: translateY(-2.8px) scale(1.15, 0.90); }
+  70% { transform: translateY(0.8px) scale(0.95, 1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+
 @keyframes iconJellyBounce {
   0% { transform: translate3d(0, 0, 0) scale(1, 1); }
   32% { transform: translate3d(0, -9.5px, 0) scale(1.14, 0.90); }
@@ -927,7 +988,66 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.48rem;
+}
+
+.fps-toggle {
+  min-height: 40px;
+  padding: 0.4rem 0.8rem;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+  text-shadow: var(--text-halo);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fps-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  flex: none;
+  transition: background-color 0.25s ease;
+}
+
+.fps-toggle[data-fps-mode="ultra"] .fps-dot {
+  background: #06b6d4;
+}
+
+.fps-toggle[data-fps-mode="lite"] .fps-dot,
+body.fps-lite .fps-toggle .fps-dot {
+  background: #38bdf8;
+}
+
+/* Wave 2 Auto-FPS Governor Lite Tier — Preserves 100% Pure Liquid Glass & Water Droplets! */
+body.fps-lite {
+  --glass-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.88), 0 6px 14px -8px rgba(15, 23, 42, 0.12);
+  --dock-track-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.88), 0 8px 18px -8px rgba(15, 23, 42, 0.12);
+  --droplet-shadow: inset 0 2px 1px #ffffff, 0 6px 14px -5px rgba(15, 23, 42, 0.18);
+}
+
+body.fps-lite:not(.is-light-tone) {
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 8px 16px -8px rgba(0, 0, 0, 0.42);
+  --dock-track-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 18px -8px rgba(0, 0, 0, 0.45);
+  --droplet-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.92), 0 6px 14px -5px rgba(0, 0, 0, 0.48);
+}
+
+body.fps-lite .orbs-container,
+body.fps-lite .orbs-container-bg,
+body.fps-lite .liquid-cursor-glint {
+  display: none !important;
+}
+
+body.fps-lite .water-ribbon {
+  border-color: transparent;
+}
+
+body.fps-lite .pedestal-orb img {
+  animation: none !important;
 }
 
 .motion-toggle {
@@ -1034,11 +1154,11 @@ body.motion-paused .motion-toggle .status-pip {
 }
 
 .main-title {
-  font-size: clamp(2.85rem, 5.2vw, 6.2rem);
+  font-size: clamp(2.4rem, 1.35rem + 3.8vw, 5.9rem);
 }
 
 .side-title {
-  font-size: clamp(2.5rem, 4.4vw, 5.2rem);
+  font-size: clamp(2.1rem, 1.2rem + 3.2vw, 5.1rem);
   text-align: right;
 }
 
@@ -1214,11 +1334,19 @@ body:not(.is-light-tone) .rig-ground-shadow {
   inset: 0;
   pointer-events: none;
   background: linear-gradient(125deg, rgba(255, 255, 255, 0.28) 0%, transparent 42%, transparent 70%, rgba(255, 255, 255, 0.14) 100%);
-  -webkit-mask-image: var(--mouse-mask, url("assets/mouse-hero.webp"));
+  -webkit-mask-image: url("assets/mouse-hero-480.webp");
+  -webkit-mask-image: image-set(
+    url("assets/mouse-hero-480.webp") type("image/webp") 1x,
+    url("assets/mouse-hero.webp") type("image/webp") 2x
+  );
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
-  mask-image: var(--mouse-mask, url("assets/mouse-hero.webp"));
+  mask-image: url("assets/mouse-hero-480.webp");
+  mask-image: image-set(
+    url("assets/mouse-hero-480.webp") type("image/webp") 1x,
+    url("assets/mouse-hero.webp") type("image/webp") 2x
+  );
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
@@ -1537,7 +1665,7 @@ body:not(.is-light-tone) .rig-ground-shadow {
 
 .section-title {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4.2vw, 3.9rem);
+  font-size: clamp(1.85rem, 1.15rem + 2.7vw, 3.9rem);
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.03em;
@@ -1823,6 +1951,7 @@ body.is-light-tone .anatomy-callout {
 }
 
 .skins-sticky .section-header {
+  max-width: min(100%, 1080px);
   padding: 0 clamp(1rem, 3.5vw, 3.5%);
   margin-bottom: 0.4rem;
 }
@@ -1841,7 +1970,10 @@ body.is-light-tone .anatomy-callout {
 
 .filter-chip {
   min-height: 34px;
-  padding: 0.34rem 0.86rem;
+  padding: 0.34rem 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
   border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
@@ -1870,6 +2002,13 @@ body.is-light-tone .anatomy-callout {
   align-items: center;
   perspective: 1200px;
   overflow: clip;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+
+.coverflow-viewport.is-swiping {
+  cursor: grabbing;
 }
 
 .coverflow-track {
@@ -2596,7 +2735,10 @@ body.is-light-tone .anatomy-callout {
 
 .rail-tab {
   min-height: 40px;
-  padding: 0.58rem 0.88rem;
+  padding: 0.56rem 0.84rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.52rem;
   border-radius: 14px;
   border: 1px solid transparent;
   background: transparent;
@@ -2676,6 +2818,7 @@ body.is-light-tone .anatomy-callout {
 }
 
 .studio-mouse-canvas {
+  container-type: inline-size;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
   gap: 1.15rem;
@@ -2683,6 +2826,7 @@ body.is-light-tone .anatomy-callout {
 }
 
 .studio-panel-info {
+  min-width: 0;
   padding: 1.25rem;
   border-radius: 22px;
   display: flex;
@@ -3099,27 +3243,56 @@ body.motion-paused .scroll-capsule-track i {
    UNIVERSAL MULTI-RESOLUTION ADAPTATION (SHORT LAPTOPS, TABLETS & PHONES)
    ========================================================================== */
 
-/* Short Laptop Viewports (e.g. 1366x768, 1280x720, 1536x864 @ 125% Windows DPI) */
-@media (max-height: 820px) {
-  .hero { padding-top: 4.8rem; padding-bottom: 2.4rem; }
-  .main-title { font-size: clamp(2.4rem, 4.4vw, 4.4rem); }
-  .side-title { font-size: clamp(2.1rem, 3.8vw, 3.8rem); }
-  .mouse-3d-rig { width: clamp(140px, 16vw, 220px); }
-  .anatomy-sticky, .skins-sticky { padding-top: 4.4rem; padding-bottom: 0.85rem; }
-  .anatomy-sticky .section-sub, .skins-sticky .section-sub { display: none; }
-  .anatomy-3d-frame { width: min(100%, 840px, calc((100svh - 10.5rem) * 1.777)); }
+/* Component-driven @container layout for narrow Driver Studio mouse stage */
+@container (max-width: 520px) {
+  .studio-mouse-figure {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.46rem;
+    min-height: 0;
+    padding: 0.35rem 0 0;
+  }
+
+  .studio-mouse-figure img {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 122px;
+    margin-bottom: 0.25rem;
+  }
+
+  .hotspot-pin {
+    position: static;
+    width: 100%;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.32rem 0.45rem;
+  }
 }
 
-/* Tablet & Compact Viewports (< 1040px) — Zero Hidden Nav, Zero DOM-Order Flip, Zero Orb Behind Stacked Text! */
+/* Short Laptop Viewports (e.g. 1366x768, 1280x720, 1536x864 @ 125% Windows DPI) */
+@media (max-height: 820px) {
+  .hero { padding-top: 4.8rem; padding-bottom: 2.2rem; }
+  .main-title { font-size: clamp(2.2rem, 1.2rem + 3.2vw, 4.3rem); }
+  .side-title { font-size: clamp(1.95rem, 1.1rem + 2.8vw, 3.7rem); }
+  .mouse-3d-rig { width: clamp(138px, 15.5vw, 215px); }
+  .anatomy-sticky, .skins-sticky { padding-top: 4.3rem; padding-bottom: 0.75rem; }
+  .anatomy-sticky .section-sub, .skins-sticky .section-sub { display: none; }
+  .anatomy-3d-frame { width: min(100%, 820px, calc((100svh - 10.8rem) * 1.777)); }
+}
+
+/* Tablet & Compact Viewports (< 1040px) — Zero Clutter, Dynamic Viewport Units (dvh), Touch-Ready! */
 @media (max-width: 1040px) {
-  html { scroll-padding-top: 7.5rem; }
+  html { scroll-padding-top: 7.4rem; }
 
   .site-header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.65rem 0.75rem;
-    padding: 0.65rem 1rem;
+    gap: 0.55rem 0.65rem;
+    padding: 0.6rem 0.9rem;
   }
 
   .brand-pill {
@@ -3149,14 +3322,15 @@ body.motion-paused .scroll-capsule-track i {
   }
 
   .hero {
-    padding-top: 8.5rem;
+    padding-top: 8.2rem;
+    padding-bottom: 2.6rem;
   }
 
   .hero-content {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     justify-items: center;
     text-align: center;
-    gap: 1.6rem;
+    gap: 1.45rem;
     min-height: auto;
   }
 
@@ -3165,12 +3339,22 @@ body.motion-paused .scroll-capsule-track i {
     max-width: 560px;
   }
 
+  .cta-group {
+    justify-content: center;
+  }
+
   .hero-center {
-    padding: 0.5rem 0;
+    padding: 0.35rem 0;
+    pointer-events: auto;
+  }
+
+  .mouse-3d-viewport {
+    touch-action: pan-y;
+    cursor: grab;
   }
 
   .mouse-3d-rig {
-    width: clamp(145px, 32vw, 205px);
+    width: clamp(148px, 32vw, 205px);
   }
 
   .hero-right {
@@ -3195,11 +3379,100 @@ body.motion-paused .scroll-capsule-track i {
   .scroll-pill {
     position: static;
     transform: none;
-    margin-top: 0.4rem;
+    margin-top: 0.25rem;
   }
 
-  .anatomy-callout {
+  /* Snappy 2.2x dvh scroll travel on tablets/phones + Active Hardware Callout Card below 16:9 Canvas! */
+  .anatomy {
+    height: 220svh;
+    height: 220dvh;
+  }
+
+  .anatomy-sticky {
+    height: 100svh;
+    height: 100dvh;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 6.9rem 0.9rem 0.85rem;
+  }
+
+  .anatomy-sticky .section-sub,
+  .skins-sticky .section-sub {
     display: none;
+  }
+
+  .anatomy-stage-wrap {
+    flex: 0 1 auto;
+  }
+
+  .anatomy-3d-frame {
+    width: min(100%, 680px);
+    aspect-ratio: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 22px;
+  }
+
+  .anatomy-3d-frame canvas {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    border-radius: 16px;
+  }
+
+  .frame-specular {
+    display: none;
+  }
+
+  .dissect-loader {
+    top: 0.85rem;
+    right: 0.85rem;
+  }
+
+  .anatomy-callout,
+  body.is-light-tone .anatomy-callout {
+    display: none;
+    position: static;
+    width: 100%;
+    opacity: 1;
+    transform: none;
+    padding: 0.68rem 0.88rem;
+    border-radius: 15px;
+    background: var(--glass-bg-elevated) padding-box, var(--glass-rim) border-box;
+    border: 1px solid transparent;
+    color: var(--ink-strong);
+  }
+
+  .anatomy-callout.active,
+  body.is-light-tone .anatomy-callout.active {
+    display: block;
+  }
+
+  .anatomy-callout .callout-index {
+    color: var(--ink-soft);
+  }
+
+  .anatomy-callout h3 {
+    color: var(--ink-strong);
+    font-size: 0.88rem;
+  }
+
+  .anatomy-callout p {
+    color: var(--ink-muted);
+    font-size: 0.76rem;
+  }
+
+  .skins-vault {
+    height: 235svh;
+    height: 235dvh;
+  }
+
+  .skins-sticky {
+    height: 100svh;
+    height: 100dvh;
+    padding: 6.8rem 0 0.9rem;
   }
 
   .bento-grid {
@@ -3211,19 +3484,28 @@ body.motion-paused .scroll-capsule-track i {
   }
 
   .studio-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .studio-rail {
     flex-direction: row;
     align-items: center;
-    margin: 0.75rem 1rem 0;
+    margin: 0.75rem 0.9rem 0;
     padding: 0.3rem;
     border-radius: 999px;
+    width: fit-content;
+    max-width: calc(100% - 1.8rem);
+  }
+
+  .studio-rail .rail-tab {
+    border-radius: 999px;
+    padding: 0.44rem 0.78rem;
+    min-height: 36px;
+    font-size: 0.78rem;
   }
 
   .download-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .download-pedestal {
@@ -3231,12 +3513,19 @@ body.motion-paused .scroll-capsule-track i {
   }
 }
 
-/* Phones (< 640px) */
+/* Smartphones & Small Screens (< 640px — Tested down to 360x640!) */
 @media (max-width: 640px) {
+  html { scroll-padding-top: 6.9rem; }
+
+  .site-header {
+    padding: 0.5rem 0.6rem;
+    gap: 0.42rem 0.45rem;
+  }
+
   .brand-badge,
   .header-cta .cta-tag,
+  .fps-prefix,
   .motion-toggle span:last-child,
-  .phase-pills,
   .hud-dpi,
   .hud-hz,
   .hud-skin,
@@ -3245,51 +3534,369 @@ body.motion-paused .scroll-capsule-track i {
     display: none;
   }
 
+  .brand-pill {
+    padding: 0.34rem 0.62rem;
+  }
+
   .brand-logo-wrap,
   .brand-img {
-    width: 94px;
-    height: 23.5px;
+    width: 86px;
+    height: 21.5px;
+  }
+
+  .header-actions {
+    gap: 0.34rem;
+  }
+
+  .fps-toggle {
+    min-height: 34px;
+    padding: 0.3rem 0.58rem;
+    font-size: 0.66rem;
+    gap: 0.32rem;
+  }
+
+  .motion-toggle {
+    min-height: 34px;
+    width: 34px;
+    padding: 0;
   }
 
   .header-cta {
-    padding: 0.36rem 0.9rem;
+    min-height: 34px;
+    padding: 0.3rem 0.76rem;
+    font-size: 0.75rem;
   }
 
   .water-ribbon {
     border-color: transparent;
   }
 
+  /* All 7 Bespoke Icons Fit Inside 360px Width -> Native Thumb-Drag Works Across All 7 Tabs! */
+  .nav-capsule.is-icon-dock {
+    gap: 0.08rem;
+    padding: 0.22rem 0.26rem;
+  }
+
   .nav-capsule.is-icon-dock .nav-item {
-    width: 46px;
-    height: 46px;
+    width: clamp(41px, 11.6vw, 48px);
+    height: 44px;
   }
 
   .nav-capsule.is-icon-dock .nav-glyph {
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
   }
 
   .nav-capsule.is-icon-dock .nav-label {
-    font-size: 0.54rem;
-    bottom: 4px;
+    font-size: 0.5rem;
+    bottom: 3.5px;
+  }
+
+  .hero {
+    padding: 7.4rem 0.85rem 2.2rem;
+  }
+
+  .hero-content {
+    gap: 1.2rem;
+  }
+
+  .eyebrow-pill {
+    font-size: 0.58rem;
+    padding: 0.32rem 0.68rem;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .hero-description {
+    font-size: 0.88rem;
+    line-height: 1.54;
+  }
+
+  .hero-description br {
+    display: none;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    min-height: 42px;
+    font-size: 0.82rem;
+  }
+
+  .award-badge {
+    padding: 0.56rem 0.8rem;
+    gap: 0.65rem;
+  }
+
+  .award-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .mouse-3d-rig {
+    width: clamp(142px, 40vw, 182px);
   }
 
   .carousel-cards {
-    grid-template-columns: repeat(2, minmax(118px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
-    max-width: 320px;
+    max-width: 330px;
+    gap: 0.5rem;
   }
 
-  .bento-grid,
+  /* Compact 2-Row Liquid Glass Anatomy Dock (Keeps 4-Stage Water-Droplet Taskbar on Phones!) */
+  .anatomy-sticky {
+    padding: 6.45rem 0.7rem 0.65rem;
+    gap: 0.45rem;
+  }
+
+  .anatomy-sticky .section-header.compact {
+    margin-bottom: 0.15rem;
+    gap: 0.25rem;
+  }
+
+  .kicker-pill {
+    font-size: 0.58rem;
+    padding: 0.28rem 0.68rem;
+    letter-spacing: 0.09em;
+    text-align: center;
+  }
+
+  .anatomy-callout p {
+    font-size: 0.72rem;
+    line-height: 1.36;
+  }
+
+  .anatomy-dock {
+    flex-wrap: wrap;
+    border-radius: 22px;
+    padding: 0.42rem 0.58rem;
+    gap: 0.38rem 0.55rem;
+    margin-top: 0.15rem;
+  }
+
+  .phase-pills {
+    width: 100%;
+    justify-content: space-between;
+    padding: 0.2rem;
+    gap: 0.1rem;
+  }
+
+  .phase-btn {
+    flex: 1 1 auto;
+    min-height: 30px;
+    padding: 0.24rem 0.38rem;
+    font-size: 0.6rem;
+    text-align: center;
+  }
+
+  .anatomy-pct {
+    min-width: auto;
+    font-size: 0.62rem;
+  }
+
+  /* Mobile 67-Skin Coverflow Vault */
+  .skins-sticky {
+    padding: 6.45rem 0 0.75rem;
+  }
+
+  .skins-sticky .section-header {
+    padding: 0 0.75rem;
+  }
+
+  .skin-filters {
+    max-width: calc(100vw - 1.4rem);
+  }
+
+  .filter-chip {
+    padding: 0.3rem 0.68rem;
+    font-size: 0.7rem;
+  }
+
+  .skins-dock {
+    width: calc(100% - 1.4rem);
+    padding: 0.45rem 0.8rem;
+    gap: 0.6rem;
+  }
+
+  .skins-counter {
+    min-width: 48px;
+    font-size: 0.66rem;
+  }
+
+  .skins-active-name {
+    min-width: 72px;
+    max-width: 92px;
+    font-size: 0.72rem;
+  }
+
+  .skin-dialog {
+    width: calc(100% - 1.2rem);
+    max-height: 90dvh;
+    overflow-y: auto;
+    border-radius: 24px;
+  }
+
   .skin-dialog-inner {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1.25rem 1.1rem;
+    gap: 1rem;
+  }
+
+  .modal-mouse-rig {
+    width: min(145px, 24dvh);
+  }
+
+  /* Symmetrical 3D Wafer Stack & 2x2 Hardware Facts on Narrow Phones */
+  .wafer-stage {
+    transform: rotateX(5deg) rotateY(0deg);
+    gap: 0.65rem;
+  }
+
+  .wafer-layer {
+    padding: 0.85rem 1rem;
+  }
+
+  .wafer-layer strong {
+    font-size: 0.92rem;
+  }
+
+  .arch-facts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .fact-pill {
+    padding: 0.72rem 0.78rem;
+  }
+
+  .fact-pill strong {
+    font-size: 0.86rem;
+  }
+
+  /* Single-Column Bento Cards with Clean Pill Docks */
+  .bento-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
   }
 
   .bento-card.span-2 {
     grid-column: span 1;
   }
 
-  .skins-active-name {
+  .bento-card {
+    padding: 1.15rem;
+    border-radius: 22px;
+  }
+
+  .sim-pill {
+    min-height: 32px;
+    padding: 0.3rem 0.62rem;
+    font-size: 0.66rem;
+  }
+
+  /* Mobile Driver Studio Simulator — Zero Pin Collision! */
+  .studio-window {
+    border-radius: 22px;
+  }
+
+  .studio-topbar {
+    padding: 0.7rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .win-dots,
+  .studio-ver {
+    display: none;
+  }
+
+  .studio-rail {
+    margin: 0.65rem 0.7rem 0;
+    max-width: calc(100% - 1.4rem);
+  }
+
+  .studio-stage {
+    padding: 0.85rem 0.75rem;
+    gap: 0.85rem;
+  }
+
+  .studio-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .s-metric {
+    padding: 0.72rem 0.78rem;
+  }
+
+  .s-metric strong {
+    font-size: 1.05rem;
+  }
+
+  .studio-mouse-canvas {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+  }
+
+  .studio-panel-info {
+    padding: 0.85rem 0.68rem;
+  }
+
+  .studio-panel-info h3 {
+    font-size: 1.12rem;
+  }
+
+  .sp-quick-actions {
+    gap: 0.08rem;
+    padding: 0.18rem;
+  }
+
+  .sp-quick-actions .sim-pill {
+    padding: 0.24rem 0.36rem;
+    font-size: 0.55rem;
+  }
+
+  .studio-mouse-figure {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    min-height: 0;
+    padding: 0.25rem 0 0;
+  }
+
+  .studio-mouse-figure img {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 118px;
+    margin-bottom: 0.25rem;
+  }
+
+  .hotspot-pin {
+    position: static;
+    width: 100%;
+    min-height: 35px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.6rem;
+  }
+
+  .studio-hexbar {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.62rem;
+  }
+
+  .download-shell {
+    padding: 1.25rem 1.05rem;
+    border-radius: 24px;
+  }
+
+  .community-row .secondary-btn {
+    width: 100%;
+  }
+
+  /* Top Liquid Glass Navbar stays pinned on phones, so hide redundant bottom-right TOP pill to prevent overlapping sticky docks */
+  .to-top {
     display: none;
   }
 }
