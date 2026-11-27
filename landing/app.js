@@ -1,11 +1,10 @@
 /* ==========================================================================
-   SMAILWOLF M3 PRO — ULTRA-60FPS APPLE WWDC25 + LIQUID-GLASS-JS ENGINE
-   1. dashersw/liquid-glass-js Capsule SDF Refraction Map (<feDisplacementMap>)
-   2. Draggable 2-Layer Water-Droplet Taskbars + Metaball Coalesce Blur Trail
-   3. Icon-Only Top Dock with Jelly Bounce + Delayed Post-Bounce Label Reveal
-   4. Video-2 Clear Water-Lens Scroll Slider (#skinsLiquidThumb)
-   5. 60 Hz Coalesced Pointer Pipeline (Zero 1,000 Hz Gaming-Mouse Flood!)
-   6. scheduler.yield() Sliced 121-Frame Loader + Windowed Coverflow Culling
+   SMAILWOLF M3 PRO — UNLIMITED-FPS LIQUID GLASS + PHYSICAL WATER ENGINE
+   1. Smart 3-Tier Graphics Engine (`Low`, `Automatic`, `Ultra` — Unclamped Hz)
+   2. Zero-Lag 3D Jelly Water-Droplet Cursor + Rim Suction + Periodic Gravity Drip
+   3. Hero Water-Chasing Orbs + Vortex Suck-Inside-Mouse & Elastic Burst Swap
+   4. Living Water-Silk Backdrop + Viscous Scroll-Velocity "Whoosh" Physics
+   5. Draggable 2-Layer Water-Droplet Taskbars + Windowed 67-Skin Coverflow
    ========================================================================== */
 
 (function () {
@@ -13,9 +12,8 @@
 
   document.documentElement.classList.add('js');
 
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  let motionPaused = prefersReduced;
+  let motionPaused = false; // 100% active by default; disabled ONLY in `Low` mode
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
   const debounce = (fn, ms) => {
@@ -35,122 +33,134 @@
   }
 
   /* ------------------------------------------------------------------------
-     0. HARDWARE TIER + UNLEASHED 60-240HZ AUTO-FPS & OPTICAL REFRACTION ENGINE
-     - Measures real monitor refresh rate (60 / 90 / 120 / 144 / 165 / 240 Hz)
-     - Unlocks real optical saturation & blur refraction (`fps-ultra`) on capable rigs
-     - Auto-steps down cleanly if integrated GPU drops < 38fps (`fps-lite`)
+     0. SMART 3-TIER HARDWARE GRAPHICS ENGINE (`low` | `auto` | `ultra`)
+     - Discrete GPU (RTX/GTX/Radeon RX/Apple M-series) -> Immediately `Ultra`!
+     - Mid-Range / iGPU / No dGPU -> Immediately `Automatic` (100% effects ON, uncapped FPS)!
+     - Ultra-Weak / Potato Hardware (<=2 cores / <=2GB RAM / Basic Render) -> `Low`!
+     - Zero hardcoded refresh-rate caps; unleashes native unlimited monitor Hz!
      ------------------------------------------------------------------------ */
   const hwCores = navigator.hardwareConcurrency || 4;
   const hwMem = navigator.deviceMemory || 4;
   const isLowPowerGPU = hwCores <= 4 || hwMem <= 4;
 
-  // Wave 11: Detect Discrete / Apple-Silicon GPU vs Integrated Laptop GPU (0 lingering WebGL context!)
-  function detectDiscreteGPU() {
-    if (isLowPowerGPU || prefersReduced) return false;
+  function detectInitialGraphicsTier() {
+    if (hwCores <= 2 || hwMem <= 2) return 'low';
     try {
       const c = document.createElement('canvas');
       c.width = 1;
       c.height = 1;
       const gl = c.getContext('webgl', { powerPreference: 'high-performance' }) || c.getContext('experimental-webgl');
-      if (!gl) return false;
+      if (!gl) return 'auto';
       const dbg = gl.getExtension('WEBGL_debug_renderer_info');
       const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : String(gl.getParameter(gl.RENDERER) || '');
       const lose = gl.getExtension('WEBGL_lose_context');
       if (lose) lose.loseContext();
-      if (/intel|uhd|iris|hd graphics|swiftshader|llvmpipe|basic render|mali-g5|adreno \(tm\) 61/i.test(renderer)) {
-        return false;
+
+      if (/microsoft basic render|gdi generic|llvmpipe|hd graphics (2000|2500|3000)/i.test(renderer)) {
+        return 'low';
       }
-      return /nvidia|geforce|rtx|gtx|radeon rx|radeon pro|apple m[1-9]/i.test(renderer);
+      if (/intel|uhd|iris|hd graphics|swiftshader|mali-g5|adreno \(tm\) 61/i.test(renderer)) {
+        return 'auto';
+      }
+      if (/nvidia|geforce|rtx|gtx|quadro|radeon rx|radeon pro|arc a[357]|apple m[1-9]/i.test(renderer)) {
+        return 'ultra';
+      }
+      return 'auto';
     } catch (_) {
-      return false;
+      return 'auto';
     }
   }
 
-  const isHighCapabilityHW = detectDiscreteGPU();
+  const initialHardwareTier = detectInitialGraphicsTier();
+  const isHighCapabilityHW = initialHardwareTier === 'ultra';
 
   const fpsToggle = document.getElementById('fpsToggle');
   const fpsToggleLabel = document.getElementById('fpsToggleLabel');
-  const fpsPrefixEl = fpsToggle ? fpsToggle.querySelector('.fps-prefix') : null;
+  const glidingFramesStage = document.getElementById('glidingFramesStage');
 
-  let fpsMode = 'auto'; // 'auto' | 'ultra' | 'lite'
-  let fpsLiteActive = false;
-  let fpsUltraActive = isHighCapabilityHW;
-  let detectedHz = 60;
+  let fpsMode = initialHardwareTier; // 'low' | 'auto' | 'ultra'
+  let fpsLowActive = fpsMode === 'low';
+  let fpsUltraActive = fpsMode === 'ultra';
+  motionPaused = fpsLowActive;
+
+  let detectedHz = 120;
   let fpsEmaMs = 16.6;
   let slowFrameStreak = 0;
+  let cursorPointerSeen = false;
 
-  function snapStandardHz(rawFps) {
-    const tiers = [60, 75, 90, 120, 144, 165, 240, 360];
-    let best = 60;
-    let bestDiff = Infinity;
-    for (let i = 0; i < tiers.length; i++) {
-      const d = Math.abs(rawFps - tiers[i]);
-      if (d < bestDiff) {
-        bestDiff = d;
-        best = tiers[i];
-      }
-    }
-    return best;
+  function syncLiquidCursorClass() {
+    const enableCursor = finePointer && cursorPointerSeen && !fpsLowActive && !motionPaused;
+    document.documentElement.classList.toggle('has-liquid-cursor', enableCursor);
   }
 
   function syncFpsBadge() {
-    document.body.classList.toggle('fps-lite', fpsLiteActive);
-    document.body.classList.toggle('fps-ultra', fpsUltraActive && !fpsLiteActive && !motionPaused);
+    document.body.classList.toggle('fps-low', fpsLowActive);
+    document.body.classList.toggle('fps-ultra', fpsUltraActive && !fpsLowActive);
+    syncLiquidCursorClass();
+
     if (!fpsToggle || !fpsToggleLabel) return;
     fpsToggle.setAttribute('data-fps-mode', fpsMode);
-    if (fpsMode === 'auto') {
-      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Auto · ';
-      fpsToggleLabel.textContent = fpsLiteActive ? 'Lite' : `${detectedHz}fps`;
-      fpsToggle.setAttribute(
-        'aria-label',
-        fpsLiteActive
-          ? 'Graphics mode: Auto Lite active — click to switch Ultra or Lite'
-          : `Graphics mode: Auto ${detectedHz} FPS — click to switch Ultra or Lite`
-      );
-    } else if (fpsMode === 'ultra') {
-      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Ultra · ';
-      fpsToggleLabel.textContent = `${detectedHz}fps`;
-      fpsToggle.setAttribute('aria-label', `Graphics mode: Ultra ${detectedHz} FPS — click to switch Lite or Auto`);
+    if (fpsMode === 'ultra') {
+      fpsToggleLabel.textContent = 'Ultra';
+      fpsToggle.setAttribute('aria-label', 'Graphics quality mode: Ultra — click to switch Low or Automatic');
+    } else if (fpsMode === 'low') {
+      fpsToggleLabel.textContent = 'Low';
+      fpsToggle.setAttribute('aria-label', 'Graphics quality mode: Low — click to switch Automatic or Ultra');
     } else {
-      if (fpsPrefixEl) fpsPrefixEl.textContent = 'Mode · ';
-      fpsToggleLabel.textContent = 'Lite';
-      fpsToggle.setAttribute('aria-label', 'Graphics mode: Lite — click to switch Auto or Ultra');
+      fpsToggleLabel.textContent = 'Automatic';
+      fpsToggle.setAttribute('aria-label', 'Graphics quality mode: Automatic — click to switch Ultra or Low');
     }
   }
 
   function setFpsMode(nextMode) {
     fpsMode = nextMode;
-    fpsEmaMs = 1000 / detectedHz;
     slowFrameStreak = 0;
+    fpsEmaMs = 16.6;
+
     if (fpsMode === 'ultra') {
-      fpsLiteActive = false;
+      fpsLowActive = false;
       fpsUltraActive = true;
-    } else if (fpsMode === 'lite') {
-      fpsLiteActive = true;
+      motionPaused = false;
+    } else if (fpsMode === 'low') {
+      fpsLowActive = true;
       fpsUltraActive = false;
+      motionPaused = true;
     } else {
-      fpsLiteActive = false;
-      fpsUltraActive = isHighCapabilityHW;
+      fpsLowActive = false;
+      fpsUltraActive = false;
+      motionPaused = false;
     }
+
     syncFpsBadge();
-    requestAnimationFrame(() => snapAllLiquidDocks());
+
+    if (fpsLowActive) {
+      activeLiquidEls.forEach((el) => {
+        el.style.translate = '';
+        el.style.scale = '';
+        el.style.transform = '';
+      });
+      activeLiquidEls.clear();
+      if (glidingFramesStage) glidingFramesStage.style.transform = '';
+      resetLiquidCursorVisuals();
+      snapAllLiquidDocks();
+    } else {
+      requestAnimationFrame(() => {
+        snapAllLiquidDocks();
+        wakeHeroLoop();
+        wakeCursorPhysics();
+      });
+    }
   }
 
-  // Samples ONLY consecutive frame-to-frame deltas from continuous rAF loops
+  // Protects ultra-weak machines in `Automatic` ONLY if sustained severe lag (<21 FPS) occurs
   function recordLoopDelta(deltaMs) {
-    if (fpsMode !== 'auto' || fpsLiteActive || motionPaused || document.hidden) return;
-    if (deltaMs >= 2 && deltaMs <= 55) {
-      fpsEmaMs = fpsEmaMs * 0.88 + deltaMs * 0.12;
-      if (fpsEmaMs > 26.5) {
+    if (fpsMode !== 'auto' || fpsLowActive || document.hidden) return;
+    if (deltaMs >= 1 && deltaMs <= 80) {
+      fpsEmaMs = fpsEmaMs * 0.90 + deltaMs * 0.10;
+      if (fpsEmaMs > 47) {
         slowFrameStreak++;
-        if (slowFrameStreak >= 28) {
-          if (fpsUltraActive) {
-            fpsUltraActive = false;
-            slowFrameStreak = 0;
-          } else {
-            fpsLiteActive = true;
-          }
-          syncFpsBadge();
+        if (slowFrameStreak >= 48) {
+          setFpsMode('low');
         }
       } else if (slowFrameStreak > 0) {
         slowFrameStreak--;
@@ -158,39 +168,32 @@
     }
   }
 
-  // Lightweight 28-frame display refresh rate calibration (detects 60/90/120/144/240Hz!)
+  // Passive refresh-rate estimator for internal physics default `dt` (no FPS cap, no UI number!)
   function calibrateDisplayHz() {
-    if (prefersReduced || document.hidden) return;
+    if (document.hidden || fpsLowActive) return;
     let prev = 0;
     const samples = [];
     function sample(now) {
       if (prev > 0) {
         const dt = now - prev;
-        if (dt > 1.8 && dt < 28) samples.push(dt);
+        if (dt > 0.8 && dt < 30) samples.push(dt);
       }
       prev = now;
-      if (samples.length < 24) {
+      if (samples.length < 20) {
         requestAnimationFrame(sample);
       } else {
         samples.sort((a, b) => a - b);
-        const medianMs = samples[Math.floor(samples.length * 0.45)] || 16.67;
-        const measured = snapStandardHz(1000 / medianMs);
-        if (measured !== detectedHz) {
-          detectedHz = measured;
-          if (detectedHz >= 120 && fpsMode === 'auto' && isHighCapabilityHW && !fpsLiteActive) {
-            fpsUltraActive = true;
-          }
-          syncFpsBadge();
-        }
+        const medianMs = samples[Math.floor(samples.length * 0.4)] || 8.33;
+        detectedHz = clamp(Math.round(1000 / medianMs), 60, 500);
       }
     }
     requestAnimationFrame(sample);
   }
 
+  syncFpsBadge();
   if (fpsToggle) {
-    syncFpsBadge();
     fpsToggle.addEventListener('click', () => {
-      const order = ['auto', 'ultra', 'lite'];
+      const order = ['auto', 'ultra', 'low'];
       const next = order[(order.indexOf(fpsMode) + 1) % order.length];
       setFpsMode(next);
     });
@@ -325,15 +328,14 @@
   ];
 
   /* ------------------------------------------------------------------------
-     2. 60HZ COALESCED POINTER & ELASTIC SURFACE-TENSION ENGINE
-     Eliminates 1,000 Hz gaming-mouse event flooding -> 0ms input latency!
+     2. UNLIMITED-HZ POINTER, JELLY WATER CURSOR, RIM SUCTION & GRAVITY DRIP
+     0ms outer cursor translation + harmonic water jiggle + wet lower splash!
      ------------------------------------------------------------------------ */
   const LIQUID_SELECTOR = [
     '.liquid-taskbar-dock',
     '.brand-pill',
     '.spotlight-trigger',
     '.fps-toggle',
-    '.motion-toggle',
     '.header-cta',
     '.eyebrow-pill',
     '.primary-btn',
@@ -341,6 +343,7 @@
     '.award-badge',
     '.edition-card',
     '.nav-step',
+    '.scroll-pill',
     '.anatomy-dock',
     '.skins-dock',
     '.wafer-layer',
@@ -349,6 +352,7 @@
     '.bento-card',
     '.s-metric',
     '.studio-panel-info',
+    '.hotspot-pin',
     '.os-card',
     '.os-btn',
     '.pedestal-orb',
@@ -377,7 +381,7 @@
     return st;
   }
 
-  // Framerate-Independent Semi-Implicit Euler Spring (Identical feel at 60Hz, 120Hz, 144Hz, 240Hz!)
+  // Framerate-Independent Semi-Implicit Euler Spring (Identical feel at 60Hz, 144Hz, 240Hz, 500Hz!)
   function stepSpringDt(pos, vel, target, stiff, damp, h) {
     for (let s = 0; s < 2; s++) {
       const acc = (target - pos) * stiff - vel * damp;
@@ -391,7 +395,7 @@
   const hydroRipples = Array.from(document.querySelectorAll('#hydroRippleStage .hydro-ripple'));
   let rippleCursor = 0;
   function spawnHydroRipple(x, y) {
-    if (motionPaused || fpsLiteActive || !hydroRipples.length) return;
+    if (motionPaused || fpsLowActive || !hydroRipples.length) return;
     const ring = hydroRipples[rippleCursor % hydroRipples.length];
     rippleCursor++;
     if (typeof ring.animate === 'function') {
@@ -406,7 +410,7 @@
   }
 
   document.addEventListener('pointerdown', (ev) => {
-    if (motionPaused || fpsLiteActive || ev.button > 0) return;
+    if (motionPaused || fpsLowActive || ev.button > 0) return;
     const hit = ev.target && ev.target.closest
       ? ev.target.closest('.liquid-glass, .liquid-pill, .liquid-bar, .hotspot-pin, .os-btn')
       : null;
@@ -415,7 +419,7 @@
 
   let lastLiquidTick = 0;
   function liquidPhysicsTick(now) {
-    if (motionPaused || !activeLiquidEls.size || document.hidden) {
+    if (motionPaused || fpsLowActive || !activeLiquidEls.size || document.hidden) {
       liquidLoopRunning = false;
       lastLiquidTick = 0;
       return;
@@ -424,7 +428,7 @@
     const rawDt = lastLiquidTick && now ? (now - lastLiquidTick) / 1000 : 1 / detectedHz;
     if (lastLiquidTick && now) recordLoopDelta(now - lastLiquidTick);
     lastLiquidTick = now || 0;
-    const dt = clamp(rawDt, 0.0018, 0.034);
+    const dt = clamp(rawDt, 0.0004, 0.034);
     const h = dt * 0.5;
 
     activeLiquidEls.forEach((el) => {
@@ -484,7 +488,7 @@
   }
 
   function wakeLiquidPhysics() {
-    if (!liquidLoopRunning && !motionPaused && activeLiquidEls.size > 0) {
+    if (!liquidLoopRunning && !motionPaused && !fpsLowActive && activeLiquidEls.size > 0) {
       liquidLoopRunning = true;
       requestAnimationFrame(liquidPhysicsTick);
     }
@@ -496,18 +500,319 @@
   let heroRunning = false;
 
   const cursorGlint = document.getElementById('liquidCursorGlint');
+  const liquidMouseCursor = document.getElementById('liquidMouseCursor');
+  const liquidCursorDrop = document.getElementById('liquidCursorDrop');
+  const lmcSat1 = liquidMouseCursor ? liquidMouseCursor.querySelector('.lmc-sat.s1') : null;
+  const lmcSat2 = liquidMouseCursor ? liquidMouseCursor.querySelector('.lmc-sat.s2') : null;
+  const liquidSuctionBridge = document.getElementById('liquidSuctionBridge');
+  const liquidRimAura = document.getElementById('liquidRimAura');
+  const liquidFallingDrop = document.getElementById('liquidFallingDrop');
+  const liquidWetSplash = document.getElementById('liquidWetSplash');
+
   let glintVisible = false;
+  let wakeCursorPhysics = () => {};
+  let resetLiquidCursorVisuals = () => {};
 
   if (finePointer) {
     let currentHoveredChain = [];
+    let nearGlassEl = null;
+    let lastProbeAt = 0;
     let rawX = window.innerWidth * 0.5;
-    let rawY = window.innerHeight * 0.5;
+    let rawY = window.innerHeight * 0.35;
+    let prevCursorX = rawX;
+    let prevCursorY = rawY;
+    let curVx = 0;
+    let curVy = 0;
+    let prevSpeed = 0;
+    let moveAngle = 0;
+    let jellyPos = 0;
+    let jellyVel = 0;
+    let baseSc = 1;
+    let velBaseSc = 0;
+    let cursorPressed = false;
+    let sat1X = rawX, sat1Y = rawY, sat1Vx = 0, sat1Vy = 0;
+    let sat2X = rawX, sat2Y = rawY, sat2Vx = 0, sat2Vy = 0;
     let rawTarget = null;
     let ptrFrameScheduled = false;
+    let cursorLoopRunning = false;
+    let lastCursorTick = 0;
+
+    // Periodic Gravity Water Drip & Wet Lower-Frame Splash State
+    let nextDripAt = performance.now() + 2400;
+    const dripState = { active: false, x: 0, y: 0, vy: 0, targetY: 0, targetEl: null };
+    const splashState = { active: false, x: 0, y: 0, age: 0, dur: 1.35 };
+
+    resetLiquidCursorVisuals = () => {
+      dripState.active = false;
+      splashState.active = false;
+      if (liquidSuctionBridge) liquidSuctionBridge.style.opacity = '0';
+      if (liquidRimAura) liquidRimAura.style.opacity = '0';
+      if (liquidFallingDrop) liquidFallingDrop.style.opacity = '0';
+      if (liquidWetSplash) liquidWetSplash.style.opacity = '0';
+      if (cursorGlint) cursorGlint.style.opacity = '0';
+      glintVisible = false;
+    };
+
+    function spawnGravityWaterDrip(now) {
+      if (!liquidFallingDrop || rawY > window.innerHeight - 80 || rawY < 8) return;
+      const candidates = document.querySelectorAll('.liquid-bar, .liquid-glass, .liquid-pill, .os-btn');
+      let bestTop = window.innerHeight - 4;
+      let bestEl = null;
+
+      for (let i = 0; i < candidates.length; i++) {
+        const el = candidates[i];
+        const r = el.getBoundingClientRect();
+        if (
+          r.width > 28 &&
+          r.height > 18 &&
+          r.top > rawY + 34 &&
+          r.top < bestTop &&
+          rawX >= r.left + 6 &&
+          rawX <= r.right - 6
+        ) {
+          bestTop = r.top + 2;
+          bestEl = el;
+        }
+      }
+
+      dripState.active = true;
+      dripState.x = rawX;
+      dripState.y = rawY + 14;
+      dripState.vy = 55;
+      dripState.targetY = bestTop;
+      dripState.targetEl = bestEl;
+      nextDripAt = now + 3900 + Math.random() * 1400;
+
+      // Subtle neck-pinch jiggle on cursor droplet as teardrop detaches!
+      jellyVel += 3.4;
+      liquidFallingDrop.style.opacity = '0.96';
+      liquidFallingDrop.style.transform = `translate3d(${dripState.x.toFixed(1)}px, ${dripState.y.toFixed(1)}px, 0) scale(1.08, 0.88)`;
+    }
+
+    function updateRimSuction() {
+      if (!liquidSuctionBridge || !liquidRimAura) return 0;
+      let el = currentHoveredChain[0] || nearGlassEl;
+      if (!el || !el.isConnected) {
+        nearGlassEl = null;
+        liquidSuctionBridge.style.opacity = '0';
+        liquidRimAura.style.opacity = '0';
+        return 0;
+      }
+
+      const st = getLiquidState(el);
+      const r = el.getBoundingClientRect();
+      if (r.width < 16 || r.height < 16) {
+        liquidSuctionBridge.style.opacity = '0';
+        liquidRimAura.style.opacity = '0';
+        return 0;
+      }
+
+      const left = r.left;
+      const top = r.top;
+      const right = r.right;
+      const bottom = r.bottom;
+      const inside = rawX >= left && rawX <= right && rawY >= top && rawY <= bottom;
+
+      let edgeX = clamp(rawX, left + 10, right - 10);
+      let edgeY = clamp(rawY, top + 8, bottom - 8);
+      let edgeAng = 0;
+
+      if (inside) {
+        const dL = rawX - left;
+        const dR = right - rawX;
+        const dT = rawY - top;
+        const dB = bottom - rawY;
+        const m = Math.min(dL, dR, dT, dB);
+        if (m === dT) { edgeX = clamp(rawX, left + 12, right - 12); edgeY = top; edgeAng = 0; }
+        else if (m === dB) { edgeX = clamp(rawX, left + 12, right - 12); edgeY = bottom; edgeAng = 0; }
+        else if (m === dL) { edgeX = left; edgeY = clamp(rawY, top + 10, bottom - 10); edgeAng = 90; }
+        else { edgeX = right; edgeY = clamp(rawY, top + 10, bottom - 10); edgeAng = 90; }
+      } else {
+        const onLR = rawX < left || rawX > right;
+        const onTB = rawY < top || rawY > bottom;
+        edgeX = clamp(rawX, left, right);
+        edgeY = clamp(rawY, top, bottom);
+        edgeAng = (onLR && !onTB) ? 90 : 0;
+      }
+
+      const rimDist = Math.hypot(rawX - edgeX, rawY - edgeY);
+      const maxReach = inside ? 42 : 46;
+
+      if (rimDist > maxReach) {
+        if (!inside) {
+          if (nearGlassEl === el && !st.hovered) {
+            st.targetTx = 0;
+            st.targetTy = 0;
+            activeLiquidEls.add(el);
+            wakeLiquidPhysics();
+          }
+          nearGlassEl = null;
+        }
+        liquidSuctionBridge.style.opacity = '0';
+        liquidRimAura.style.opacity = '0';
+        return inside ? 0.35 : 0;
+      }
+
+      const k = 1 - rimDist / maxReach;
+      liquidRimAura.style.opacity = (k * 0.96).toFixed(3);
+      liquidRimAura.style.transform = `translate3d(${edgeX.toFixed(1)}px, ${edgeY.toFixed(1)}px, 0) rotate(${edgeAng}deg) scale(${(0.55 + k * 0.72).toFixed(3)}, ${(0.6 + k * 0.65).toFixed(3)})`;
+
+      if (rimDist > 2.5) {
+        const bAng = Math.atan2(rawY - edgeY, rawX - edgeX) * (180 / Math.PI);
+        const sx = clamp(rimDist / 48, 0.16, 1.05);
+        const sy = clamp(0.36 + k * 0.68, 0.36, 1.04);
+        liquidSuctionBridge.style.opacity = (k * 0.88).toFixed(3);
+        liquidSuctionBridge.style.transform = `translate3d(${edgeX.toFixed(1)}px, ${edgeY.toFixed(1)}px, 0) rotate(${bAng.toFixed(1)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      } else {
+        liquidSuctionBridge.style.opacity = '0';
+      }
+
+      // Outer magnetic water suction: gently pull approached glass rim toward cursor even before entry!
+      if (!inside && !st.hovered && !el.classList.contains('liquid-taskbar-dock')) {
+        const cx = left + r.width * 0.5;
+        const cy = top + r.height * 0.5;
+        const nx = clamp((rawX - cx) / (r.width * 0.6), -1, 1);
+        const ny = clamp((rawY - cy) / (r.height * 0.6), -1, 1);
+        st.targetTx = nx * k * 4.5;
+        st.targetTy = ny * k * 4.5;
+        activeLiquidEls.add(el);
+        wakeLiquidPhysics();
+      }
+
+      return k;
+    }
+
+    function cursorPhysicsTick(now) {
+      if (motionPaused || fpsLowActive || !cursorPointerSeen || document.hidden) {
+        cursorLoopRunning = false;
+        lastCursorTick = 0;
+        return;
+      }
+      cursorLoopRunning = true;
+      const rawDt = lastCursorTick && now ? (now - lastCursorTick) / 1000 : 1 / detectedHz;
+      if (lastCursorTick && now) recordLoopDelta(now - lastCursorTick);
+      lastCursorTick = now || performance.now();
+      const dt = clamp(rawDt, 0.0004, 0.034);
+      const h = dt * 0.5;
+
+      const instVx = (rawX - prevCursorX) / dt;
+      const instVy = (rawY - prevCursorY) / dt;
+      prevCursorX = rawX;
+      prevCursorY = rawY;
+
+      const vBlend = 1 - Math.exp(-26 * dt);
+      curVx += (instVx - curVx) * vBlend;
+      curVy += (instVy - curVy) * vBlend;
+      const speed = Math.hypot(curVx, curVy);
+
+      if (speed > 24) {
+        moveAngle = Math.atan2(curVy, curVx) * (180 / Math.PI);
+      }
+
+      const accelImpulse = clamp((speed - prevSpeed) * 0.0038, -2.8, 2.8);
+      prevSpeed = speed;
+      jellyVel += accelImpulse;
+      [jellyPos, jellyVel] = stepSpringDt(jellyPos, jellyVel, 0, 340, 9.2, h);
+
+      const suctionK = updateRimSuction();
+      const targetSc = cursorPressed ? 0.86 : (suctionK > 0.12 || currentHoveredChain.length ? 1.18 : 1.0);
+      [baseSc, velBaseSc] = stepSpringDt(baseSc, velBaseSc, targetSc, 280, 18, h);
+
+      const speedStretch = clamp(speed / 2150, 0, 0.34);
+      const sx = clamp(baseSc * (1 + speedStretch + jellyPos * 0.22), 0.68, 1.58);
+      const sy = clamp(baseSc * (1 - speedStretch * 0.56 - jellyPos * 0.18), 0.64, 1.48);
+
+      if (liquidCursorDrop) {
+        liquidCursorDrop.style.transform = `rotate(${moveAngle.toFixed(1)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+      }
+
+      // Ultra Mode Trailing Mercury Water Satellites
+      if (fpsUltraActive && lmcSat1 && lmcSat2) {
+        [sat1X, sat1Vx] = stepSpringDt(sat1X, sat1Vx, rawX, 175, 16, h);
+        [sat1Y, sat1Vy] = stepSpringDt(sat1Y, sat1Vy, rawY, 175, 16, h);
+        [sat2X, sat2Vx] = stepSpringDt(sat2X, sat2Vx, sat1X, 125, 14, h);
+        [sat2Y, sat2Vy] = stepSpringDt(sat2Y, sat2Vy, sat1Y, 125, 14, h);
+
+        const d1 = Math.hypot(sat1X - rawX, sat1Y - rawY);
+        const d2 = Math.hypot(sat2X - rawX, sat2Y - rawY);
+        lmcSat1.style.opacity = clamp(d1 / 18, 0, 0.92).toFixed(2);
+        lmcSat2.style.opacity = clamp((d2 - 4) / 24, 0, 0.82).toFixed(2);
+        lmcSat1.style.transform = `translate3d(${(sat1X - rawX).toFixed(1)}px, ${(sat1Y - rawY).toFixed(1)}px, 0)`;
+        lmcSat2.style.transform = `translate3d(${(sat2X - rawX).toFixed(1)}px, ${(sat2Y - rawY).toFixed(1)}px, 0)`;
+      }
+
+      // Periodic Gravity Water Drip + Lower-Frame Wet Splash
+      const clockNow = now || performance.now();
+      if (!dripState.active && clockNow >= nextDripAt) {
+        spawnGravityWaterDrip(clockNow);
+      }
+
+      if (dripState.active && liquidFallingDrop) {
+        dripState.vy += 1220 * dt;
+        dripState.y += dripState.vy * dt;
+        const dropSy = clamp(0.86 + dripState.vy / 920, 0.86, 1.48);
+        const dropSx = clamp(1.10 - dripState.vy / 2300, 0.74, 1.10);
+
+        if (dripState.y >= dripState.targetY) {
+          dripState.active = false;
+          liquidFallingDrop.style.opacity = '0';
+          splashState.active = true;
+          splashState.x = dripState.x;
+          splashState.y = dripState.targetY;
+          splashState.age = 0;
+
+          spawnHydroRipple(dripState.x, dripState.targetY);
+
+          if (dripState.targetEl && dripState.targetEl.isConnected) {
+            const hitSt = getLiquidState(dripState.targetEl);
+            hitSt.vy += 82;
+            hitSt.vsy -= 0.28;
+            hitSt.vsx += 0.20;
+            activeLiquidEls.add(dripState.targetEl);
+            wakeLiquidPhysics();
+          }
+        } else {
+          liquidFallingDrop.style.transform = `translate3d(${dripState.x.toFixed(1)}px, ${dripState.y.toFixed(1)}px, 0) scale(${dropSx.toFixed(3)}, ${dropSy.toFixed(3)})`;
+        }
+      }
+
+      if (splashState.active && liquidWetSplash) {
+        splashState.age += dt;
+        const p = clamp(splashState.age / splashState.dur, 0, 1);
+        if (p >= 1) {
+          splashState.active = false;
+          liquidWetSplash.style.opacity = '0';
+        } else {
+          const spreadX = 0.24 + (1 - Math.pow(1 - p, 3)) * 1.78;
+          const spreadY = Math.max(0.32, 1.32 - p * 0.95);
+          const alpha = (1 - p) * (1 - p) * 0.96;
+          liquidWetSplash.style.opacity = alpha.toFixed(3);
+          liquidWetSplash.style.transform = `translate3d(${splashState.x.toFixed(1)}px, ${splashState.y.toFixed(1)}px, 0) scale(${spreadX.toFixed(3)}, ${spreadY.toFixed(3)})`;
+        }
+      }
+
+      // Keep cursor loop alive so periodic water drips continue every ~4.5s even while resting!
+      requestAnimationFrame(cursorPhysicsTick);
+    }
+
+    wakeCursorPhysics = () => {
+      if (!cursorLoopRunning && !motionPaused && !fpsLowActive && cursorPointerSeen && !document.hidden) {
+        cursorLoopRunning = true;
+        lastCursorTick = 0;
+        requestAnimationFrame(cursorPhysicsTick);
+      }
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        nextDripAt = performance.now() + 2500;
+        wakeCursorPhysics();
+      }
+    });
 
     function processCoalescedPointer() {
       ptrFrameScheduled = false;
-      if (motionPaused) return;
+      if (motionPaused || fpsLowActive) return;
 
       if (heroVisible) {
         mouse.x = rawX / window.innerWidth - 0.5;
@@ -526,9 +831,31 @@
         node = node.parentElement;
       }
 
+      if (matched.length > 0) {
+        nearGlassEl = matched[0];
+      } else {
+        const tNow = performance.now();
+        if (tNow - lastProbeAt > 75) {
+          lastProbeAt = tNow;
+          const offsets = [[0, -26], [0, 26], [-26, 0], [26, 0]];
+          for (let k = 0; k < offsets.length; k++) {
+            const px = rawX + offsets[k][0];
+            const py = rawY + offsets[k][1];
+            if (px > 0 && py > 0 && px < window.innerWidth && py < window.innerHeight) {
+              const probe = document.elementFromPoint(px, py);
+              const hit = probe && probe.closest ? probe.closest(LIQUID_SELECTOR) : null;
+              if (hit) {
+                nearGlassEl = hit;
+                break;
+              }
+            }
+          }
+        }
+      }
+
       // Move ONE single GPU-composited glint via translate3d -> ZERO card gradient repaints!
       if (cursorGlint) {
-        if (!fpsLiteActive && matched.length > 0) {
+        if (!fpsLowActive && matched.length > 0) {
           cursorGlint.style.transform = `translate3d(${rawX.toFixed(0)}px, ${rawY.toFixed(0)}px, 0)`;
           if (!glintVisible) {
             glintVisible = true;
@@ -572,6 +899,7 @@
             height: Math.max(32, r.height)
           };
           st.hovered = true;
+          jellyVel += 2.6; // Juicy surface-tension pop when cursor merges onto a glass frame!
         }
 
         const r = st.rect;
@@ -585,10 +913,10 @@
         const isLarge = diag > 480;
         const isTaskbarDock = el.classList && el.classList.contains('liquid-taskbar-dock');
 
-        const pullAmp = isTaskbarDock ? 2.8 : (isLarge ? 5.0 : 8.5);
-        const stretchAmp = isTaskbarDock ? 0.008 : (isLarge ? 0.015 : 0.042);
-        const skewAmp = (isTaskbarDock || fpsLiteActive) ? 0 : (isLarge ? 0.45 : 1.35);
-        const pressBoost = st.pressed ? 0.032 : 0.008;
+        const pullAmp = isTaskbarDock ? 3.2 : (isLarge ? 5.6 : 9.8);
+        const stretchAmp = isTaskbarDock ? 0.009 : (isLarge ? 0.017 : 0.048);
+        const skewAmp = isTaskbarDock ? 0 : (isLarge ? 0.5 : 1.45);
+        const pressBoost = st.pressed ? 0.035 : 0.01;
 
         st.targetTx = nx * pullAmp;
         st.targetTy = ny * pullAmp;
@@ -599,9 +927,9 @@
         st.targetSy = 1 + ay * stretchAmp - ax * (stretchAmp * 0.3) + pressBoost;
         st.targetSk = nx * ny * skewAmp;
 
-        const canTilt = !fpsLiteActive && el.hasAttribute && el.hasAttribute('data-tilt3d');
-        st.targetRx = canTilt ? -ny * 5.2 : 0;
-        st.targetRy = canTilt ? nx * 5.8 : 0;
+        const canTilt = el.hasAttribute && el.hasAttribute('data-tilt3d');
+        st.targetRx = canTilt ? -ny * 5.6 : 0;
+        st.targetRy = canTilt ? nx * 6.2 : 0;
 
         activeLiquidEls.add(el);
       }
@@ -610,30 +938,52 @@
     }
 
     document.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
       rawX = e.clientX;
       rawY = e.clientY;
       rawTarget = e.target;
-      if (!ptrFrameScheduled && !motionPaused) {
-        ptrFrameScheduled = true;
-        requestAnimationFrame(processCoalescedPointer);
+
+      if (!cursorPointerSeen) {
+        cursorPointerSeen = true;
+        prevCursorX = rawX;
+        prevCursorY = rawY;
+        sat1X = rawX; sat1Y = rawY;
+        sat2X = rawX; sat2Y = rawY;
+        syncLiquidCursorClass();
+      }
+
+      if (!motionPaused && !fpsLowActive) {
+        // 0ms latency direct outer translation -> zero lag, silky hardware pointer speed!
+        if (liquidMouseCursor) {
+          liquidMouseCursor.style.transform = `translate3d(${rawX.toFixed(1)}px, ${rawY.toFixed(1)}px, 0)`;
+        }
+        wakeCursorPhysics();
+        if (!ptrFrameScheduled) {
+          ptrFrameScheduled = true;
+          requestAnimationFrame(processCoalescedPointer);
+        }
       }
     }, { passive: true });
 
-    // Tactile Video-2 Touch-Bloom & Lens Inflation on Press!
+    // Tactile Video-2 Touch-Bloom & Water Droplet Squish on Press!
     document.addEventListener('pointerdown', (e) => {
-      if (motionPaused) return;
+      if (motionPaused || fpsLowActive || e.pointerType === 'touch') return;
+      cursorPressed = true;
+      jellyVel -= 4.8;
       const el = e.target && e.target.closest ? e.target.closest(LIQUID_SELECTOR) : null;
       if (el && !el.classList.contains('liquid-taskbar-dock')) {
         const st = getLiquidState(el);
         st.pressed = true;
-        st.targetSx = Math.max(st.targetSx, 1.045);
-        st.targetSy = Math.max(st.targetSy, 1.045);
+        st.targetSx = Math.max(st.targetSx, 1.05);
+        st.targetSy = Math.max(st.targetSy, 1.05);
         activeLiquidEls.add(el);
         wakeLiquidPhysics();
       }
     }, { passive: true });
 
     document.addEventListener('pointerup', () => {
+      cursorPressed = false;
+      jellyVel += 5.2;
       currentHoveredChain.forEach((el) => {
         const st = liquidStates.get(el);
         if (st && st.pressed) {
@@ -655,7 +1005,7 @@
   }
 
   /* ------------------------------------------------------------------------
-     3. LIGHTWEIGHT WORD-LEVEL SPLIT REVEAL & MOTION PAUSE TOGGLE
+     3. LIGHTWEIGHT WORD-LEVEL SPLIT REVEAL (100% PLAY BY DEFAULT!)
      Word-level (instead of 400+ char spans) -> 6x fewer DOM nodes!
      ------------------------------------------------------------------------ */
   document.querySelectorAll('[data-split]').forEach((el) => {
@@ -698,34 +1048,6 @@
     });
   }, { threshold: 0.12 });
   document.querySelectorAll('[data-split]').forEach((el) => revealIO.observe(el));
-
-  const motionToggle = document.getElementById('motionToggle');
-  const motionToggleLabel = document.getElementById('motionToggleLabel');
-  if (prefersReduced) document.body.classList.add('motion-paused');
-  if (motionToggle && motionToggleLabel) {
-    if (motionPaused) {
-      motionToggleLabel.textContent = 'Play';
-      motionToggle.setAttribute('aria-label', 'Play ambient motion');
-    }
-    motionToggle.addEventListener('click', () => {
-      motionPaused = !motionPaused;
-      document.body.classList.toggle('motion-paused', motionPaused);
-      syncFpsBadge();
-      motionToggleLabel.textContent = motionPaused ? 'Play' : 'Pause';
-      motionToggle.setAttribute('aria-label', motionPaused ? 'Play ambient motion' : 'Pause ambient motion');
-      if (motionPaused) {
-        activeLiquidEls.forEach((el) => {
-          el.style.translate = '';
-          el.style.scale = '';
-          el.style.transform = '';
-        });
-        activeLiquidEls.clear();
-        snapAllLiquidDocks();
-      } else {
-        wakeHeroLoop();
-      }
-    });
-  }
 
   /* ------------------------------------------------------------------------
      4. DRAGGABLE 2-LAYER IOS 26 WATER-DROPLET & COALESCE-BLUR TASKBAR ENGINE
@@ -772,7 +1094,7 @@
     if (lastDockTickTime && now) recordLoopDelta(now - lastDockTickTime);
     const rawDt = lastDockTickTime ? (now - lastDockTickTime) / 1000 : 1 / detectedHz;
     lastDockTickTime = now;
-    const dt = clamp(rawDt, 0.0018, 0.034);
+    const dt = clamp(rawDt, 0.0004, 0.034);
     const h = dt * 0.5;
 
     activeDocks.forEach((st) => {
@@ -1346,6 +1668,7 @@
   const orbsFG = document.getElementById('orbsFG');
   const orbsBG = document.getElementById('orbsBG');
   const allOrbs = Array.from(document.querySelectorAll('.floating-orb'));
+  const rigHuds = Array.from(document.querySelectorAll('#productRig .rig-hud'));
   const editionCards = Array.from(document.querySelectorAll('.edition-card'));
   const edCounter = document.getElementById('edCounter');
   const toneLayers = Array.from(document.querySelectorAll('.tone-layer'));
@@ -1538,26 +1861,86 @@
         }
       });
 
-      if (window.innerWidth > 1040 && !fpsLiteActive) {
+      // Suck ALL surrounding orbs & telemetry chips directly INSIDE `#productRig` (the 3D mouse body), then burst out!
+      const rigRect = productRig ? productRig.getBoundingClientRect() : null;
+      const mouseCenterX = rigRect ? rigRect.left + rigRect.width * 0.5 : window.innerWidth * 0.5;
+      const mouseCenterY = rigRect ? rigRect.top + rigRect.height * 0.5 : window.innerHeight * 0.5;
+
+      if (!fpsLowActive && rigHuds.length) {
+        const hudPullOffsets = [
+          { dx: 74, dy: 82 },
+          { dx: -82, dy: 8 },
+          { dx: 68, dy: -72 }
+        ];
+        rigHuds.forEach((hud, hi) => {
+          const pull = hudPullOffsets[hi % hudPullOffsets.length];
+          const hc1 = startTween({
+            from: 0,
+            to: 1,
+            duration: 310,
+            ease: easeInQuad,
+            onUpdate: (_, k) => {
+              const sc = 1 + (0.06 - 1) * k;
+              hud.style.opacity = (1 - k).toFixed(3);
+              hud.style.translate = `${(pull.dx * k).toFixed(1)}px ${(pull.dy * k).toFixed(1)}px`;
+              hud.style.scale = sc.toFixed(3);
+            },
+            onComplete: () => {
+              const hc2 = startTween({
+                from: 0,
+                to: 1,
+                duration: 580,
+                delay: 45 + hi * 35,
+                ease: easeOutBackOrb,
+                onUpdate: (_, k) => {
+                  const inv = 1 - k;
+                  const sc = 0.06 + (1 - 0.06) * k;
+                  hud.style.opacity = clamp(k * 1.25, 0, 1).toFixed(3);
+                  hud.style.translate = `${(pull.dx * inv).toFixed(1)}px ${(pull.dy * inv).toFixed(1)}px`;
+                  hud.style.scale = sc.toFixed(3);
+                },
+                onComplete: () => {
+                  hud.style.opacity = '';
+                  hud.style.translate = '';
+                  hud.style.scale = '';
+                }
+              });
+              cancelOrbTweens.push(hc2);
+            }
+          });
+          cancelOrbTweens.push(hc1);
+        });
+      }
+
+      if (window.innerWidth > 1040 && !fpsLowActive) {
+        cacheOrbCenters();
         let imgCounter = 0;
-        orbState.forEach((o) => {
+        const fgShiftX = currentMouse.x * 26;
+        const fgShiftY = currentMouse.y * 26;
+        const bgShiftX = currentMouse.x * -14;
+        const bgShiftY = currentMouse.y * -14;
+
+        orbState.forEach((o, oi) => {
+          const isBg = orbsBG && orbsBG.contains(o.el);
+          const contX = isBg ? bgShiftX : fgShiftX;
+          const contY = isBg ? bgShiftY : fgShiftY;
           const fromX = o.rx + o.baseX;
           const fromY = o.ry + o.baseY;
-          const toCenterX = window.innerWidth / 2 - o.cx;
-          const toCenterY = window.innerHeight / 2 - o.cy;
-          const nextBaseX = (Math.random() - 0.5) * 90;
-          const nextBaseY = (Math.random() - 0.5) * 90;
+          const toCenterX = mouseCenterX - o.cx - contX;
+          const toCenterY = mouseCenterY - o.cy - contY;
+          const nextBaseX = (Math.random() - 0.5) * 64;
+          const nextBaseY = (Math.random() - 0.5) * 64;
           const skinCode = o.img ? ed.orbSkins[imgCounter++ % ed.orbSkins.length] : null;
 
           const c1 = startTween({
             from: 0,
             to: 1,
-            duration: 300,
+            duration: 320,
             ease: easeInQuad,
             onUpdate: (_, k) => {
               const x = fromX + (toCenterX - fromX) * k;
               const y = fromY + (toCenterY - fromY) * k;
-              const sc = 1 + (0.18 - 1) * k;
+              const sc = 1 + (0.04 - 1) * k;
               o.el.style.opacity = (1 - k).toFixed(3);
               o.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${sc.toFixed(3)})`;
             },
@@ -1566,14 +1949,14 @@
               const c2 = startTween({
                 from: 0,
                 to: 1,
-                duration: 600,
-                delay: 50,
+                duration: 640,
+                delay: 40 + oi * 32,
                 ease: easeOutBackOrb,
                 onUpdate: (_, k) => {
                   const x = toCenterX + (nextBaseX - toCenterX) * k;
                   const y = toCenterY + (nextBaseY - toCenterY) * k;
-                  const sc = 0.18 + (1 - 0.18) * k;
-                  o.el.style.opacity = clamp(k, 0, 1).toFixed(3);
+                  const sc = 0.04 + (1 - 0.04) * k;
+                  o.el.style.opacity = clamp(k * 1.2, 0, 1).toFixed(3);
                   o.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${sc.toFixed(3)})`;
                 },
                 onComplete: () => {
@@ -1665,9 +2048,8 @@
     const rawDt = lastHeroTick && now ? (now - lastHeroTick) / 1000 : 1 / detectedHz;
     if (lastHeroTick && now) recordLoopDelta(now - lastHeroTick);
     lastHeroTick = now || 0;
-    const dt = clamp(rawDt, 0.0018, 0.034);
-    const mouseAlpha = 1 - Math.exp(-9.2 * dt);
-    const orbAlpha = 1 - Math.exp(-10.5 * dt);
+    const dt = clamp(rawDt, 0.0004, 0.034);
+    const mouseAlpha = 1 - Math.exp(-9.5 * dt);
 
     const dxMouse = mouse.x - currentMouse.x;
     const dyMouse = mouse.y - currentMouse.y;
@@ -1681,25 +2063,23 @@
     }
 
     let orbsSettling = false;
-    if (window.innerWidth > 1040 && !fpsLiteActive) {
-      if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 32).toFixed(1)}px, ${(currentMouse.y * 32).toFixed(1)}px, 0)`;
-      if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -16).toFixed(1)}px, ${(currentMouse.y * -16).toFixed(1)}px, 0)`;
+    if (window.innerWidth > 1040 && !fpsLowActive) {
+      if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 26).toFixed(1)}px, ${(currentMouse.y * 26).toFixed(1)}px, 0)`;
+      if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -14).toFixed(1)}px, ${(currentMouse.y * -14).toFixed(1)}px, 0)`;
 
+      // Surrounding droplets stream & chase after the cursor like fluid water wake!
       if (!isSwitching) {
+        const pullGain = fpsUltraActive ? 0.34 : 0.24;
+        const maxChase = fpsUltraActive ? 165 : 120;
         for (let i = 0; i < orbState.length; i++) {
           const o = orbState[i];
+          const orbAlpha = 1 - Math.exp(-(4.6 + i * 1.35) * dt);
           const diffX = mouse.px - (o.cx + o.baseX);
           const diffY = mouse.py - (o.cy + o.baseY);
-          const distSq = diffX * diffX + diffY * diffY;
 
-          let targetRx = 0;
-          let targetRy = 0;
-          if (distSq < 90000) {
-            const dist = Math.sqrt(distSq) || 1;
-            const force = (300 - dist) / 300;
-            targetRx = (diffX / dist) * force * -50;
-            targetRy = (diffY / dist) * force * -50;
-          }
+          const factor = pullGain + i * 0.035;
+          const targetRx = clamp(diffX * factor, -maxChase, maxChase);
+          const targetRy = clamp(diffY * factor, -maxChase * 0.82, maxChase * 0.82);
 
           const stepX = (targetRx - o.rx) * orbAlpha;
           const stepY = (targetRy - o.ry) * orbAlpha;
@@ -1707,7 +2087,14 @@
 
           o.rx += stepX;
           o.ry += stepY;
-          o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0)`;
+
+          if (fpsUltraActive) {
+            const vMag = Math.hypot(stepX, stepY) / dt;
+            const stretch = clamp(vMag / 1600, 0, 0.16);
+            o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0) scale(${(1 + stretch).toFixed(3)}, ${(1 - stretch * 0.55).toFixed(3)})`;
+          } else {
+            o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0)`;
+          }
         }
       }
     }
@@ -1835,8 +2222,8 @@
 
     if (canBitmapDecode) {
       frameImgs[idx] = true; // reserve slot while decoding off-main-thread
-      const bmpW = (isLowPowerGPU || fpsLiteActive || window.innerWidth <= 768) ? 640 : 960;
-      const bmpH = (isLowPowerGPU || fpsLiteActive || window.innerWidth <= 768) ? 360 : 540;
+      const bmpW = (isLowPowerGPU || fpsLowActive || window.innerWidth <= 768) ? 640 : 960;
+      const bmpH = (isLowPowerGPU || fpsLowActive || window.innerWidth <= 768) ? 360 : 540;
       return fetch(url)
         .then((res) => {
           if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1998,7 +2385,7 @@
       `;
       btn.addEventListener('click', () => {
         if (performance.now() < suppressSkinClickUntil) return;
-        if (idx !== lastActiveSkinIdx && visibleSkins.length > 1 && !prefersReduced && !motionPaused) {
+        if (idx !== lastActiveSkinIdx && visibleSkins.length > 1 && !motionPaused) {
           const targetSp = idx / (visibleSkins.length - 1);
           glideCoverflowTo(targetSp);
           return;
@@ -2029,9 +2416,7 @@
     const focusX = firstCenter + currentSkinProgress * Math.max(0, lastCenter - firstCenter);
     const tx = window.innerWidth / 2 - focusX;
 
-    if (!prefersReduced) {
-      skinsTrack.style.transform = `translate3d(${tx.toFixed(1)}px, 0, 0)`;
-    }
+    skinsTrack.style.transform = `translate3d(${tx.toFixed(1)}px, 0, 0)`;
     syncLiquidSliderVisual(sp);
 
     const activeIdx = clamp(Math.round(sp * (visibleSkins.length - 1)), 0, visibleSkins.length - 1);
@@ -2049,9 +2434,7 @@
         const el = pedestalEls[i];
         const diff = i - activeIdx;
         let cls = 'cf-culled';
-        if (prefersReduced) {
-          cls = diff === 0 ? 'cf-center' : 'cf-right-1';
-        } else if (diff === 0) cls = 'cf-center';
+        if (diff === 0) cls = 'cf-center';
         else if (diff === -1) cls = 'cf-left-1';
         else if (diff === 1) cls = 'cf-right-1';
         else if (diff >= -3 && diff < -1) cls = 'cf-left-2';
@@ -2111,7 +2494,7 @@
       if (!skinsSection || !visibleSkins.length) return;
       const ratio = visibleSkins.length > 1 ? Number(skinsScrub.value) / (visibleSkins.length - 1) : 0;
       syncLiquidSliderVisual(ratio);
-      if (prefersReduced || window.innerWidth <= 1040) {
+      if (window.innerWidth <= 1040) {
         updateCoverflowAtProgress(ratio);
       } else {
         const travel = skinsSection.offsetHeight - window.innerHeight;
@@ -2207,11 +2590,11 @@
       if (wasSwiping) {
         suppressSkinClickUntil = performance.now() + 260;
         const swipeRangePx = Math.max(240, Math.min(window.innerWidth * 2.2, visibleSkins.length * 36));
-        const inertiaDelta = (!motionPaused && !prefersReduced) ? (-cfVelPxMs * 190) / swipeRangePx : 0;
+        const inertiaDelta = !motionPaused ? (-cfVelPxMs * 190) / swipeRangePx : 0;
         const projected = clamp(currentSkinProgress + inertiaDelta, 0, 1);
         const maxIdx = Math.max(1, visibleSkins.length - 1);
         const snappedSp = Math.round(projected * maxIdx) / maxIdx;
-        if (!motionPaused && !prefersReduced) {
+        if (!motionPaused) {
           glideCoverflowTo(snappedSp, clamp(280 + Math.abs(cfVelPxMs) * 140, 280, 560));
         } else {
           updateCoverflowAtProgress(snappedSp);
@@ -2274,7 +2657,7 @@
 
   async function closeTopLayer(dialogEl) {
     if (!dialogEl || !dialogEl.open) return;
-    if (!supportsTopLayerExit() && !motionPaused && !prefersReduced) {
+    if (!supportsTopLayerExit() && !motionPaused) {
       dialogEl.setAttribute('data-closing', '');
       const anims = dialogEl.getAnimations ? dialogEl.getAnimations({ subtree: true }) : [];
       if (anims.length > 0) {
@@ -2961,6 +3344,9 @@
   const spScopePills = Array.from(document.querySelectorAll('[data-sp-scope]'));
 
   const QUICK_ACTIONS = [
+    { type: 'action', badge: 'GPU', title: 'Switch Graphics to Ultra Mode', sub: 'Unlimited native FPS · Volumetric caustics · Trailing water satellites', run: () => setFpsMode('ultra') },
+    { type: 'action', badge: 'GPU', title: 'Switch Graphics to Automatic Mode', sub: 'Smart full-fluid Liquid Glass & water cursor for iGPU / mid-range', run: () => setFpsMode('auto') },
+    { type: 'action', badge: 'GPU', title: 'Switch Graphics to Low Mode', sub: 'Cuts all heavy animations & cursor physics for ultra-weak machines', run: () => setFpsMode('low') },
     { type: 'action', badge: 'TONE', title: 'Switch to Pure White Tone', sub: 'Default pristine water-lens edition', run: () => selectEditionByIndex(0) },
     { type: 'action', badge: 'TONE', title: 'Switch to Oni Crimson Tone', sub: 'Skin A03 dark crimson crystal', run: () => selectEditionByIndex(1) },
     { type: 'action', badge: 'TONE', title: 'Switch to Cyber Neon Tone', sub: 'Skin F02 ultraviolet cyan crystal', run: () => selectEditionByIndex(2) },
@@ -3147,11 +3533,10 @@
   }
 
   /* ------------------------------------------------------------------------
-     10. ULTRA-LEAN READ-THEN-WRITE SCROLL ENGINE (ZERO REFLOW, CACHED OFFSETS!)
+     10. ULTRA-LEAN SCROLL ENGINE + VISCOUS BACKGROUND "WHOOSH" FOLLOW
      ------------------------------------------------------------------------ */
   const scrollProgress = document.getElementById('scrollProgress');
   const hasNativeScrollTimeline = Boolean(
-    !prefersReduced &&
     window.CSS &&
     CSS.supports('(animation-timeline: scroll()) and (animation-range: 0% 100%)')
   );
@@ -3162,6 +3547,46 @@
   let skinsTop = 0;
   let skinsHeight = 1;
   let docMaxScroll = 1;
+
+  // Scroll-Velocity Background Whoosh Physics State
+  let lastScrollY = window.scrollY || window.pageYOffset || 0;
+  let whooshTarget = 0;
+  let whooshY = 0;
+  let whooshVel = 0;
+  let whooshRunning = false;
+  let lastWhooshTime = 0;
+
+  function whooshTick(now) {
+    if (fpsLowActive || motionPaused || document.hidden || !glidingFramesStage) {
+      whooshRunning = false;
+      lastWhooshTime = 0;
+      if (glidingFramesStage) glidingFramesStage.style.transform = '';
+      return;
+    }
+    whooshRunning = true;
+    const rawDt = lastWhooshTime && now ? (now - lastWhooshTime) / 1000 : 1 / detectedHz;
+    lastWhooshTime = now || performance.now();
+    const dt = clamp(rawDt, 0.0004, 0.034);
+    const h = dt * 0.5;
+
+    whooshTarget *= Math.exp(-8.5 * dt);
+    [whooshY, whooshVel] = stepSpringDt(whooshY, whooshVel, whooshTarget, 165, 15.5, h);
+
+    if (Math.abs(whooshY) < 0.15 && Math.abs(whooshVel) < 0.8 && Math.abs(whooshTarget) < 0.15) {
+      whooshY = 0;
+      whooshVel = 0;
+      whooshTarget = 0;
+      glidingFramesStage.style.transform = '';
+      whooshRunning = false;
+      lastWhooshTime = 0;
+      return;
+    }
+
+    const sy = 1 + Math.abs(whooshY) * 0.0018;
+    const sk = whooshY * 0.035;
+    glidingFramesStage.style.transform = `translate3d(0, ${whooshY.toFixed(1)}px, 0) scaleY(${sy.toFixed(4)}) skewY(${sk.toFixed(2)}deg)`;
+    requestAnimationFrame(whooshTick);
+  }
 
   function cacheScrollMetrics() {
     const H = window.innerHeight;
@@ -3197,8 +3622,19 @@
     const y = window.scrollY || window.pageYOffset;
     const H = window.innerHeight;
 
+    const scrollDelta = y - lastScrollY;
+    lastScrollY = y;
+    if (!fpsLowActive && !motionPaused && Math.abs(scrollDelta) > 0.5 && glidingFramesStage) {
+      whooshTarget = clamp(whooshTarget - scrollDelta * 0.45, -72, 72);
+      if (!whooshRunning) {
+        whooshRunning = true;
+        lastWhooshTime = 0;
+        requestAnimationFrame(whooshTick);
+      }
+    }
+
     // ZERO getBoundingClientRect() & ZERO redundant classList touches during scroll!
-    if (scrollProgress && !hasNativeScrollTimeline) {
+    if (scrollProgress && (!hasNativeScrollTimeline || fpsLowActive)) {
       const globalRatio = clamp(y / docMaxScroll, 0, 1);
       scrollProgress.style.transform = `scaleX(${globalRatio.toFixed(4)})`;
     }
@@ -3238,7 +3674,7 @@
       }
     }
 
-    if (skinsSection && !prefersReduced && y + H * 1.5 > skinsTop && y < skinsTop + skinsHeight + H * 0.5) {
+    if (skinsSection && y + H * 1.5 > skinsTop && y < skinsTop + skinsHeight + H * 0.5) {
       const skinTravel = Math.max(1, skinsHeight - H);
       const sp = clamp((y - skinsTop) / skinTravel, 0, 1);
       updateCoverflowAtProgress(sp);

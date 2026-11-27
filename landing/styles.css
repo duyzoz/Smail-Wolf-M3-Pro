@@ -449,17 +449,18 @@ button {
 }
 
 /* ==========================================================================
-   ZERO-LAG FLUID WATER-SILK CONTOURS BEHIND CLEAR LIQUID GLASS (VIDEO 2!)
-   Zero box-shadow blur = <0.15ms GPU cost on integrated graphics at 1080p!
+   LIVING FLUID WATER-SILK CONTOURS & SCROLL-WHOOSH STAGE
+   Continuously drifts on GPU compositor + surges with scroll momentum!
    ========================================================================== */
 
 .water-silk-stage {
   position: fixed;
-  inset: 0;
+  inset: -8vh -4vw;
   z-index: -2;
   pointer-events: none;
   overflow: clip;
-  contain: strict;
+  contain: layout style paint;
+  transform-origin: 50% 50%;
 }
 
 .water-ribbon {
@@ -473,57 +474,81 @@ button {
 .wr-1 {
   width: 68vw;
   height: 36vh;
-  top: -6vh;
-  left: -10vw;
-  transform: rotate(-12deg);
+  top: -4vh;
+  left: -8vw;
+  transform: translate3d(0, 0, 0) rotate(-12deg);
 }
 
 .wr-2 {
   width: 62vw;
   height: 34vh;
   top: 24vh;
-  right: -14vw;
-  transform: rotate(-14deg);
+  right: -12vw;
+  transform: translate3d(0, 0, 0) rotate(-14deg);
 }
 
 .wr-3 {
   width: 72vw;
   height: 38vh;
-  bottom: -10vh;
+  bottom: -8vh;
   left: 8vw;
-  transform: rotate(-11deg);
+  transform: translate3d(0, 0, 0) rotate(-11deg);
 }
 
 .wr-4 {
-  width: 44vw;
-  height: 26vh;
+  width: 46vw;
+  height: 28vh;
   top: 52vh;
-  left: -8vw;
-  transform: rotate(-15deg);
+  left: -6vw;
+  transform: translate3d(0, 0, 0) rotate(-15deg);
 }
 
-/* Wave 8 + Wave 12: Zero-JS Compositor Scroll-Driven Caustic Drift (Gated to Ultra Discrete GPU Tier to Prevent Fullscreen Integrated-GPU Scroll Repaints!) */
-@media (prefers-reduced-motion: no-preference) {
-  @supports ((animation-timeline: scroll()) and (animation-range: 0% 100%)) {
-    @keyframes silkDrift1 {
-      to { transform: translate3d(8vw, 9vh, 0) rotate(-7deg); }
-    }
-    @keyframes silkDrift2 {
-      to { transform: translate3d(-8vw, -7vh, 0) rotate(-18deg); }
-    }
-
-    body.fps-ultra .wr-1 {
-      animation: silkDrift1 auto linear both;
-      animation-timeline: scroll(block root);
-      animation-range: 0% 100%;
-    }
-    body.fps-ultra .wr-2 {
-      animation: silkDrift2 auto linear both;
-      animation-timeline: scroll(block root);
-      animation-range: 0% 100%;
-    }
-  }
+.wr-5 {
+  width: clamp(280px, 38vw, 620px);
+  height: clamp(260px, 36vh, 520px);
+  top: 18vh;
+  left: 31vw;
+  border-radius: 48% 52% 56% 44% / 44% 54% 46% 56%;
+  background: radial-gradient(circle at 38% 34%, var(--silk-2) 0%, var(--silk-1) 52%, transparent 78%);
+  border: 1px solid var(--silk-edge);
 }
+
+@keyframes ambientSilk1 {
+  0% { transform: translate3d(0, 0, 0) rotate(-12deg) scale(1); }
+  50% { transform: translate3d(6vw, 4vh, 0) rotate(-7deg) scale(1.05); }
+  100% { transform: translate3d(-3vw, 7vh, 0) rotate(-14deg) scale(0.98); }
+}
+
+@keyframes ambientSilk2 {
+  0% { transform: translate3d(0, 0, 0) rotate(-14deg) scale(1); }
+  50% { transform: translate3d(-7vw, -5vh, 0) rotate(-19deg) scale(1.06); }
+  100% { transform: translate3d(4vw, 5vh, 0) rotate(-10deg) scale(0.97); }
+}
+
+@keyframes ambientSilk3 {
+  0% { transform: translate3d(0, 0, 0) rotate(-11deg) scale(1); }
+  50% { transform: translate3d(-5vw, -6vh, 0) rotate(-6deg) scale(1.04); }
+  100% { transform: translate3d(6vw, -2vh, 0) rotate(-15deg) scale(1.02); }
+}
+
+@keyframes ambientSilk4 {
+  0% { transform: translate3d(0, 0, 0) rotate(-15deg) scale(1); }
+  50% { transform: translate3d(7vw, -5vh, 0) rotate(-9deg) scale(1.07); }
+  100% { transform: translate3d(-3vw, 4vh, 0) rotate(-18deg) scale(0.96); }
+}
+
+@keyframes ambientSilkBlob5 {
+  0% { transform: translate3d(-4vw, -2vh, 0) rotate(0deg) scale(0.96, 1.04); }
+  35% { transform: translate3d(6vw, 5vh, 0) rotate(14deg) scale(1.08, 0.94); }
+  70% { transform: translate3d(-5vw, 7vh, 0) rotate(-11deg) scale(0.95, 1.07); }
+  100% { transform: translate3d(3vw, -4vh, 0) rotate(8deg) scale(1.04, 0.98); }
+}
+
+body:not(.fps-low) .wr-1 { animation: ambientSilk1 18s ease-in-out infinite alternate; }
+body:not(.fps-low) .wr-2 { animation: ambientSilk2 22s ease-in-out infinite alternate; }
+body:not(.fps-low) .wr-3 { animation: ambientSilk3 20s ease-in-out infinite alternate; }
+body:not(.fps-low) .wr-4 { animation: ambientSilk4 16s ease-in-out infinite alternate; }
+body:not(.fps-low) .wr-5 { animation: ambientSilkBlob5 19s ease-in-out infinite alternate; }
 
 /* Pooled Zero-Allocation Hydro-Ripple Surface Rings */
 .hydro-ripple-stage {
@@ -548,10 +573,252 @@ button {
   transform: translate3d(-200px, -200px, 0) scale(0.2);
 }
 
-/* Wave 11: Surgical Optical Refraction ONLY on Fixed Top Header Pills in Ultra Tier -> 0 Scroll Readback Stalls! */
-body.fps-ultra .site-header .liquid-bar {
-  backdrop-filter: saturate(180%) blur(14px);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
+/* ==========================================================================
+   3D JELLY LIQUID-GLASS WATER-DROPLET CURSOR, RIM SUCTION & GRAVITY DRIP
+   0ms outer translation + velocity squash/wobble + wet lower-frame splash!
+   ========================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  html.has-liquid-cursor:not(:has(dialog[open])),
+  html.has-liquid-cursor:not(:has(dialog[open])) * {
+    cursor: none !important;
+  }
+
+  html:has(dialog[open]) .liquid-cursor-system {
+    opacity: 0 !important;
+  }
+}
+
+.liquid-cursor-system {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: clip;
+  contain: strict;
+  transition: opacity 0.18s ease;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .liquid-cursor-system {
+    display: none !important;
+  }
+}
+
+.liquid-mouse-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+html.has-liquid-cursor .liquid-mouse-cursor {
+  opacity: 1;
+}
+
+.lmc-drop {
+  position: absolute;
+  top: -17px;
+  left: -17px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background:
+    radial-gradient(64% 44% at 36% 20%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.28) 54%, transparent 100%) padding-box,
+    radial-gradient(72% 52% at 62% 88%, rgba(56, 189, 248, 0.48) 0%, transparent 74%) padding-box,
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.26) 76%, rgba(255, 255, 255, 0.72) 100%) padding-box,
+    var(--droplet-rim) border-box;
+  border: 1.5px solid transparent;
+  box-shadow:
+    inset 0 2.5px 2px #ffffff,
+    inset 0 -2.5px 5px rgba(56, 189, 248, 0.42),
+    0 8px 18px -4px rgba(15, 23, 42, 0.28);
+  backdrop-filter: saturate(185%) contrast(106%) blur(1.6px);
+  -webkit-backdrop-filter: saturate(185%) contrast(106%) blur(1.6px);
+  transform-origin: 50% 50%;
+}
+
+.lmc-caustic {
+  position: absolute;
+  top: 5px;
+  left: 7px;
+  width: 9px;
+  height: 4.5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  transform: rotate(-26deg);
+}
+
+/* Ultra-only trailing mercury water micro-satellites */
+.lmc-sat {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #ffffff 0%, rgba(125, 211, 252, 0.52) 62%, rgba(255, 255, 255, 0.88) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 10px rgba(14, 165, 233, 0.30);
+}
+
+.lmc-sat.s1 {
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+}
+
+.lmc-sat.s2 {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+}
+
+body.fps-ultra .lmc-sat {
+  display: block;
+}
+
+/* Coalescing Water Meniscus Bridge Between Cursor & Approached Liquid Glass Rim */
+.liquid-suction-bridge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 22px;
+  margin-top: -11px;
+  border-radius: 999px;
+  transform-origin: 0% 50%;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(125, 211, 252, 0.56) 48%,
+    rgba(255, 255, 255, 0.84) 100%
+  );
+  box-shadow: 0 0 14px rgba(125, 211, 252, 0.45);
+}
+
+/* Luminous Wet Rim Bulge Along Hovered Glass Frame Edge */
+.liquid-rim-aura {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 76px;
+  height: 16px;
+  margin: -8px 0 0 -38px;
+  border-radius: 999px;
+  opacity: 0;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    #ffffff 0%,
+    rgba(125, 211, 252, 0.72) 48%,
+    transparent 100%
+  );
+}
+
+/* Periodic Gravity Teardrop Detaching From Water Cursor */
+.liquid-falling-drop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 11px;
+  height: 16px;
+  margin: -8px 0 0 -5.5px;
+  border-radius: 50% 50% 56% 56% / 64% 64% 36% 36%;
+  opacity: 0;
+  background:
+    radial-gradient(60% 45% at 38% 28%, #ffffff 0%, rgba(255, 255, 255, 0.25) 58%, transparent 100%),
+    radial-gradient(circle at 50% 68%, rgba(56, 189, 248, 0.56) 0%, rgba(255, 255, 255, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.94);
+  box-shadow:
+    inset 0 1.5px 1px #ffffff,
+    0 6px 14px rgba(14, 165, 233, 0.34);
+}
+
+/* Wet Glistening Water-Film Splash Spreading Across Struck Lower Frame Rim */
+.liquid-wet-splash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 82px;
+  height: 12px;
+  margin: -6px 0 0 -41px;
+  border-radius: 999px;
+  opacity: 0;
+  background: radial-gradient(
+    50% 55% at 50% 50%,
+    #ffffff 0%,
+    rgba(125, 211, 252, 0.82) 44%,
+    rgba(255, 255, 255, 0.35) 72%,
+    transparent 100%
+  );
+  box-shadow: 0 2px 12px rgba(56, 189, 248, 0.52);
+}
+
+/* ==========================================================================
+   FLAGSHIP ULTRA GRAPHICS TIER (DISCRETE GPU — VISIBLY RICHER OPTICS & CAUSTICS!)
+   Deep volumetric multi-layer caustic shadows, chromatic prism aura & real refraction
+   ========================================================================== */
+
+body.fps-ultra {
+  --glass-shadow:
+    inset 0 3px 2px #ffffff,
+    inset 0 -2.5px 6px rgba(56, 189, 248, 0.36),
+    0 20px 42px -10px rgba(14, 165, 233, 0.22),
+    0 10px 22px -6px rgba(15, 23, 42, 0.16),
+    0 0 20px -4px rgba(125, 211, 252, 0.32);
+  --glass-shadow-active:
+    inset 0 3.5px 2.5px #ffffff,
+    inset 0 -3px 7px rgba(56, 189, 248, 0.45),
+    0 22px 44px -8px rgba(14, 165, 233, 0.30),
+    0 0 26px -2px rgba(56, 189, 248, 0.42);
+  --droplet-shadow:
+    inset 0 3.5px 2.5px #ffffff,
+    inset 0 -3.5px 7px rgba(56, 189, 248, 0.40),
+    0 16px 32px -5px rgba(14, 165, 233, 0.28),
+    0 0 18px rgba(125, 211, 252, 0.42);
+}
+
+body.fps-ultra:not(.is-light-tone) {
+  --glass-shadow:
+    inset 0 2.5px 2px rgba(255, 255, 255, 0.92),
+    inset 0 -2.5px 6px rgba(56, 189, 248, 0.34),
+    0 24px 48px -12px rgba(0, 0, 0, 0.68),
+    0 10px 26px -6px rgba(56, 189, 248, 0.24),
+    0 0 22px -4px rgba(168, 85, 247, 0.22);
+  --glass-shadow-active:
+    inset 0 3px 2px #ffffff,
+    inset 0 -3px 7px rgba(56, 189, 248, 0.46),
+    0 24px 48px -8px rgba(0, 0, 0, 0.74),
+    0 0 28px -2px rgba(56, 189, 248, 0.42);
+  --droplet-shadow:
+    inset 0 3px 2px #ffffff,
+    inset 0 -3px 7px rgba(125, 211, 252, 0.46),
+    0 16px 34px -5px rgba(0, 0, 0, 0.64),
+    0 0 20px rgba(56, 189, 248, 0.36);
+}
+
+body.fps-ultra .site-header .liquid-bar,
+body.fps-ultra .site-header .liquid-pill,
+body.fps-ultra .anatomy-dock,
+body.fps-ultra .skins-dock,
+body.fps-ultra .rig-hud,
+body.fps-ultra .scroll-pill {
+  backdrop-filter: saturate(195%) contrast(106%) blur(18px);
+  -webkit-backdrop-filter: saturate(195%) contrast(106%) blur(18px);
+}
+
+body.fps-ultra .lmc-drop {
+  backdrop-filter: saturate(215%) contrast(110%) blur(2.6px);
+  -webkit-backdrop-filter: saturate(215%) contrast(110%) blur(2.6px);
+  box-shadow:
+    inset 0 3px 2px #ffffff,
+    inset 0 -3px 6px rgba(56, 189, 248, 0.56),
+    0 10px 24px -3px rgba(14, 165, 233, 0.38),
+    0 0 18px rgba(192, 132, 252, 0.36);
 }
 
 /* ==========================================================================
@@ -1009,23 +1276,21 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
   color: var(--icon-active-color);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .nav-item:hover .nav-glyph,
-  .nav-item:focus-visible .nav-glyph,
-  .nav-item.drag-over .nav-glyph {
-    transform: translate3d(0, -6.5px, 0) scale(0.96);
-    animation: iconJellyBounce 0.42s var(--ease-liquid);
-  }
+body:not(.fps-low) .nav-item:hover .nav-glyph,
+body:not(.fps-low) .nav-item:focus-visible .nav-glyph,
+body:not(.fps-low) .nav-item.drag-over .nav-glyph {
+  transform: translate3d(0, -6.5px, 0) scale(0.96);
+  animation: iconJellyBounce 0.42s var(--ease-liquid);
+}
 
-  .nav-item:hover .nav-glyph .ic-sub,
-  .nav-item:focus-visible .nav-glyph .ic-sub,
-  .nav-item.drag-over .nav-glyph .ic-sub {
-    animation: iconSubPop 0.44s var(--ease-liquid);
-  }
+body:not(.fps-low) .nav-item:hover .nav-glyph .ic-sub,
+body:not(.fps-low) .nav-item:focus-visible .nav-glyph .ic-sub,
+body:not(.fps-low) .nav-item.drag-over .nav-glyph .ic-sub {
+  animation: iconSubPop 0.44s var(--ease-liquid);
+}
 
-  .nav-item.icon-pop .nav-glyph {
-    animation: iconActivateBounce 0.46s var(--ease-liquid);
-  }
+body:not(.fps-low) .nav-item.icon-pop .nav-glyph {
+  animation: iconActivateBounce 0.46s var(--ease-liquid);
 }
 
 .nav-item:hover .nav-label,
@@ -1072,20 +1337,18 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
   color: var(--icon-active-color);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .filter-chip:hover .sub-glyph,
-  .rail-tab:hover .sub-glyph,
-  .filter-chip.icon-pop .sub-glyph,
-  .rail-tab.icon-pop .sub-glyph {
-    animation: subIconBounce 0.42s var(--ease-liquid);
-  }
+body:not(.fps-low) .filter-chip:hover .sub-glyph,
+body:not(.fps-low) .rail-tab:hover .sub-glyph,
+body:not(.fps-low) .filter-chip.icon-pop .sub-glyph,
+body:not(.fps-low) .rail-tab.icon-pop .sub-glyph {
+  animation: subIconBounce 0.42s var(--ease-liquid);
+}
 
-  .filter-chip:hover .sub-glyph .ic-sub,
-  .rail-tab:hover .sub-glyph .ic-sub,
-  .filter-chip.icon-pop .sub-glyph .ic-sub,
-  .rail-tab.icon-pop .sub-glyph .ic-sub {
-    animation: iconSubPop 0.44s var(--ease-liquid);
-  }
+body:not(.fps-low) .filter-chip:hover .sub-glyph .ic-sub,
+body:not(.fps-low) .rail-tab:hover .sub-glyph .ic-sub,
+body:not(.fps-low) .filter-chip.icon-pop .sub-glyph .ic-sub,
+body:not(.fps-low) .rail-tab.icon-pop .sub-glyph .ic-sub {
+  animation: iconSubPop 0.44s var(--ease-liquid);
 }
 
 @keyframes subIconBounce {
@@ -1148,11 +1411,12 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
 
 .fps-toggle {
   min-height: 40px;
-  padding: 0.4rem 0.8rem;
-  gap: 0.4rem;
+  padding: 0.4rem 0.86rem;
+  gap: 0.44rem;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.73rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--ink-strong);
   text-shadow: var(--text-halo);
   cursor: pointer;
@@ -1161,58 +1425,67 @@ body:not(.is-light-tone) .logo-for-dark { opacity: 1; }
 
 .fps-dot {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 7.5px;
+  height: 7.5px;
   border-radius: 50%;
   background: #10b981;
   flex: none;
-  transition: background-color 0.25s ease;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .fps-toggle[data-fps-mode="ultra"] .fps-dot {
-  background: #06b6d4;
+  background: linear-gradient(135deg, #22d3ee 0%, #a855f7 100%);
+  box-shadow: 0 0 9px rgba(34, 211, 238, 0.82);
 }
 
-.fps-toggle[data-fps-mode="lite"] .fps-dot,
-body.fps-lite .fps-toggle .fps-dot {
-  background: #38bdf8;
+.fps-toggle[data-fps-mode="low"] .fps-dot,
+body.fps-low .fps-toggle .fps-dot {
+  background: #f59e0b;
+  box-shadow: none;
 }
 
-/* Wave 2 Auto-FPS Governor Lite Tier — Preserves 100% Pure Liquid Glass & Water Droplets! */
-body.fps-lite {
-  --glass-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.88), 0 6px 14px -8px rgba(15, 23, 42, 0.12);
-  --dock-track-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.88), 0 8px 18px -8px rgba(15, 23, 42, 0.12);
-  --droplet-shadow: inset 0 2px 1px #ffffff, 0 6px 14px -5px rgba(15, 23, 42, 0.18);
+/* ==========================================================================
+   DESIGNER LOW GRAPHICS TIER (ULTRA-WEAK PC — CUTS 100% HEAVY EFFECTS CLEANLY!)
+   Zero custom cursor, zero background loops, crisp minimal pure glass borders!
+   ========================================================================== */
+body.fps-low {
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 4px 10px -6px rgba(15, 23, 42, 0.10);
+  --glass-shadow-active: inset 0 1.5px 0 #ffffff, 0 4px 12px -5px rgba(15, 23, 42, 0.14);
+  --dock-track-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 6px 14px -8px rgba(15, 23, 42, 0.10);
+  --droplet-shadow: inset 0 1.5px 0 #ffffff, 0 4px 10px -5px rgba(15, 23, 42, 0.15);
 }
 
-body.fps-lite:not(.is-light-tone) {
-  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 8px 16px -8px rgba(0, 0, 0, 0.42);
-  --dock-track-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 18px -8px rgba(0, 0, 0, 0.45);
-  --droplet-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.92), 0 6px 14px -5px rgba(0, 0, 0, 0.48);
+body.fps-low:not(.is-light-tone) {
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 6px 12px -6px rgba(0, 0, 0, 0.38);
+  --glass-shadow-active: inset 0 1.5px 0 rgba(255, 255, 255, 0.82), 0 6px 14px -5px rgba(0, 0, 0, 0.44);
+  --dock-track-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 14px -8px rgba(0, 0, 0, 0.42);
+  --droplet-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.88), 0 4px 10px -4px rgba(0, 0, 0, 0.45);
 }
 
-body.fps-lite .orbs-container,
-body.fps-lite .orbs-container-bg,
-body.fps-lite .liquid-cursor-glint {
+body.fps-low .liquid-cursor-system,
+body.fps-low .liquid-cursor-glint,
+body.fps-low .hydro-ripple-stage,
+body.fps-low .orbs-container,
+body.fps-low .orbs-container-bg,
+body.fps-low .rig-caustic-aura,
+body.fps-low .tone-sweep-wave,
+body.fps-low .wr-3,
+body.fps-low .wr-4,
+body.fps-low .wr-5 {
   display: none !important;
 }
 
-body.fps-lite .water-ribbon {
+body.fps-low .water-ribbon {
   border-color: transparent;
-}
-
-body.fps-lite .pedestal-orb img {
   animation: none !important;
 }
 
-.motion-toggle {
-  min-height: 40px;
-  padding: 0.42rem 0.9rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--ink-strong);
-  text-shadow: var(--text-halo);
-  cursor: pointer;
+body.fps-low .marquee-track,
+body.fps-low .hero-center,
+body.fps-low .pedestal-orb img,
+body.fps-low .scroll-capsule-track i,
+body.fps-low .wave-bars i {
+  animation: none !important;
 }
 
 .status-pip {
@@ -1222,10 +1495,6 @@ body.fps-lite .pedestal-orb img {
   border-radius: 50%;
   background: var(--pip-color);
   flex: none;
-}
-
-body.motion-paused .motion-toggle .status-pip {
-  background: #f59e0b;
 }
 
 .header-cta {
@@ -1455,6 +1724,32 @@ body.motion-paused .motion-toggle .status-pip {
   transform: translateZ(-70px);
   background: radial-gradient(circle, var(--halo-glow) 0%, transparent 66%);
   pointer-events: none;
+}
+
+.rig-caustic-aura {
+  display: none;
+  position: absolute;
+  inset: -34%;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 28%, rgba(56, 189, 248, 0.22) 48%, rgba(192, 132, 252, 0.18) 60%, transparent 72%);
+  transform: translateZ(-55px) rotate(0deg);
+}
+
+@keyframes ultraCausticSpin {
+  from { transform: translateZ(-55px) rotate(0deg) scale(0.96, 1.04); }
+  50% { transform: translateZ(-55px) rotate(180deg) scale(1.05, 0.96); }
+  to { transform: translateZ(-55px) rotate(360deg) scale(0.96, 1.04); }
+}
+
+body.fps-ultra .rig-caustic-aura {
+  display: block;
+  animation: ultraCausticSpin 12s linear infinite;
+}
+
+body.fps-ultra .rig-main img {
+  filter: drop-shadow(0 24px 30px rgba(0, 0, 0, 0.34)) drop-shadow(0 0 22px var(--halo-glow));
 }
 
 .rig-ground-shadow {
@@ -1725,10 +2020,8 @@ body:not(.is-light-tone) .rig-ground-shadow {
   background: currentColor;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .scroll-capsule-track i {
-    animation: wheelSlide 1.7s ease-in-out infinite;
-  }
+body:not(.fps-low) .scroll-capsule-track i {
+  animation: wheelSlide 1.7s ease-in-out infinite;
 }
 
 @keyframes wheelSlide {
@@ -1755,13 +2048,11 @@ body:not(.is-light-tone) .rig-ground-shadow {
   width: max-content;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .marquee-track {
-    animation: marqueeGlide 32s linear infinite;
-  }
-  .marquee-track.reverse {
-    animation: marqueeGlideRev 32s linear infinite;
-  }
+body:not(.fps-low) .marquee-track {
+  animation: marqueeGlide 32s linear infinite;
+}
+body:not(.fps-low) .marquee-track.reverse {
+  animation: marqueeGlideRev 32s linear infinite;
 }
 
 .marquee-track.offscreen-paused {
@@ -1852,8 +2143,14 @@ body:not(.is-light-tone) .rig-ground-shadow {
   margin-right: -0.04em;
 }
 
+body.fps-low [data-split] .char {
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  html.js [data-split] .char {
+  html.js body:not(.fps-low) [data-split] .char {
     display: inline-block;
     transform: translateY(105%);
     opacity: 0;
@@ -2083,7 +2380,7 @@ body.is-light-tone .anatomy-callout {
 }
 
 /* ==========================================================================
-   03 / 60FPS 3D COVERFLOW SKIN VAULT
+   03 / UNLIMITED-HZ 3D COVERFLOW SKIN VAULT
    ========================================================================== */
 
 .skins-vault {
@@ -3281,28 +3578,21 @@ body.is-light-tone .anatomy-callout {
   transform: scaleY(0.45);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes hidWavePulse {
-    0%, 100% { transform: scaleY(0.28); opacity: 0.58; }
-    50% { transform: scaleY(1); opacity: 1; }
-  }
-
-  .wave-bars i {
-    animation: hidWavePulse var(--wave-dur, 0.9s) ease-in-out infinite;
-  }
-  .wave-bars i:nth-child(2) { animation-delay: 0.08s; }
-  .wave-bars i:nth-child(3) { animation-delay: 0.16s; }
-  .wave-bars i:nth-child(4) { animation-delay: 0.24s; }
-  .wave-bars i:nth-child(5) { animation-delay: 0.32s; }
-  .wave-bars i:nth-child(6) { animation-delay: 0.40s; }
-  .wave-bars i:nth-child(7) { animation-delay: 0.48s; }
-  .wave-bars i:nth-child(8) { animation-delay: 0.56s; }
+@keyframes hidWavePulse {
+  0%, 100% { transform: scaleY(0.28); opacity: 0.58; }
+  50% { transform: scaleY(1); opacity: 1; }
 }
 
-body.motion-paused .wave-bars i,
-body.fps-lite .wave-bars i {
-  animation-play-state: paused !important;
+body:not(.fps-low) .wave-bars i {
+  animation: hidWavePulse var(--wave-dur, 0.9s) ease-in-out infinite;
 }
+body:not(.fps-low) .wave-bars i:nth-child(2) { animation-delay: 0.08s; }
+body:not(.fps-low) .wave-bars i:nth-child(3) { animation-delay: 0.16s; }
+body:not(.fps-low) .wave-bars i:nth-child(4) { animation-delay: 0.24s; }
+body:not(.fps-low) .wave-bars i:nth-child(5) { animation-delay: 0.32s; }
+body:not(.fps-low) .wave-bars i:nth-child(6) { animation-delay: 0.40s; }
+body:not(.fps-low) .wave-bars i:nth-child(7) { animation-delay: 0.48s; }
+body:not(.fps-low) .wave-bars i:nth-child(8) { animation-delay: 0.56s; }
 
 .wave-meta {
   font-family: var(--font-mono);
@@ -3833,10 +4123,8 @@ body.fps-lite .wave-bars i {
   height: auto;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .pedestal-orb img {
-    animation: heroLevitate 6.2s ease-in-out infinite;
-  }
+body:not(.fps-low) .pedestal-orb img {
+  animation: heroLevitate 6.2s ease-in-out infinite;
 }
 
 /* Footer — Locked 4:1 Logo Box + Safe Area Padding */
@@ -3853,13 +4141,11 @@ body.fps-lite .wave-bars i {
 /* Wave 10: Coarse-Pointer 44x44 Ergonomic Touch Hit-Slop without Visual Crowding */
 @media (pointer: coarse) {
   .fps-toggle,
-  .motion-toggle,
   .conn-tab {
     position: relative;
   }
 
   .fps-toggle::after,
-  .motion-toggle::after,
   .conn-tab::after {
     content: "";
     position: absolute;
@@ -3972,27 +4258,21 @@ body.fps-lite .wave-bars i {
 }
 
 /* ==========================================================================
-   PAUSE CONTROL & REDUCED-MOTION ACCESSIBILITY
+   LOW-TIER EFFECT CUTOFF & REDUCED-MOTION ACCESSIBILITY
    ========================================================================== */
 
-body.motion-paused .marquee-track,
-body.motion-paused .hero-center,
-body.motion-paused .pedestal-orb img,
-body.motion-paused .scroll-capsule-track i {
-  animation-play-state: paused !important;
+body.fps-low ::view-transition-group(*),
+body.fps-low ::view-transition-old(*),
+body.fps-low ::view-transition-new(*) {
+  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation: none !important;
   }
-  .skins-vault { height: auto; padding: 4rem 0; }
-  .skins-sticky { position: static; height: auto; }
-  .coverflow-viewport { overflow-x: auto; padding: 1.2rem 0; }
-  .coverflow-track { padding: 0 4%; }
 }
 
 /* ==========================================================================
@@ -4285,8 +4565,6 @@ body.motion-paused .scroll-capsule-track i {
   .header-cta .cta-tag,
   .sp-btn-text,
   .sp-kbd,
-  .fps-prefix,
-  .motion-toggle span:last-child,
   .hud-dpi,
   .hud-hz,
   .hud-skin,
@@ -4306,7 +4584,7 @@ body.motion-paused .scroll-capsule-track i {
   }
 
   .header-actions {
-    gap: 0.22rem;
+    gap: 0.28rem;
   }
 
   .spotlight-trigger {
@@ -4317,15 +4595,9 @@ body.motion-paused .scroll-capsule-track i {
 
   .fps-toggle {
     min-height: 32px;
-    padding: 0.24rem 0.46rem;
-    font-size: 0.62rem;
-    gap: 0.24rem;
-  }
-
-  .motion-toggle {
-    min-height: 32px;
-    width: 32px;
-    padding: 0;
+    padding: 0.24rem 0.56rem;
+    font-size: 0.63rem;
+    gap: 0.28rem;
   }
 
   .header-cta {

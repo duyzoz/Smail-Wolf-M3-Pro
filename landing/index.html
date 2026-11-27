@@ -21,6 +21,21 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-edition="pearl" class="is-light-tone">
+  <!-- Zero-Lag 3D Liquid Glass Water-Droplet Cursor, Rim Suction & Periodic Gravity Drip System -->
+  <div class="liquid-cursor-system" id="liquidCursorSystem" aria-hidden="true">
+    <div class="liquid-suction-bridge" id="liquidSuctionBridge"></div>
+    <div class="liquid-rim-aura" id="liquidRimAura"></div>
+    <div class="liquid-falling-drop" id="liquidFallingDrop"></div>
+    <div class="liquid-wet-splash" id="liquidWetSplash"></div>
+    <div class="liquid-mouse-cursor" id="liquidMouseCursor">
+      <span class="lmc-sat s1"></span>
+      <span class="lmc-sat s2"></span>
+      <span class="lmc-drop" id="liquidCursorDrop">
+        <span class="lmc-caustic"></span>
+      </span>
+    </div>
+  </div>
+
   <!-- Single Shared GPU-Composited Water Glint (Replaces 90 per-card radial repaints!) -->
   <div class="liquid-cursor-glint" id="liquidCursorGlint" aria-hidden="true"></div>
 
@@ -46,12 +61,13 @@
   <!-- Silky Diagonal Liquid Tone-Sweep Wave on Skin Switch -->
   <div class="tone-sweep-wave" id="toneSweepWave" aria-hidden="true"></div>
 
-  <!-- Ultra-Light Fluid Water-Silk Contours Behind Clear Glass (Zero Box-Shadow Fill-Rate Lag!) -->
+  <!-- Living Fluid Water-Silk Contours & Scroll-Whoosh Backdrop Stage -->
   <div class="water-silk-stage" id="glidingFramesStage" aria-hidden="true">
     <div class="water-ribbon wr-1"></div>
     <div class="water-ribbon wr-2"></div>
     <div class="water-ribbon wr-3"></div>
     <div class="water-ribbon wr-4"></div>
+    <div class="water-ribbon wr-5"></div>
   </div>
 
   <!-- ================= FLOATING DRAGGABLE LIQUID GLASS ICON TASKBAR ================= -->
@@ -135,13 +151,9 @@
         <span class="sp-btn-text">Find</span>
         <kbd class="sp-kbd">⌘K</kbd>
       </button>
-      <button type="button" class="fps-toggle liquid-pill" id="fpsToggle" data-fps-mode="auto" aria-label="Graphics performance mode: Auto 60 FPS — click to cycle Auto, Ultra, or Lite">
+      <button type="button" class="fps-toggle liquid-pill" id="fpsToggle" data-fps-mode="auto" aria-label="Graphics quality mode: Automatic — click to switch Ultra, Low, or Automatic">
         <span class="fps-dot" aria-hidden="true"></span>
-        <span class="fps-prefix">Auto · </span><span id="fpsToggleLabel">60fps</span>
-      </button>
-      <button type="button" class="motion-toggle liquid-pill" id="motionToggle" aria-label="Pause ambient motion">
-        <span class="status-pip" aria-hidden="true"></span>
-        <span id="motionToggleLabel">Pause</span>
+        <span id="fpsToggleLabel">Automatic</span>
       </button>
       <a href="#download" class="header-cta liquid-pill">
         <span>Download</span>
@@ -199,12 +211,13 @@
           </div>
         </div>
 
-        <!-- Centerpiece 3D Volumetric Real Mouse Stage (60fps Zero-Blur Rig) -->
+        <!-- Centerpiece 3D Volumetric Real Mouse Stage (Unlimited-Hz Zero-Blur Rig) -->
         <div class="hero-center" id="heroCenter">
           <div class="mouse-3d-viewport">
             <div class="mouse-3d-rig" id="productRig">
-              <!-- Soft Radial Contact Halo (Zero GPU Blur Filter) -->
+              <!-- Soft Radial Contact Halo + Ultra Volumetric Caustic Aura -->
               <div class="rig-halo" aria-hidden="true"></div>
+              <div class="rig-caustic-aura" aria-hidden="true"></div>
               <div class="rig-ground-shadow" aria-hidden="true"></div>
 
               <!-- Crisp Authentic High-Resolution M3 Pro Cutout -->
@@ -369,7 +382,7 @@
         <div class="section-header compact">
           <p class="kicker-pill liquid-pill">03 · 3D COVERFLOW VAULT · 67 REAL CUTOUTS</p>
           <h2 id="skins-title" class="section-title" data-split>67 Sculpted <em>Identities.</em></h2>
-          <p class="section-sub">Scroll vertically to glide across all 67 real transparent mouse cutouts in 60fps 3D Coverflow. Select any mouse to inspect or equip it onto the Hero Stage.</p>
+          <p class="section-sub">Scroll vertically to glide across all 67 real transparent mouse cutouts in fluid 3D Coverflow. Select any mouse to inspect or equip it onto the Hero Stage.</p>
 
           <div class="skin-filters liquid-glass liquid-taskbar-dock" id="skinFilters" data-liquid-dock role="group" aria-label="Filter mouse skins">
             <button type="button" class="filter-chip active" aria-pressed="true" data-filter="all">
