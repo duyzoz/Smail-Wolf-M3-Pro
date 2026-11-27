@@ -1749,6 +1749,255 @@ body:not(.fps-low) .mode-opt-btn.active .glyph-low .ic-main {
   animation: lowDewPulse 2.4s ease-in-out infinite;
 }
 
+.mode-divider {
+  border: 0;
+  height: 1px;
+  margin: 0.28rem 0.55rem 0.22rem;
+  background: var(--glass-border);
+}
+
+.mode-sound-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.44rem 0.72rem 0.36rem 0.82rem;
+  border-radius: 14px;
+  font-family: var(--font-ios);
+  color: var(--ink-strong);
+  cursor: pointer;
+  user-select: none;
+}
+
+.mode-sound-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.68rem;
+}
+
+.mode-sound-row:hover .glyph-sound .ic-wave {
+  animation: autoWaveRock 1.8s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   WAVE 22: 1127.mp4 (00:14-00:17) TRUE LIQUID GLASS IOS TOGGLE SWITCH!
+   Pressing / flipping lifts the wide capsule knob into crystal transparency
+   so the emerald green pill glows visibly straight through the clear glass!
+   ========================================================================== */
+.lg-switch {
+  -webkit-appearance: none;
+  appearance: none;
+  accent-color: #34c759;
+  position: relative;
+  width: 52px;
+  height: 29px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--meter-track);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1.5px 3px rgba(15, 23, 42, 0.14);
+  cursor: pointer;
+  flex: none;
+  vertical-align: middle;
+  transition: background 0.3s var(--ease-spring), border-color 0.26s ease, box-shadow 0.26s ease;
+}
+
+.lg-switch:focus-visible {
+  outline: 2.5px solid currentColor;
+  outline-offset: 3px;
+}
+
+.lg-switch:checked {
+  background: linear-gradient(180deg, #34c759 0%, #24b349 100%);
+  border-color: rgba(52, 199, 89, 0.58);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.14),
+    0 0 14px rgba(52, 199, 89, 0.30);
+}
+
+.lg-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 30px;
+  height: 23px;
+  border-radius: 999px;
+  background:
+    radial-gradient(88% 36% at 50% 6%, #ffffff 0%, rgba(255, 255, 255, 0.84) 64%, rgba(235, 245, 255, 0.94) 100%);
+  border: 1.2px solid rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 0 2px 1.5px #ffffff,
+    0 4px 10px -2px rgba(15, 23, 42, 0.26);
+  transform: translate3d(0, 0, 0);
+  transform-origin: center center;
+  transition:
+    transform 0.36s var(--ease-liquid),
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.lg-switch:checked::after {
+  transform: translate3d(16px, 0, 0);
+}
+
+.lg-switch:active::after,
+.lg-switch.is-flipping::after {
+  transform: translate3d(0, -1px, 0) scale(1.24, 1.18);
+  background:
+    radial-gradient(90% 34% at 50% 4%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.04) 60%, transparent 100%),
+    linear-gradient(90deg, rgba(52, 199, 89, 0.20) 0%, rgba(255, 255, 255, 0.02) 20%, rgba(255, 255, 255, 0.02) 80%, rgba(255, 255, 255, 0.50) 100%);
+  box-shadow:
+    inset 0 2px 1.5px #ffffff,
+    inset 0 -1.5px 3px rgba(52, 199, 89, 0.42),
+    0 10px 22px -4px rgba(15, 23, 42, 0.28);
+}
+
+.lg-switch:checked:active::after,
+.lg-switch:checked.is-flipping::after {
+  transform: translate3d(16px, -1px, 0) scale(1.24, 1.18);
+}
+
+/* Wave 22 + 26: Studio Register Switches & Live Millisecond-Delta Macro Timeline */
+.studio-switches-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+}
+
+.studio-sw-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.46rem 0.62rem;
+  border-radius: 15px;
+  background: var(--code-bg);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.22s ease;
+}
+
+.studio-sw-row:hover {
+  border-color: var(--glass-border-strong);
+}
+
+.sw-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sw-meta b {
+  font-family: var(--font-ios);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  line-height: 1.2;
+}
+
+.sw-meta small {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.studio-sw-row .lg-switch {
+  transform: scale(0.86);
+  transform-origin: right center;
+}
+
+.macro-demo-strip {
+  margin-top: 0.45rem;
+  padding: 0.56rem 0.72rem;
+  border-radius: 16px;
+  background: var(--code-bg);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  transition: border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.macro-demo-strip.is-highlighted {
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--glass-shadow-active);
+}
+
+.macro-demo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.macro-demo-title {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.macro-run-btn {
+  min-height: 26px;
+  padding: 0.16rem 0.66rem;
+  font-family: var(--font-ios);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+  cursor: pointer;
+}
+
+.macro-bars {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.34rem;
+}
+
+.m-step {
+  padding: 0.3rem 0.24rem;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  transition: transform 0.24s var(--ease-liquid), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.m-step b {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.m-step em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  color: var(--ink-soft);
+}
+
+.m-step.is-firing {
+  transform: translate3d(0, -3px, 0) scale(1.06);
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 6px 14px -3px rgba(0, 122, 255, 0.38);
+}
+
+@media (max-width: 540px) {
+  .studio-switches-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ==========================================================================
    DESIGNER LOW GRAPHICS TIER (ULTRA-WEAK PC — CUTS 100% HEAVY EFFECTS CLEANLY!)
    Zero custom cursor, zero background loops, crisp minimal pure glass borders!
@@ -2163,6 +2412,18 @@ body:not(.is-light-tone) .rig-ground-shadow {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+}
+
+body.fps-ultra .orb-glass {
+  box-shadow:
+    inset 0 2.5px 2px #ffffff,
+    inset 0 -2.5px 5px rgba(125, 211, 252, 0.34),
+    0 14px 28px -8px rgba(14, 165, 233, 0.22);
+}
+
+.mouse-3d-viewport {
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .orb-glass img {

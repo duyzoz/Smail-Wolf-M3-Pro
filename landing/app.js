@@ -166,6 +166,93 @@
   // Strictly manual mode lock — never auto-downgrade when switching tones or scrolling!
   function recordLoopDelta() {}
 
+  /* ------------------------------------------------------------------------
+     WAVE 22: ZERO-ASSET PROCEDURAL WEB AUDIO CRYSTAL WATER ACOUSTICS
+     Opt-in via `Water Sound` 1127 switch inside Mode dropdown (0 MP3s, 0 CDN!)
+     ------------------------------------------------------------------------ */
+  const waterSoundSwitch = document.getElementById('waterSoundSwitch');
+  let waterSoundEnabled = false;
+  let waterAudioCtx = null;
+
+  try {
+    waterSoundEnabled = window.localStorage && localStorage.getItem('m3pro_water_sound') === '1';
+  } catch (_) {}
+  if (waterSoundSwitch) {
+    waterSoundSwitch.checked = waterSoundEnabled;
+  }
+
+  function playWaterDrop(kind = 'plop') {
+    if (!waterSoundEnabled || fpsLowActive || document.hidden) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!waterAudioCtx) waterAudioCtx = new AC();
+      if (waterAudioCtx.state === 'suspended') waterAudioCtx.resume().catch(() => {});
+
+      const t = waterAudioCtx.currentTime;
+      const osc = waterAudioCtx.createOscillator();
+      const gain = waterAudioCtx.createGain();
+      osc.type = 'sine';
+
+      if (kind === 'switch') {
+        osc.frequency.setValueAtTime(520, t);
+        osc.frequency.exponentialRampToValueAtTime(1060, t + 0.048);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.045, t + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.062);
+      } else if (kind === 'splash') {
+        osc.frequency.setValueAtTime(760, t);
+        osc.frequency.exponentialRampToValueAtTime(380, t + 0.025);
+        osc.frequency.exponentialRampToValueAtTime(980, t + 0.072);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.032, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.085);
+      } else if (kind === 'whoosh') {
+        osc.frequency.setValueAtTime(340, t);
+        osc.frequency.exponentialRampToValueAtTime(720, t + 0.085);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.042, t + 0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+      } else {
+        osc.frequency.setValueAtTime(440, t);
+        osc.frequency.exponentialRampToValueAtTime(860, t + 0.042);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(0.036, t + 0.007);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+      }
+
+      osc.connect(gain);
+      gain.connect(waterAudioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.12);
+    } catch (_) {}
+  }
+
+  // Accessible fallback for `<input type="checkbox" switch>` + 1127.mp4 clear-glass flip flash
+  const supportsNativeSwitch = 'switch' in HTMLInputElement.prototype;
+  document.querySelectorAll('input[type="checkbox"][switch]').forEach((sw) => {
+    if (!supportsNativeSwitch) {
+      sw.setAttribute('role', 'switch');
+      sw.setAttribute('aria-checked', String(sw.checked));
+    }
+    sw.addEventListener('change', () => {
+      if (!supportsNativeSwitch) sw.setAttribute('aria-checked', String(sw.checked));
+      sw.classList.remove('is-flipping');
+      void sw.offsetWidth;
+      sw.classList.add('is-flipping');
+      setTimeout(() => sw.classList.remove('is-flipping'), 240);
+      if (sw === waterSoundSwitch) {
+        waterSoundEnabled = sw.checked;
+        try {
+          if (window.localStorage) localStorage.setItem('m3pro_water_sound', waterSoundEnabled ? '1' : '0');
+        } catch (_) {}
+        if (waterSoundEnabled) playWaterDrop('switch');
+      } else {
+        playWaterDrop('switch');
+      }
+    });
+  });
+
   // Passive refresh-rate estimator for internal physics default `dt`
   function calibrateDisplayHz() {
     if (document.hidden || fpsLowActive) return;
@@ -473,7 +560,7 @@
 
   const liquidStates = new WeakMap();
   const activeLiquidEls = new Set();
-  let liquidLoopRunning = false;
+  let liquidRafId = 0;
 
   function getLiquidState(el) {
     let st = liquidStates.get(el);
@@ -531,85 +618,86 @@
 
   let lastLiquidTick = 0;
   function liquidPhysicsTick(now) {
+    liquidRafId = 0;
     if (motionPaused || fpsLowActive || !activeLiquidEls.size || document.hidden) {
-      liquidLoopRunning = false;
       lastLiquidTick = 0;
       return;
     }
-    liquidLoopRunning = true;
     const rawDt = lastLiquidTick && now ? (now - lastLiquidTick) / 1000 : 1 / detectedHz;
     if (lastLiquidTick && now) recordLoopDelta(now - lastLiquidTick);
     lastLiquidTick = now || 0;
     const dt = clamp(rawDt, 0.0004, 0.034);
     const h = dt * 0.5;
 
-    activeLiquidEls.forEach((el) => {
-      const st = liquidStates.get(el);
-      if (!st) {
-        activeLiquidEls.delete(el);
-        return;
-      }
-
-      const stiff = st.hovered ? 260 : 165;
-      const damp = st.hovered ? 21 : 18.5;
-
-      [st.tx, st.vx] = stepSpringDt(st.tx, st.vx, st.targetTx, stiff, damp, h);
-      [st.ty, st.vy] = stepSpringDt(st.ty, st.vy, st.targetTy, stiff, damp, h);
-      [st.sx, st.vsx] = stepSpringDt(st.sx, st.vsx, st.targetSx, stiff, damp, h);
-      [st.sy, st.vsy] = stepSpringDt(st.sy, st.vsy, st.targetSy, stiff, damp, h);
-      [st.sk, st.vsk] = stepSpringDt(st.sk, st.vsk, st.targetSk, stiff, damp, h);
-      [st.rx, st.vrx] = stepSpringDt(st.rx, st.vrx, st.targetRx, stiff, damp, h);
-      [st.ry, st.vry] = stepSpringDt(st.ry, st.vry, st.targetRy, stiff, damp, h);
-
-      const settled =
-        !st.hovered &&
-        Math.abs(st.tx) < 0.08 &&
-        Math.abs(st.ty) < 0.08 &&
-        Math.abs(st.sx - 1) < 0.0008 &&
-        Math.abs(st.sy - 1) < 0.0008 &&
-        Math.abs(st.sk) < 0.02 &&
-        Math.abs(st.rx) < 0.04 &&
-        Math.abs(st.ry) < 0.04 &&
-        Math.abs(st.vx) < 0.6 &&
-        Math.abs(st.vy) < 0.6;
-
-      if (settled) {
-        st.tx = 0; st.ty = 0; st.sx = 1; st.sy = 1; st.sk = 0; st.rx = 0; st.ry = 0;
-        el.style.translate = '';
-        el.style.scale = '';
-        el.style.transform = '';
-        activeLiquidEls.delete(el);
-      } else {
-        el.style.translate = `${st.tx.toFixed(2)}px ${st.ty.toFixed(2)}px`;
-        el.style.scale = `${st.sx.toFixed(4)} ${st.sy.toFixed(4)}`;
-        const hasTilt = Math.abs(st.rx) > 0.03 || Math.abs(st.ry) > 0.03;
-        if (hasTilt) {
-          el.style.transform = `perspective(1100px) rotateX(${st.rx.toFixed(2)}deg) rotateY(${st.ry.toFixed(2)}deg)${st.sk ? ` skewX(${st.sk.toFixed(2)}deg)` : ''}`;
-        } else {
-          el.style.transform = st.sk ? `skewX(${st.sk.toFixed(2)}deg)` : '';
+    try {
+      activeLiquidEls.forEach((el) => {
+        const st = liquidStates.get(el);
+        if (!st) {
+          activeLiquidEls.delete(el);
+          return;
         }
-      }
-    });
 
-    if (activeLiquidEls.size > 0) {
-      requestAnimationFrame(liquidPhysicsTick);
-    } else {
-      liquidLoopRunning = false;
+        const stiff = st.hovered ? 260 : 165;
+        const damp = st.hovered ? 21 : 18.5;
+
+        [st.tx, st.vx] = stepSpringDt(st.tx, st.vx, st.targetTx, stiff, damp, h);
+        [st.ty, st.vy] = stepSpringDt(st.ty, st.vy, st.targetTy, stiff, damp, h);
+        [st.sx, st.vsx] = stepSpringDt(st.sx, st.vsx, st.targetSx, stiff, damp, h);
+        [st.sy, st.vsy] = stepSpringDt(st.sy, st.vsy, st.targetSy, stiff, damp, h);
+        [st.sk, st.vsk] = stepSpringDt(st.sk, st.vsk, st.targetSk, stiff, damp, h);
+        [st.rx, st.vrx] = stepSpringDt(st.rx, st.vrx, st.targetRx, stiff, damp, h);
+        [st.ry, st.vry] = stepSpringDt(st.ry, st.vry, st.targetRy, stiff, damp, h);
+
+        const settled =
+          !st.hovered &&
+          Math.abs(st.tx) < 0.08 &&
+          Math.abs(st.ty) < 0.08 &&
+          Math.abs(st.sx - 1) < 0.0008 &&
+          Math.abs(st.sy - 1) < 0.0008 &&
+          Math.abs(st.sk) < 0.02 &&
+          Math.abs(st.rx) < 0.04 &&
+          Math.abs(st.ry) < 0.04 &&
+          Math.abs(st.vx) < 0.6 &&
+          Math.abs(st.vy) < 0.6;
+
+        if (settled) {
+          st.tx = 0; st.ty = 0; st.sx = 1; st.sy = 1; st.sk = 0; st.rx = 0; st.ry = 0;
+          el.style.translate = '';
+          el.style.scale = '';
+          el.style.transform = '';
+          activeLiquidEls.delete(el);
+        } else {
+          el.style.translate = `${st.tx.toFixed(2)}px ${st.ty.toFixed(2)}px`;
+          el.style.scale = `${st.sx.toFixed(4)} ${st.sy.toFixed(4)}`;
+          const hasTilt = Math.abs(st.rx) > 0.03 || Math.abs(st.ry) > 0.03;
+          if (hasTilt) {
+            el.style.transform = `perspective(1100px) rotateX(${st.rx.toFixed(2)}deg) rotateY(${st.ry.toFixed(2)}deg)${st.sk ? ` skewX(${st.sk.toFixed(2)}deg)` : ''}`;
+          } else {
+            el.style.transform = st.sk ? `skewX(${st.sk.toFixed(2)}deg)` : '';
+          }
+        }
+      });
+
+      if (activeLiquidEls.size > 0) {
+        liquidRafId = requestAnimationFrame(liquidPhysicsTick);
+      } else {
+        lastLiquidTick = 0;
+      }
+    } catch (_) {
       lastLiquidTick = 0;
     }
   }
 
   function wakeLiquidPhysics() {
-    if (!liquidLoopRunning && !motionPaused && !fpsLowActive && activeLiquidEls.size > 0) {
-      liquidLoopRunning = true;
-      requestAnimationFrame(liquidPhysicsTick);
+    if (!liquidRafId && !motionPaused && !fpsLowActive && activeLiquidEls.size > 0) {
+      liquidRafId = requestAnimationFrame(liquidPhysicsTick);
     }
   }
 
   const mouse = { x: 0, y: 0, px: window.innerWidth / 2, py: window.innerHeight / 2 };
   const currentMouse = { x: 0, y: 0 };
   let heroVisible = true;
-  let heroRunning = false;
+  let heroRafId = 0;
 
   const cursorGlint = document.getElementById('liquidCursorGlint');
   const liquidMouseCursor = document.getElementById('liquidMouseCursor');
@@ -908,6 +996,7 @@
             splashState.age = 0;
 
             spawnHydroRipple(dripState.x, dripState.targetY);
+            playWaterDrop('splash');
 
             if (dripState.targetEl && dripState.targetEl.isConnected) {
               const hitSt = getLiquidState(dripState.targetEl);
@@ -1565,7 +1654,10 @@
       if (changed) {
         st.dir = nextA >= st.posA ? 1 : -1;
         if (!opts.fromDragRelease) spawnCoalesceTrail(prevTab);
-        if (opts.bounceIcon !== false) triggerIconBounce(nextTab);
+        if (opts.bounceIcon !== false) {
+          triggerIconBounce(nextTab);
+          playWaterDrop('plop');
+        }
       }
       st.targetA = nextA;
       st.targetB = nextB;
@@ -2179,6 +2271,7 @@
     const key = EDITION_ORDER[activeEditionIndex];
     editionCards.forEach((c) => c.classList.toggle('active', c.dataset.edition === key));
     if (edCounter) edCounter.textContent = `0${activeEditionIndex + 1} / 0${EDITION_ORDER.length}`;
+    playWaterDrop('whoosh');
     runSpinSwap({ editionKey: key });
   }
 
@@ -2191,43 +2284,86 @@
   if (edPrev) edPrev.addEventListener('click', () => selectEditionByIndex(activeEditionIndex - 1));
   if (edNext) edNext.addEventListener('click', () => selectEditionByIndex(activeEditionIndex + 1));
 
-  // Mobile / Touch 3D Finger-Tilt on Hero Mouse Stage
+  // Wave 24: Power-User Keyboard Shortcuts (`1`-`4` Tones, `M` Mode Dropdown)
+  document.addEventListener('keydown', (ev) => {
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const tag = ev.target && ev.target.tagName ? ev.target.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (ev.target && ev.target.isContentEditable)) return;
+    if ((skinModal && skinModal.open) || (spotlightDialog && spotlightDialog.open)) return;
+
+    if (ev.key >= '1' && ev.key <= '4') {
+      selectEditionByIndex(Number(ev.key) - 1);
+    } else if (ev.key.toLowerCase() === 'm') {
+      ev.preventDefault();
+      if (modeMenuOpen) closeModeMenu(true);
+      else openModeMenu(true);
+    }
+  });
+
+  // Wave 23: Universal 360° Drag-to-Spin + Inertial Momentum on Hero 3D Mouse (Desktop + Touch!)
+  let dragSpinY = 0;
+  let dragVelY = 0;
+  let isHeroDragging = false;
   const mouse3dViewport = document.querySelector('.mouse-3d-viewport');
   if (mouse3dViewport) {
     let heroPtrId = null;
+    let heroLastX = 0;
     let heroDownX = 0;
     let heroDownY = 0;
+
     mouse3dViewport.addEventListener('pointerdown', (ev) => {
-      if (finePointer || motionPaused) return;
+      if (motionPaused || ev.button > 0) return;
       heroPtrId = ev.pointerId;
       heroDownX = ev.clientX;
       heroDownY = ev.clientY;
+      heroLastX = ev.clientX;
+      isHeroDragging = true;
+      dragVelY = 0;
+      mouse3dViewport.style.cursor = 'grabbing';
+      try { mouse3dViewport.setPointerCapture(ev.pointerId); } catch (_) {}
+      wakeHeroLoop();
     });
+
     mouse3dViewport.addEventListener('pointermove', (ev) => {
       if (heroPtrId !== ev.pointerId || motionPaused) return;
+      const stepDx = ev.clientX - heroLastX;
+      heroLastX = ev.clientX;
       const dx = ev.clientX - heroDownX;
       const dy = ev.clientY - heroDownY;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        mouse.x = clamp(dx / 180, -0.85, 0.85);
-        mouse.y = clamp(dy / 220, -0.55, 0.55);
+
+      if (finePointer || Math.abs(dx) > Math.abs(dy)) {
+        dragSpinY += stepDx * 0.72;
+        dragVelY = clamp(stepDx * 26, -720, 720);
+        if (!finePointer) {
+          mouse.x = clamp(dx / 180, -0.85, 0.85);
+          mouse.y = clamp(dy / 220, -0.55, 0.55);
+        }
         wakeHeroLoop();
       }
     });
-    const resetHeroTouch = (ev) => {
+
+    const resetHeroDrag = (ev) => {
       if (heroPtrId !== ev.pointerId) return;
       heroPtrId = null;
-      mouse.x = 0;
-      mouse.y = 0;
+      isHeroDragging = false;
+      mouse3dViewport.style.cursor = '';
+      try {
+        if (mouse3dViewport.hasPointerCapture(ev.pointerId)) mouse3dViewport.releasePointerCapture(ev.pointerId);
+      } catch (_) {}
+      if (!finePointer) {
+        mouse.x = 0;
+        mouse.y = 0;
+      }
       wakeHeroLoop();
     };
-    mouse3dViewport.addEventListener('pointerup', resetHeroTouch);
-    mouse3dViewport.addEventListener('pointercancel', resetHeroTouch);
+    mouse3dViewport.addEventListener('pointerup', resetHeroDrag);
+    mouse3dViewport.addEventListener('pointercancel', resetHeroDrag);
   }
 
   let lastHeroTick = 0;
   function heroTick(now) {
+    heroRafId = 0;
     if (!heroVisible || motionPaused || document.hidden) {
-      heroRunning = false;
       lastHeroTick = 0;
       return;
     }
@@ -2235,71 +2371,87 @@
     if (lastHeroTick && now) recordLoopDelta(now - lastHeroTick);
     lastHeroTick = now || 0;
     const dt = clamp(rawDt, 0.0004, 0.034);
+    const h = dt * 0.5;
     const mouseAlpha = 1 - Math.exp(-9.5 * dt);
 
-    const dxMouse = mouse.x - currentMouse.x;
-    const dyMouse = mouse.y - currentMouse.y;
-    currentMouse.x += dxMouse * mouseAlpha;
-    currentMouse.y += dyMouse * mouseAlpha;
+    try {
+      const dxMouse = mouse.x - currentMouse.x;
+      const dyMouse = mouse.y - currentMouse.y;
+      currentMouse.x += dxMouse * mouseAlpha;
+      currentMouse.y += dyMouse * mouseAlpha;
 
-    if (productRig) {
-      const rotY = currentMouse.x * 28 + switchSpin;
-      const rotX = -currentMouse.y * 15;
-      productRig.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(14deg)`;
-    }
+      // Inertial 360° drag spin glides & springs gently back to home orientation
+      if (!isHeroDragging && (Math.abs(dragSpinY) > 0.08 || Math.abs(dragVelY) > 0.8)) {
+        // Normalize angle to [-180, 180] so full 360° spins settle along shortest path!
+        if (Math.abs(dragVelY) < 40 && Math.abs(dragSpinY) > 180) {
+          dragSpinY = ((dragSpinY + 180) % 360 + 360) % 360 - 180;
+        }
+        [dragSpinY, dragVelY] = stepSpringDt(dragSpinY, dragVelY, 0, 42, 7.2, h);
+      } else if (!isHeroDragging) {
+        dragSpinY = 0;
+        dragVelY = 0;
+      }
 
-    let orbsSettling = false;
-    if (window.innerWidth > 1040 && !fpsLowActive) {
-      if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 26).toFixed(1)}px, ${(currentMouse.y * 26).toFixed(1)}px, 0)`;
-      if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -14).toFixed(1)}px, ${(currentMouse.y * -14).toFixed(1)}px, 0)`;
+      if (productRig) {
+        const rotY = currentMouse.x * 28 + switchSpin + dragSpinY;
+        const rotX = -currentMouse.y * 15;
+        productRig.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg) rotateZ(14deg)`;
+      }
 
-      // Surrounding droplets stream & chase after the cursor like fluid water wake!
-      if (!isSwitching) {
-        const pullGain = fpsUltraActive ? 0.34 : 0.24;
-        const maxChase = fpsUltraActive ? 165 : 120;
-        for (let i = 0; i < orbState.length; i++) {
-          const o = orbState[i];
-          const orbAlpha = 1 - Math.exp(-(4.6 + i * 1.35) * dt);
-          const diffX = mouse.px - (o.cx + o.baseX);
-          const diffY = mouse.py - (o.cy + o.baseY);
+      let orbsSettling = false;
+      if (window.innerWidth > 1040 && !fpsLowActive) {
+        if (orbsFG) orbsFG.style.transform = `translate3d(${(currentMouse.x * 26).toFixed(1)}px, ${(currentMouse.y * 26).toFixed(1)}px, 0)`;
+        if (orbsBG) orbsBG.style.transform = `translate3d(${(currentMouse.x * -14).toFixed(1)}px, ${(currentMouse.y * -14).toFixed(1)}px, 0)`;
 
-          const factor = pullGain + i * 0.035;
-          const targetRx = clamp(diffX * factor, -maxChase, maxChase);
-          const targetRy = clamp(diffY * factor, -maxChase * 0.82, maxChase * 0.82);
+        // Surrounding droplets stream & chase after the cursor like fluid water wake!
+        if (!isSwitching) {
+          const pullGain = fpsUltraActive ? 0.34 : 0.24;
+          const maxChase = fpsUltraActive ? 165 : 120;
+          for (let i = 0; i < orbState.length; i++) {
+            const o = orbState[i];
+            const orbAlpha = 1 - Math.exp(-(4.6 + i * 1.35) * dt);
+            const diffX = mouse.px - (o.cx + o.baseX);
+            const diffY = mouse.py - (o.cy + o.baseY);
 
-          const stepX = (targetRx - o.rx) * orbAlpha;
-          const stepY = (targetRy - o.ry) * orbAlpha;
-          if (Math.abs(stepX) > 0.06 || Math.abs(stepY) > 0.06) orbsSettling = true;
+            const factor = pullGain + i * 0.035;
+            const targetRx = clamp(diffX * factor, -maxChase, maxChase);
+            const targetRy = clamp(diffY * factor, -maxChase * 0.82, maxChase * 0.82);
 
-          o.rx += stepX;
-          o.ry += stepY;
+            const stepX = (targetRx - o.rx) * orbAlpha;
+            const stepY = (targetRy - o.ry) * orbAlpha;
+            if (Math.abs(stepX) > 0.06 || Math.abs(stepY) > 0.06) orbsSettling = true;
 
-          if (fpsUltraActive) {
-            const vMag = Math.hypot(stepX, stepY) / dt;
-            const stretch = clamp(vMag / 1600, 0, 0.16);
-            o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0) scale(${(1 + stretch).toFixed(3)}, ${(1 - stretch * 0.55).toFixed(3)})`;
-          } else {
-            o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0)`;
+            o.rx += stepX;
+            o.ry += stepY;
+
+            if (fpsUltraActive) {
+              const vMag = Math.hypot(stepX, stepY) / dt;
+              const stretch = clamp(vMag / 1600, 0, 0.16);
+              o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0) scale(${(1 + stretch).toFixed(3)}, ${(1 - stretch * 0.55).toFixed(3)})`;
+            } else {
+              o.el.style.transform = `translate3d(${(o.rx + o.baseX).toFixed(1)}px, ${(o.ry + o.baseY).toFixed(1)}px, 0)`;
+            }
           }
         }
       }
-    }
 
-    const stillMoving = Math.abs(dxMouse) > 0.001 || Math.abs(dyMouse) > 0.001 || orbsSettling || isSwitching || switchSpin !== 0;
-    if (stillMoving) {
-      requestAnimationFrame(heroTick);
-    } else {
-      heroRunning = false;
+      const dragActive = isHeroDragging || Math.abs(dragSpinY) > 0.08 || Math.abs(dragVelY) > 0.8;
+      const stillMoving = Math.abs(dxMouse) > 0.001 || Math.abs(dyMouse) > 0.001 || orbsSettling || isSwitching || switchSpin !== 0 || dragActive;
+      if (stillMoving) {
+        heroRafId = requestAnimationFrame(heroTick);
+      } else {
+        lastHeroTick = 0;
+        if (productRig) productRig.style.willChange = 'auto';
+      }
+    } catch (_) {
       lastHeroTick = 0;
-      if (productRig) productRig.style.willChange = 'auto';
     }
   }
 
   function wakeHeroLoop() {
-    if (!heroRunning && heroVisible && !motionPaused && !document.hidden) {
-      heroRunning = true;
+    if (!heroRafId && heroVisible && !motionPaused && !document.hidden) {
       if (productRig) productRig.style.willChange = 'transform';
-      requestAnimationFrame(heroTick);
+      heroRafId = requestAnimationFrame(heroTick);
     }
   }
 
@@ -3238,6 +3390,10 @@
           hzArenaCard.scrollIntoView({ behavior: motionPaused ? 'auto' : 'smooth', block: 'nearest' });
         }
       }
+      if (macroDemoStrip) {
+        macroDemoStrip.classList.toggle('is-highlighted', key === 'macro');
+        if (key === 'macro') runMacroBurstPreview();
+      }
       emitStudioHex(info.hex, info.note);
     };
     tab.addEventListener('click', applyRail);
@@ -3306,6 +3462,59 @@
     btn.addEventListener('click', applyPreset);
     btn.addEventListener('dockselect', applyPreset);
   });
+
+  // Wave 22 + 26: Studio 1127 Hardware Switches & Live Millisecond-Delta Macro Burst
+  const studioSwitches = Array.from(document.querySelectorAll('#studioSwitchesGrid [data-sw-hex]'));
+  studioSwitches.forEach((sw) => {
+    sw.addEventListener('change', () => {
+      const hex = sw.dataset.swHex || 'F0 0F AE 0A 2F 01 01 00';
+      const label = sw.dataset.swLabel || 'REGISTER';
+      const stateWord = sw.checked ? 'ON' : 'OFF';
+      emitStudioHex(hex, `${label} ${stateWord}`);
+      showLiquidToast(`${label}: ${stateWord} (64B HID queued)`);
+    });
+  });
+
+  const macroDemoStrip = document.getElementById('macroDemoStrip');
+  const macroRunBtn = document.getElementById('macroRunBtn');
+  const macroSteps = Array.from(document.querySelectorAll('#macroBars .m-step'));
+  let macroBurstTimers = [];
+
+  function runMacroBurstPreview() {
+    macroBurstTimers.forEach((t) => clearTimeout(t));
+    macroBurstTimers = [];
+    macroSteps.forEach((s) => s.classList.remove('is-firing'));
+    if (macroRunBtn) macroRunBtn.textContent = 'Running...';
+
+    const stepFrames = [
+      { hex: 'F0 0D 12 04 0E 00 00 00', note: 'KEY 0x04 DOWN · 14MS' },
+      { hex: 'F0 0D 12 84 09 00 00 00', note: 'KEY 0x04 UP · 9MS' },
+      { hex: 'F0 0D 12 16 10 00 00 00', note: 'KEY 0x16 DOWN · 16MS' },
+      { hex: 'F0 0D 12 96 0B 00 00 00', note: 'KEY 0x16 UP · 11MS' },
+      { hex: 'F0 10 00 04 00 00 00 00', note: 'COMMIT MACRO · 512KB FLASH' }
+    ];
+
+    macroSteps.forEach((stepEl, i) => {
+      const t1 = setTimeout(() => {
+        macroSteps.forEach((s) => s.classList.remove('is-firing'));
+        stepEl.classList.add('is-firing');
+        playWaterDrop(i === macroSteps.length - 1 ? 'switch' : 'plop');
+        const info = stepFrames[i % stepFrames.length];
+        emitStudioHex(info.hex, info.note);
+      }, i * 145);
+      macroBurstTimers.push(t1);
+    });
+
+    const tEnd = setTimeout(() => {
+      macroSteps.forEach((s) => s.classList.remove('is-firing'));
+      if (macroRunBtn) macroRunBtn.textContent = 'Test Burst';
+    }, macroSteps.length * 145 + 240);
+    macroBurstTimers.push(tEnd);
+  }
+
+  if (macroRunBtn) {
+    macroRunBtn.addEventListener('click', runMacroBurstPreview);
+  }
 
   if (stSyncBtn && stBatVal) {
     stSyncBtn.addEventListener('click', () => {
@@ -3847,22 +4056,21 @@
   let skinsHeight = 1;
   let docMaxScroll = 1;
 
-  // Scroll-Velocity Background Whoosh Physics State
+  // Scroll-Velocity Background Whoosh Physics State (Self-healing `whooshRafId`)
   let lastScrollY = window.scrollY || window.pageYOffset || 0;
   let whooshTarget = 0;
   let whooshY = 0;
   let whooshVel = 0;
-  let whooshRunning = false;
+  let whooshRafId = 0;
   let lastWhooshTime = 0;
 
   function whooshTick(now) {
+    whooshRafId = 0;
     if (fpsLowActive || motionPaused || document.hidden || !glidingFramesStage) {
-      whooshRunning = false;
       lastWhooshTime = 0;
       if (glidingFramesStage) glidingFramesStage.style.transform = '';
       return;
     }
-    whooshRunning = true;
     const rawDt = lastWhooshTime && now ? (now - lastWhooshTime) / 1000 : 1 / detectedHz;
     lastWhooshTime = now || performance.now();
     const dt = clamp(rawDt, 0.0004, 0.034);
@@ -3876,14 +4084,13 @@
       whooshVel = 0;
       whooshTarget = 0;
       glidingFramesStage.style.transform = '';
-      whooshRunning = false;
       lastWhooshTime = 0;
       return;
     }
 
     // Pure `translate3d` whoosh (0 `scaleY/skewY` -> 0 10MB offscreen RenderSurface FBO per scroll frame!)
     glidingFramesStage.style.transform = `translate3d(0, ${whooshY.toFixed(1)}px, 0)`;
-    requestAnimationFrame(whooshTick);
+    whooshRafId = requestAnimationFrame(whooshTick);
   }
 
   function cacheScrollMetrics() {
@@ -3924,10 +4131,9 @@
     lastScrollY = y;
     if (!fpsLowActive && !motionPaused && Math.abs(scrollDelta) > 0.5 && glidingFramesStage) {
       whooshTarget = clamp(whooshTarget - scrollDelta * 0.45, -72, 72);
-      if (!whooshRunning) {
-        whooshRunning = true;
+      if (!whooshRafId) {
         lastWhooshTime = 0;
-        requestAnimationFrame(whooshTick);
+        whooshRafId = requestAnimationFrame(whooshTick);
       }
     }
 

@@ -202,6 +202,17 @@
               </span>
             </button>
           </div>
+          <hr class="mode-divider">
+          <label class="mode-sound-row" for="waterSoundSwitch">
+            <span class="mode-sound-left">
+              <svg class="mode-opt-glyph glyph-sound" viewBox="0 0 22 22" aria-hidden="true">
+                <path class="ic-main" d="M4.2 8.8h3.1l4.1-3.6v11.6l-4.1-3.6H4.2a1.4 1.4 0 0 1-1.4-1.4v-1.6a1.4 1.4 0 0 1 1.4-1.4Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+                <path class="ic-wave" d="M14.7 8.1a4.2 4.2 0 0 1 0 5.8M17.2 6a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+              <span class="mode-opt-name">Water Sound</span>
+            </span>
+            <input type="checkbox" switch id="waterSoundSwitch" class="lg-switch" aria-label="Toggle subtle crystal water acoustics">
+          </label>
         </div>
       </div>
       <a href="#download" class="header-cta liquid-pill">
@@ -262,7 +273,7 @@
 
         <!-- Centerpiece 3D Volumetric Real Mouse Stage (Unlimited-Hz Zero-Blur Rig) -->
         <div class="hero-center" id="heroCenter">
-          <div class="mouse-3d-viewport">
+          <div class="mouse-3d-viewport" aria-label="Drag to rotate SMAILWOLF M3 Pro mouse in 3D">
             <div class="mouse-3d-rig" id="productRig">
               <!-- Soft Radial Contact Halo + Ultra Volumetric Caustic Aura -->
               <div class="rig-halo" aria-hidden="true"></div>
@@ -795,6 +806,41 @@
                     <button type="button" class="sim-pill" aria-pressed="false" data-preset="office">Office 1600 DPI</button>
                     <button type="button" class="sim-pill" aria-pressed="false" data-preset="sniper">Design 800 DPI</button>
                   </div>
+
+                  <!-- Wave 22: 1127.mp4 Clear Water-Lens Hardware Register Switches -->
+                  <div class="studio-switches-grid" id="studioSwitchesGrid">
+                    <label class="studio-sw-row" for="swMotionSync">
+                      <span class="sw-meta"><b>Motion Sync</b><small>PAW3311 1:1 lock</small></span>
+                      <input type="checkbox" switch id="swMotionSync" class="lg-switch" checked data-sw-hex="F0 0F AE 0A 2F 01 01 00" data-sw-label="MOTION SYNC">
+                    </label>
+                    <label class="studio-sw-row" for="swAngleSnap">
+                      <span class="sw-meta"><b>Angle Snap</b><small>Linear axis assist</small></span>
+                      <input type="checkbox" switch id="swAngleSnap" class="lg-switch" data-sw-hex="F0 0F AE 0A 2F 02 01 00" data-sw-label="ANGLE SNAP">
+                    </label>
+                    <label class="studio-sw-row" for="swRippleCtrl">
+                      <span class="sw-meta"><b>Ripple Control</b><small>High-DPI smoothing</small></span>
+                      <input type="checkbox" switch id="swRippleCtrl" class="lg-switch" data-sw-hex="F0 0F AE 0A 2F 04 01 00" data-sw-label="RIPPLE CTRL">
+                    </label>
+                    <label class="studio-sw-row" for="swEcoLed">
+                      <span class="sw-meta"><b>Eco Sleep LED</b><small>0.05 mA idle dim</small></span>
+                      <input type="checkbox" switch id="swEcoLed" class="lg-switch" checked data-sw-hex="F0 30 00 00 00 01 64 00" data-sw-label="ECO SLEEP LED">
+                    </label>
+                  </div>
+
+                  <!-- Wave 26: Live Millisecond-Delta Macro Sequence Preview -->
+                  <div class="macro-demo-strip" id="macroDemoStrip">
+                    <div class="macro-demo-head">
+                      <span class="macro-demo-title">DELTA MACRO TIMELINE · [240, 13]</span>
+                      <button type="button" class="macro-run-btn liquid-pill" id="macroRunBtn">Test Burst</button>
+                    </div>
+                    <div class="macro-bars" id="macroBars" aria-live="polite">
+                      <span class="m-step" data-ms="14"><b>0x04</b><em>14ms</em></span>
+                      <span class="m-step" data-ms="9"><b>UP</b><em>9ms</em></span>
+                      <span class="m-step" data-ms="16"><b>0x16</b><em>16ms</em></span>
+                      <span class="m-step" data-ms="11"><b>UP</b><em>11ms</em></span>
+                      <span class="m-step" data-ms="4"><b>0x10</b><em>4ms</em></span>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="studio-mouse-figure">
@@ -1013,7 +1059,7 @@
         <!-- Populated dynamically by app.js -->
       </div>
       <div class="spotlight-foot">
-        <span><b>↑↓</b> Navigate · <b>Enter</b> Equip / Run · <b>Esc</b> Close</span>
+        <span><b>↑↓</b> Navigate · <b>Enter</b> Equip · <b>1–4</b> Tone · <b>M</b> Mode · <b>Esc</b> Close</span>
         <span id="spotlightCount">73 items ready</span>
       </div>
     </div>
